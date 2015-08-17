@@ -1,0 +1,17 @@
+---
+baseurl: http://blog.namiking.net/
+languageCode: jp-ja
+title: Namiking.net
+params:
+  SubTitle: Web系エンジニアの技術ブログ
+  Author: namikingsoft
+  GithubURL: https://github.com/namikingsoft/
+  TwitterURL: https://twitter.com/namikingsoft/
+  SidebarRecentLimit: 5
+taxonomies:
+  category: categories
+  tag: tags
+permalinks:
+  post: /post/:year/:month/:filename/
+metaDataFormat: yaml
+disqusShortname: "namikingsoft"

@@ -1,0 +1,17 @@
+.module-paging
+  .module-paging__prev.col-xs-6
+    {{ if .Prev }}
+    a href="{{ .Prev.RelPermalink }}" title="{{ .Prev.Title }}"
+      i.fa.fa-arrow-circle-o-left
+      span.hidden-xs {{ .Prev.Title }}
+      p.hidden-xs
+        | {{ .Prev.Date.Format "2006-01-02 (Mon)" }}
+    {{ end }}
+  .module-paging__next.col-xs-6
+    {{ if .Next }}
+    a href="{{ .Next.RelPermalink }}" title="{{ .Next.Title }}"
+      span.hidden-xs {{ .Next.Title }}
+      i.fa.fa-arrow-circle-o-right
+      p.hidden-xs
+        | {{ .Next.Date.Format "2006-01-02 (Mon)" }}
+    {{ end }}

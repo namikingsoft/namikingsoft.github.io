@@ -1,0 +1,7 @@
+.layout-content
+  .container
+    article
+      .layout-content__body
+        = include partials/module/markdown.html .
+      .layout-content__comment
+        = include partials/module/comment.html .

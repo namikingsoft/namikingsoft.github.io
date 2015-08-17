@@ -1,0 +1,9 @@
+= doctype html
+html lang=ja
+  head
+    = include partials/head/common.html .
+  body
+    = include partials/layout/sitenavi.html .
+    = include partials/layout/headline-list.html .
+    = include partials/layout/contents.html .
+    = include partials/layout/footer.html .

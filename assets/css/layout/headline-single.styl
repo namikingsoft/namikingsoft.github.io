@@ -1,0 +1,65 @@
+.layout-headline-single
+  padding-top 75px
+  padding-bottom 55px
+  margin-bottom 30px
+  //background-color #e0ddcc
+  background-color $headline-background-color
+  @media (max-width: $screen-width-sm)
+    padding-top 35px
+    padding-bottom 25px
+
+  .container
+    max-width $main-width
+
+  &__title
+    margin-bottom 60px
+    text-shadow 1px 1px 2px #bbb
+    color #444
+
+  &__meta
+    display inline-block
+    margin-right 20px
+    margin-bottom 10px
+
+    ul
+      list-style none
+      padding 0
+      li
+        display inline-block
+        margin-right 1em
+        white-space nowrap
+
+    i
+      margin-right 0.5em
+
+  &__taxonomies
+    display inline-block
+    margin-bottom 10px
+
+    ul
+      display inline-block
+      margin 0
+      padding 0
+      list-style none
+
+      li
+        display inline
+        margin-right 0.5em
+
+        a
+          white-space nowrap
+          color #fff
+          text-decoration none
+          white-space nowrap
+
+  &__body
+    margin-bottom 30px
+
+  &__share
+    padding-top 20px
+    padding-bottom 15px
+    margin-bottom: 30px
+    background-color #eed
+
+  &__comment
+    margin-bottom 50px

@@ -1,0 +1,58 @@
+.module-markdown
+
+  h1, h2, h3, h4, h5, h6
+    margin-top 2.3em
+    margin-bottom 0.75em
+
+  h4, h5, h6
+    font-weight bold
+
+  h2
+    padding 0.8em
+    border-left 3px solid $main-color
+    border-radius 3px
+    background-color #e5e5e5
+    font-size 1.5em
+
+  h3
+    padding-bottom 0.4em
+    font-size 1.25em
+    font-weight bold
+    border-bottom 2px dotted #ccc
+    &:before
+      content '\00266f'
+      margin-right 0.45em
+      color $main-color
+      font-size 1.0em
+
+  h4
+    font-size 1.25em
+    padding-bottom 0.2em
+
+  p
+    margin 0
+    padding 0
+    margin-bottom $markdown-margin-bottom
+
+  pre
+    margin-bottom $markdown-margin-bottom
+
+  blockquote
+    position relative
+    margin 0
+    margin-bottom $markdown-margin-bottom
+    padding 1em 1em 1em 3em
+    border-left 0.75em solid #ddd
+    background-color #e7e7e7
+    &:before
+      content '“'
+      position absolute
+      font-size 4.5em
+      line-height 1em
+      color #999
+      left 0.1em
+      top 0.1em
+
+  img
+    max-width 100%
+    text-align center

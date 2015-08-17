@@ -1,0 +1,5 @@
+.layout-headline-list
+  .container
+    header
+      h1 {{ .Title }}
+      p Categories | Tags

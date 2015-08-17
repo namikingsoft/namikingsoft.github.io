@@ -1,0 +1,24 @@
+.layout-headline-single
+  .container
+    header
+      .layout-headline-single__title
+        h1 {{ .Title }}
+      .lead
+        .layout-headline-single__meta
+          ul
+            li
+              i.fa.fa-calendar
+              | {{ .Date.Format "2006-01-02 (Mon)" }}
+            li
+              i.fa.fa-user
+              | namikingsoft
+        .layout-headline-single__taxonomies
+          ul
+            {{ range .Params.categories }}
+            li
+              a.label.label-success href="/categories/{{ . | urlize }}" {{ . }}
+            {{ end }}
+            {{ range .Params.tags }}
+            li
+              a.label.label-default href="/tags/{{ . | urlize }}" {{ . }}
+            {{ end }}

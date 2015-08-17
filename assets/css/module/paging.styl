@@ -1,0 +1,29 @@
+.module-paging
+
+  a, p
+    white-space nowrap
+    line-height 1.4
+  a
+    display block
+    font-size 0.9em
+    color #555
+    text-decoration none
+    &:hover
+      color $main-color
+    i
+      color $main-color
+      @media (max-width: $screen-width-sm)
+        font-size 3em
+  p
+    font-size 0.9em
+    margin 0
+
+  &__prev
+    overflow ellipsis
+    text-align left
+    padding-left 0
+
+  &__next
+    overflow ellipsis
+    text-align right
+    padding-right 0

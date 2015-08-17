@@ -1,0 +1,23 @@
+.module-profile
+  .module-profile__avatar
+    img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"
+    small
+      | 書いた人
+      br
+      | Written by
+  .module-profile__text
+    h3 {{ .Site.Params.Author }}
+    p
+      | 何かを残して逝きたい
+      br
+      | フロントエンドエンジニア
+    ul
+      li
+        a href="#"
+          i.fa.fa-2x.fa-user
+      li
+        a href="#"
+          i.fa.fa-2x.fa-github
+      li
+        a href="#"
+          i.fa.fa-2x.fa-twitter

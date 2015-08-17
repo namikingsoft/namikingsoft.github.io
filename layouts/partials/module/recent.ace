@@ -1,0 +1,9 @@
+.module-recent
+  h3 Recent Post
+  dl
+    {{ range first 5 .Site.Pages }}
+    dt
+      | {{ .Date.Format "2006-01-02 (Mon)" }}
+    dd
+      a href="{{ .Permalink }}" {{ .Title }}
+    {{ end }}

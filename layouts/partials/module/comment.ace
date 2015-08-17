@@ -1,0 +1,2 @@
+.module-comment
+  {{ template "_internal/disqus.html" . }}

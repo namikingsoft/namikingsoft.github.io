@@ -1,0 +1,11 @@
+.layout-sharenavi
+  .container
+    {{ if eq .Section "post" }}
+    h4 この記事について
+    {{ else }}
+    h4 このブログについて
+    {{ end }}
+    .layout-sharenavi__profile
+      = include partials/module/profile.html .
+    .layout-sharenavi__sharelink
+      = include partials/module/sharelink.html .

@@ -1,0 +1,8 @@
+.layout-footer
+  .container
+    .layout-footer__poweredby.col-sm-4
+      = include partials/module/poweredby.html .
+    .layout-footer__recent.col-sm-4
+      = include partials/module/recent.html .
+    .layout-footer__tagcloud.col-sm-4
+      = include partials/module/tagcloud.html .

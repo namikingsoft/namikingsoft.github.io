@@ -1,0 +1,26 @@
+.module-relate
+  {{ $permalink := .Permalink }}
+  {{ $categories := .Params.categories }}
+  {{ $pages := .Site.Pages }}
+
+  {{ range $key, $val := .Site.Taxonomies.categories }}
+  {{ if in $categories $key }}
+  {{ if len $val | lt 1 }}
+
+  h3 同じシリーズの記事
+  ul
+    {{ range $pages }}
+    {{ $hasCategory := intersect $categories .Params.categories | len | lt 0 }}
+    {{ if $hasCategory }}
+    li
+      {{ if eq $permalink .Permalink }}
+      | {{ .Title }} (現在の記事)
+      {{ else }}
+      a href="{{ .Permalink }}" {{ .Title }}
+      {{ end }}
+    {{ end }}
+    {{ end }}
+  
+  {{ end }}
+  {{ end }}
+  {{ end }}

@@ -1,0 +1,4 @@
+meta charset=utf-8
+title {{ .Title }}{{ if ne .Title .Site.Title }} - {{ .Site.Title }}{{ end }}
+link rel=stylesheet href=/css/bundle.css
+script src=/js/bundle.js

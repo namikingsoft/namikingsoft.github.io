@@ -1,0 +1,6 @@
+.layout-pagenavi
+  .container
+    .layout-pagenavi__relate
+      = include partials/module/relate.html .
+    .layout-pagenavi__paging
+      = include partials/module/paging.html .

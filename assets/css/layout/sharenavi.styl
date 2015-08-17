@@ -1,0 +1,55 @@
+.layout-sharenavi
+  padding-top 75px
+  padding-bottom 50px
+  background-color #f5f5f5
+
+  .container
+    max-width $main-width
+    position relative
+    height 200px
+    @media (max-width: 600px)
+      text-align center
+      border-radius 0px
+      height auto
+
+  h4
+    font-size 0.9em
+    font-weight bold
+    text-align center
+    margin-bottom 2em
+    margin-top -1em
+    &:before
+      content '−'
+      font-size 1.1em
+      margin-right 0.5em
+      color #bbb
+    &:after
+      content '−'
+      font-size 1.1em
+      margin-left 0.5em
+      color #bbb
+
+  &__sharelink
+    display inline-block
+    position absolute
+    top 0
+    right 0
+    width 50%
+    padding-top 20px
+    height 200px
+    @media (max-width: 600px)
+      position static
+      width 100%
+
+  &__profile
+    display inline-block
+    text-align left
+    position absolute
+    top 0
+    left 0
+    width 300px
+    border-radius 10px
+    padding 30px 20px
+    height 200px
+    @media (max-width: 600px)
+      position static

@@ -1,0 +1,30 @@
+.layout-headline-list
+  background-color $headline-background-color
+  height 250px
+  padding-top 90px
+  margin-bottom 30px
+  text-align center
+
+  .container
+    max-width $main-width
+
+  h1
+    margin 0
+    padding 0
+    font-weight bold
+    color #555
+    font-size 24px
+    white-space nowrap
+    &:before
+      content '−'
+      color #aaa
+      margin-right 10px
+    &:after
+      content '−'
+      color #aaa
+      margin-left 10px
+
+  p
+    color #bbb
+    font-size 36px
+    font-family $mincho

@@ -1,0 +1,20 @@
+.layout-sitenavi
+  .container
+    .layout-sitenavi__title
+      a href="/"
+        strong {{ .Site.Title }}
+        p {{ .Site.Params.SubTitle }}
+    .layout-sitenavi__menu
+      ul
+        li
+          a href="#"
+            i.fa.fa-lg.fa-user
+            span ABOUT
+        li
+          a href="{{ .Site.Params.GithubURL }}"
+            i.fa.fa-lg.fa-github
+            span GITHUB
+        li
+          a href="{{ .Site.Params.TwitterURL }}"
+            i.fa.fa-lg.fa-twitter
+            span TWITTER

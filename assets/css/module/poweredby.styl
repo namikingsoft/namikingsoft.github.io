@@ -1,0 +1,72 @@
+.module-poweredby
+
+  &__title
+    display inline-block
+
+    a
+      display block
+      text-align center
+      transition opacity 0.1s linear
+      &:hover
+        text-decoration none
+
+      strong
+        display block
+        font-size 26px
+        font-family: Georgia
+        letter-spacing  -1px
+        font-weight bold
+        line-height 1.4
+        &:first-letter
+          font-size 1.15em
+
+      p
+        display block
+        line-height 1.4
+        font-size 12px
+        color #bbb
+
+      &:hover
+        opacity 0.5
+
+  &__menu
+    font-family Eau Douce,Helvetica Neue,Calibri,Emoji,sans-serif
+    margin-top 10px
+
+    ul
+      list-style none
+      margin 0
+      padding 0
+
+      li
+        margin 0
+        padding 0
+
+        a
+          display block
+          padding 5px 5px
+          transition background 0.2s linear
+
+          i
+            margin-right 7px
+
+          &:hover
+            @media (min-width: $screen-width-xs)
+              background-color #666
+              text-decoration none
+
+  &__hugo
+    margin-top 30px
+    font-size: 0.75em
+
+    img
+      float left
+      margin-right 10px
+      image-circle 45px
+      image-grayscale()
+
+    p
+      color #bbb
+      margin-bottom 0
+      a
+        text-decoration underline

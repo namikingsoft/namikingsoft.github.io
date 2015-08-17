@@ -1,0 +1,19 @@
+.module-listrow
+  article
+    header
+      .module-listrow__title
+        h3
+          a href="{{ .Permalink }}" {{ .Title }}
+      .module-listrow__datetime
+        i.fa.fa-calendar
+        | {{ .Date.Format "2006-01-02 (Mon)" }}
+      .module-listrow__taxonomies
+        ul
+          {{ range .Params.categories }}
+          li
+            a.label.label-success href="/categories/{{ . | urlize }}" {{ . }}
+          {{ end }}
+          {{ range .Params.tags }}
+          li
+            a.label.label-default href="/tags/{{ . | urlize }}" {{ . }}
+          {{ end }}
