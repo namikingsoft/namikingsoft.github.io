@@ -2,7 +2,6 @@
   padding-top 75px
   padding-bottom 55px
   margin-bottom 30px
-  //background-color #e0ddcc
   background-color $headline-background-color
   @media (max-width: $screen-width-sm)
     padding-top 35px
@@ -13,13 +12,14 @@
 
   &__title
     margin-bottom 60px
-    text-shadow 1px 1px 2px #bbb
     color #444
 
+    h1
+      line-height 1.4
+
   &__meta
-    display inline-block
     margin-right 20px
-    margin-bottom 10px
+    margin-bottom 20px
 
     ul
       list-style none
@@ -28,29 +28,33 @@
         display inline-block
         margin-right 1em
         white-space nowrap
-
-    i
-      margin-right 0.5em
+        i
+          margin-right 0.5em
+        img
+          margin-right 0.4em
+          margin-bottom 5px
+          border-radius 27px
+          width 27px
+          image-grayscale()
 
   &__taxonomies
-    display inline-block
     margin-bottom 10px
 
     ul
-      display inline-block
+      display block
       margin 0
       padding 0
       list-style none
 
       li
-        display inline
+        display inline-block
         margin-right 0.5em
+        margin-bottom 0.5em
 
         a
           white-space nowrap
           color #fff
           text-decoration none
-          white-space nowrap
 
   &__body
     margin-bottom 30px

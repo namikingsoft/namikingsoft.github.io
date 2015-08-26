@@ -1,16 +1,16 @@
 .module-poweredby
   .module-poweredby__title
-    a href="/"
+    a href="{{ .Site.BaseURL }}"
       strong {{ .Site.Title }}
       p {{ .Site.Params.SubTitle }}
   .module-poweredby__menu
     ul
       li
-        a href="#"
+        a href="{{ .Site.BaseURL }}"
           i.fa.fa-lg.fa-home
           span HOME
       li
-        a href="#"
+        a href="{{ .Site.BaseURL }}about/"
           i.fa.fa-lg.fa-user
           span ABOUT
       li

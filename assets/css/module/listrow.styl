@@ -1,10 +1,14 @@
 .module-listrow
   margin-bottom 20px
   padding-bottom 20px
-  border-bottom 1px dashed #bbb
+  border-bottom 2px dotted #ccc
   font-size 16px
   &:last-child
     border-bottom 0px
+
+  &__title
+    h3
+      line-height 1.4
 
   &__datetime
     display inline-block
@@ -23,7 +27,7 @@
       list-style none
 
       li
-        display inline
+        display inline-block
         margin-right 0.5em
 
         a

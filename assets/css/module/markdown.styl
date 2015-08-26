@@ -1,7 +1,8 @@
 .module-markdown
+  word-wrap break-word
 
   h1, h2, h3, h4, h5, h6
-    margin-top 2.3em
+    margin-top 2.34em
     margin-bottom 0.75em
 
   h4, h5, h6
@@ -9,21 +10,17 @@
 
   h2
     padding 0.8em
-    border-left 3px solid $main-color
+    border-left 5px solid $main-color
     border-radius 3px
-    background-color #e5e5e5
-    font-size 1.5em
+    background-color #eee
+    font-size 1.7em
 
   h3
-    padding-bottom 0.4em
-    font-size 1.25em
-    font-weight bold
-    border-bottom 2px dotted #ccc
-    &:before
-      content '\00266f'
-      margin-right 0.45em
-      color $main-color
-      font-size 1.0em
+    padding 0.6em 0.4em
+    font-size 1.5em
+    border-top 1px solid #aaa
+    border-bottom 1px solid #aaa
+    background-color #fafafa
 
   h4
     font-size 1.25em
@@ -35,7 +32,12 @@
     margin-bottom $markdown-margin-bottom
 
   pre
+    padding 0
+    border-radius 0
+    border 0
     margin-bottom $markdown-margin-bottom
+    code
+      padding 1.4em
 
   blockquote
     position relative
@@ -43,7 +45,7 @@
     margin-bottom $markdown-margin-bottom
     padding 1em 1em 1em 3em
     border-left 0.75em solid #ddd
-    background-color #e7e7e7
+    background-color #eee
     &:before
       content '“'
       position absolute

@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "postinstall": "bower install && gulp deploy:clone",
     "gulp": "gulp",
     "bower": "bower",
     "build": "gulp build && hugo",
-    "start": "parallelshell 'gulp watch' 'hugo server --watch'"
+    "deploy": "npm run build && gulp deploy",
+    "start": "parallelshell 'gulp watch' 'hugo server --watch --buildDrafts'"
   },
   "devDependencies": {
     "bower": "^1.4.1",
@@ -14,11 +16,13 @@
     "coffee-script": "^1.9.3",
     "coffeeify": "^1.1.0",
     "debowerify": "^1.3.1",
+    "del": "^1.2.1",
     "gulp": "^3.9.0",
     "gulp-autoprefixer": "^2.3.1",
     "gulp-concat": "^2.6.0",
     "gulp-if": "^1.2.5",
     "gulp-plumber": "^1.0.1",
+    "gulp-shell": "^0.4.2",
     "gulp-sourcemaps": "^1.5.2",
     "gulp-stylus": "^2.0.6",
     "gulp-uglify": "^1.2.0",

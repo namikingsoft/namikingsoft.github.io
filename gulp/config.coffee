@@ -22,7 +22,7 @@ css =
   src: [
     path.bower + '/font-awesome/css/font-awesome.min.css'
     path.bower + '/bootstrap/dist/css/bootstrap.min.css'
-    path.bower + '/highlightjs/styles/github.css'
+    path.bower + '/highlightjs/styles/hybrid.css'
     path.src + '/css/index.styl'
   ]
   dest: path.dest + '/css/'
@@ -38,7 +38,12 @@ css =
     src: path.bower + '/font-awesome/fonts/fontawesome-webfont.*'
     dest: path.dest + '/fonts/'
 
+deploy =
+  git:
+    url: 'git@github.com:namikingsoft/namikingsoft.github.io.git'
+
 module.exports =
   path: path
   js: js
   css: css
+  deploy: deploy

@@ -8,6 +8,3 @@ html lang=ja
     = include partials/layout/contents.html .
     = include partials/layout/sharenavi.html .
     = include partials/layout/footer.html .
-
-
-

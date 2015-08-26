@@ -10,7 +10,7 @@
               i.fa.fa-calendar
               | {{ .Date.Format "2006-01-02 (Mon)" }}
             li
-              i.fa.fa-user
+              img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g"
               | namikingsoft
         .layout-headline-single__taxonomies
           ul
