@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <url>
+    <loc>http://blog.namiking.net/</loc>
+    <lastmod>2015-08-27T08:16:13+09:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://blog.namiking.net/post/2015/08/install-restyaboard/</loc>
+    <lastmod>2015-08-27T08:16:13+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http://blog.namiking.net/about/</loc>
+    <lastmod>2015-08-27T08:00:22+09:00</lastmod>
+  </url>
+  
+</urlset>

@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Vagrant on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/vagrant/</link>
+    <description>Recent content in Vagrant on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Thu, 27 Aug 2015 08:16:13 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/vagrant/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>かんばん系プロジェクト管理OSSのRestyaboardをインストールしてみる</title>
+      <link>http://blog.namiking.net/post/2015/08/install-restyaboard/</link>
+      <pubDate>Thu, 27 Aug 2015 08:16:13 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/08/install-restyaboard/</guid>
+      <description>
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/08/install-restyaboard/index.jpg&#34; alt=&#34;Resyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;Restyaboard&lt;/code&gt;は今年の中旬頃公開された、かんばん形式でプロジェクトを管理できるオープンソースソフトウェア。&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;Pivotal Tracker&lt;/code&gt;, &lt;code&gt;Trello&lt;/code&gt;あたりは仕事でも使いたいなーとは思うのですが、&lt;br /&gt;
+クラウドっすか・・(^_^;) みたいな現場もあるので、
+クローズドな環境に導入できるかんばんツールはかなりありがたい。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Restyaboard | Trello like kanban board. Based on Restya platform.&lt;br /&gt;
+&lt;a href=&#34;http://restya.com/board/&#34;&gt;http://restya.com/board/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;AMIも提供しているとのことですが、
+どの環境でも導入できるように構築手順を確立しておきたい。
+んが、公式ドキュメントにインストール手順が記載されていなかったので、試行錯誤して何とか動くところまで持ち込んでみた。&lt;/p&gt;
+
+&lt;h2 id=&#34;インストール手順:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール手順&lt;/h2&gt;
+
+&lt;p&gt;必要なコンポーネントがそこそこ多く、インストール手順も面倒なため、&lt;br /&gt;
+&lt;code&gt;Vagrant&lt;/code&gt;+&lt;code&gt;Itamae&lt;/code&gt;で、構成管理ファイルも作っておいた。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: Provision restyaboard&lt;br /&gt;
+&lt;a href=&#34;https://github.com/namikingsoft/provision-restyaboard&#34;&gt;https://github.com/namikingsoft/provision-restyaboard&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;動作確認環境:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;動作確認環境&lt;/h3&gt;
+
+&lt;ul&gt;
+&lt;li&gt;インフラ
+
+&lt;ul&gt;
+&lt;li&gt;AWS EC2 ti2.micro&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;OS/ディストリビューション
+
+&lt;ul&gt;
+&lt;li&gt;Amazon Linux&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;インストールするソフトウェア
+
+&lt;ul&gt;
+&lt;li&gt;Restyaboard Ver.0.1.1&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;デプロイパス
+
+&lt;ul&gt;
+&lt;li&gt;/var/www/board&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;必要なミドルウェア
+
+&lt;ul&gt;
+&lt;li&gt;PostgreSQL 9.x&lt;/li&gt;
+&lt;li&gt;PHP 5.x&lt;/li&gt;
+&lt;li&gt;Nginx&lt;/li&gt;
+&lt;li&gt;node.js (ビルドに必要)&lt;/li&gt;
+&lt;li&gt;Elasticsearch (任意？)&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;node-js:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;node.js&lt;/h3&gt;
+
+&lt;p&gt;サーバー動作には使わないっぽいが、
+&lt;code&gt;less&lt;/code&gt;や&lt;code&gt;jst&lt;/code&gt;のビルドに必要。&lt;/p&gt;
+
+&lt;h4 id=&#34;インストール:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y nodejs npm
+$ sudo npm install -g grunt-cli
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;restyaboard:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;Restyaboard&lt;/h3&gt;
+
+&lt;h4 id=&#34;ダウンロード:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ダウンロード&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ cd /var/www
+$ sudo git clone https://github.com/RestyaPlatform/board.git
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;パーミッション設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;パーミッション設定&lt;/h4&gt;
+
+&lt;p&gt;アップロードした画像やファイルを保存するディレクトリに書き込み権限を付加。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo chmod -R o+w /var/www/board/client/img
+$ sudo chmod -R o+w /var/www/board/media
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;ビルド:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ビルド&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ cd /var/www/board
+$ sudo npm install
+$ sudo grunt build
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;r設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;R設定&lt;/h4&gt;
+
+&lt;p&gt;PostgreSQL関連の認証情報が初期化されたので、環境に応じて設定を変更する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /var/www/board/server/php/R/config.inc.php
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ここでは以下の項目を書き換えた。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;define(&#39;R_DB_USER&#39;, &#39;restya&#39;);
+define(&#39;R_DB_PASSWORD&#39;, &#39;password&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;postgresql:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;PostgreSQL&lt;/h3&gt;
+
+&lt;h4 id=&#34;インストール-サービス起動:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール＆サービス起動&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y postgresql94-server
+
+$ sudo chkconfig postgresql94 on
+$ sudo service postgresql94 initdb
+$ sudo service postgresql94 start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;db設定-ユーザー作成:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;DB設定＆ユーザー作成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo su - postgres
+$ psql -U postgres -c \
+  &amp;quot;CREATE USER restya WITH ENCRYPTED PASSWORD &#39;password&#39;&amp;quot;
+$ psql -U postgres -c \
+  &amp;quot;CREATE DATABASE restyaboard OWNER restya ENCODING &#39;UTF8&#39;&amp;quot;
+$ exit
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;認証設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;認証設定&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /var/lib/pgsql94/data/pg_hba.conf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;既存のものはコメントアウトして、以下を追記する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;local all postgres peer
+local all all md5
+host all all 127.0.0.1/32 md5
+host all all ::1/128 md5
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;host&lt;/code&gt;の設定をしないと、PHPで接続エラーが出るので注意。&lt;/p&gt;
+
+&lt;h4 id=&#34;初期データ登録:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;初期データ登録&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo su - postgres
+$ psql -U postgres -d restyaboard -f \
+  /var/www/board/sql/restyaboard_with_empty_data.sql
+$ exit
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;nginx:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;Nginx&lt;/h3&gt;
+
+&lt;p&gt;WebAPI用のサーバー。&lt;/p&gt;
+
+&lt;h4 id=&#34;インストール-1:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y nginx
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;conf設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;conf設定&lt;/h4&gt;
+
+&lt;p&gt;設定例はRestyaboardのデプロイパスに格納されているので、
+そこからコピーして、環境に応じて書き換える。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo cp /var/www/board/restyaboard.conf /etc/nginx/conf.d/
+$ sudo vi /etc/nginx/conf.d/restyaboard.conf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;一括置換 &lt;code&gt;/usr/share/nginx/html&lt;/code&gt; → &lt;code&gt;/var/www/board&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&#34;サービス起動:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;サービス起動&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo chkconfig nginx on
+$ sudo service nginx start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;php:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;PHP&lt;/h3&gt;
+
+&lt;p&gt;RestyaboardのPHPソースに&lt;code&gt;PHP version 5&lt;/code&gt;とあるので、PHP5.6で動作させてみる。
+以下のパッケージをいれれば、ひと通り動作するっぽい。&lt;/p&gt;
+
+&lt;h4 id=&#34;インストール-2:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y \
+    php56 php56-fpm php56-pgsql php56-mbstring php56-gd php56-pecl-imagick
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;Amazon Linux&lt;/code&gt;であれば、標準リポジトリにPHP5.6が入っているみたい。
+別ディストリビューションであれば、&lt;code&gt;remi&lt;/code&gt;リポジトリなどを追加してから、
+インストールする。&lt;/p&gt;
+
+&lt;h4 id=&#34;php-fpmの設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;php-fpmの設定&lt;/h4&gt;
+
+&lt;p&gt;デフォルト設定がApache用になっているので、Nginx用に書き換える。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /etc/php-fpm.d/www.conf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;user = apache&lt;/code&gt; →  &lt;code&gt;user = nginx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;group = apache&lt;/code&gt; →  &lt;code&gt;group = nginx&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&#34;サービス起動-1:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;サービス起動&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo chkconfig php-fpm on
+$ sudo service php-fpm start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;elasticsearch:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ElasticSearch&lt;/h3&gt;
+
+&lt;p&gt;無くても、ある程度動くっぽいが一応。&lt;br /&gt;
+URLやIndexの設定は、インストール後のRestyaboard管理画面からできる。&lt;/p&gt;
+
+&lt;h4 id=&#34;リポジトリ追加:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;リポジトリ追加&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /etc/yum.repos.d/elasticsearch.repo
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;[elasticsearch-1.0]
+name=Elasticsearch repository for 1.0.x packages
+baseurl=http://packages.elasticsearch.org/elasticsearch/1.0/centos
+gpgcheck=1
+gpgkey=http://packages.elasticsearch.org/GPG-KEY-elasticsearch
+enabled=0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;インストール-サービス起動-1:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール＆サービス起動&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y --enablerepo=&#39;elasticsearch-1.0&#39; elasticsearch
+
+$ sudo chkconfig elasticsearch on
+$ sudo service elasticsearch start
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;crontab設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;Crontab設定&lt;/h4&gt;
+
+&lt;p&gt;インデックス更新のために、Crontabを設定する。&lt;br /&gt;
+5分毎に更新する場合は、以下のようにする。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ crontab -e
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;*/5 * * * * php /var/www/board/server/php/R/shell/cron.php
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;ファイアウォール設定など:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ファイアウォール設定など&lt;/h3&gt;
+
+&lt;p&gt;AWSならセキュリティグループから、
+その他Linuxなら&lt;code&gt;iptables&lt;/code&gt;,&lt;code&gt;firewalld&lt;/code&gt;などから、
+&lt;code&gt;80&lt;/code&gt;ポートを外向けに開放しておく。&lt;/p&gt;
+
+&lt;h2 id=&#34;動作確認:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;動作確認&lt;/h2&gt;
+
+&lt;h4 id=&#34;url:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;URL&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;http://(サーバーIP)/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ログインフォームが出てくれば、大方OK。&lt;/p&gt;
+
+&lt;h4 id=&#34;ログイン情報:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ログイン情報&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;管理者権限
+Username: admin
+Password: restya
+
+ユーザー権限
+Username: user
+Password: restya
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;つまづいた点:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;つまづいた点&lt;/h4&gt;
+
+&lt;p&gt;PostgreSQLやPHPパッケージの設定がうまく行えていないと、
+以下の様な不具合が出たりする。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;ログインフォームが表示されない
+
+&lt;ul&gt;
+&lt;li&gt;PostgreSQLとのコネクションに失敗していた。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;pg_hba.conf&lt;/code&gt;でhostを設定することで解決&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;ログイン後のフッターメニューが表示されない
+
+&lt;ul&gt;
+&lt;li&gt;PostgreSQLとのコネクションに失敗していた。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;pg_hba.conf&lt;/code&gt;でhostを設定することで解決&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;アップロードした画像が表示されない。
+
+&lt;ul&gt;
+&lt;li&gt;パーミッションの設定が正しくない。&lt;/li&gt;
+&lt;li&gt;PHPパッケージが足りてなかった、&lt;code&gt;php-gd&lt;/code&gt;,&lt;code&gt;php-pecl-imagick&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;ボード編集中に、APIサーバーエラー(500)が頻発する
+
+&lt;ul&gt;
+&lt;li&gt;PHPパッケージが足りてなかった、&lt;code&gt;mstring&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;まとめ:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;まとめ&lt;/h2&gt;
+
+&lt;p&gt;構築手順や必要なパッケージが全て公開されていないため、
+インストールはほぼデバッグ作業でしたが、なんとかうまく動かせるまでに至った。&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;Trello&lt;/code&gt;などと比べるとUIはまだ洗練中という印象ですが、
+基本的な機能はほぼ抑えているので、隙を見て使っていこうかな。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
