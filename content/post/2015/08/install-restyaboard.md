@@ -6,7 +6,7 @@ Tags:
   - OSS
   - Vagrant
   - Itamae
-date: 2015-08-23T01:43:13+09:00
+date: 2015-08-27T08:16:13+09:00
 title: かんばん系プロジェクト管理OSSのRestyaboardをインストールしてみる
 ---
 
@@ -32,8 +32,8 @@ AMIも提供しているとのことですが、
 必要なコンポーネントがそこそこ多く、インストール手順も面倒なため、  
 `Vagrant`+`Itamae`で、構成管理ファイルも作っておいた。
 
-> GitHub: Install Restyaboard  
-> https://github.com/namikingsoft/namikingsoft.github.io
+> GitHub: Provision restyaboard  
+> https://github.com/namikingsoft/provision-restyaboard
 
 
 ### 動作確認環境
