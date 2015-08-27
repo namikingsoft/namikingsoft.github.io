@@ -12,7 +12,8 @@ title: かんばん系プロジェクト管理OSSのRestyaboardをインスト�
 
 ![Resyaboard ScreenShot](/images/post/2015/08/install-restyaboard/index.jpg)
 
-`Restyaboard`は今年の中旬頃公開された、かんばん形式でプロジェクトを管理できるオープンソースソフトウェア。
+`Restyaboard`はプロジェクトをかんばん形式で管理できるオープンソースソフトウェア。
+GitHubを見ると今年の中旬頃に`Initial commit`ということで、表に出たのは最近なんだろうか。
 
 `Pivotal Tracker`, `Trello`あたりは仕事でも使いたいなーとは思うのですが、  
 クラウドっすか・・(^_^;) みたいな現場もあるので、
@@ -32,14 +33,14 @@ AMIも提供しているとのことですが、
 必要なコンポーネントがそこそこ多く、インストール手順も面倒なため、  
 `Vagrant`+`Itamae`で、構成管理ファイルも作っておいた。
 
-> GitHub: Provision restyaboard  
+> GitHub: Provision Restyaboard  
 > https://github.com/namikingsoft/provision-restyaboard
 
 
 ### 動作確認環境
 
 * インフラ
-  * AWS EC2 ti2.micro
+  * AWS EC2 t2.micro
 * OS/ディストリビューション
   * Amazon Linux
 * インストールするソフトウェア
@@ -49,7 +50,7 @@ AMIも提供しているとのことですが、
 * 必要なミドルウェア
   * PostgreSQL 9.x
   * PHP 5.x
-  * Nginx
+  * nginx
   * node.js (ビルドに必要)
   * Elasticsearch (任意？)
 
@@ -156,7 +157,7 @@ $ exit
 ```
 
 
-### Nginx
+### nginx
 
 WebAPI用のサーバー。
 
@@ -204,7 +205,7 @@ $ sudo yum install -y \
 
 #### php-fpmの設定
 
-デフォルト設定がApache用になっているので、Nginx用に書き換える。
+デフォルト設定がApache用になっているので、nginx用に書き換える。
 
 ```bash
 $ sudo vi /etc/php-fpm.d/www.conf
@@ -295,9 +296,6 @@ Password: restya
 
 #### つまづいた点
 
-PostgreSQLやPHPパッケージの設定がうまく行えていないと、
-以下の様な不具合が出たりする。
-
 * ログインフォームが表示されない
   * PostgreSQLとのコネクションに失敗していた。
   * `pg_hba.conf`でhostを設定することで解決
@@ -310,6 +308,9 @@ PostgreSQLやPHPパッケージの設定がうまく行えていないと、
 * ボード編集中に、APIサーバーエラー(500)が頻発する
   * PHPパッケージが足りてなかった、`mstring`
 
+PostgreSQLやPHPパッケージの設定がうまく行えていないと、
+上の様な不具合が出たりする。
+
 
 まとめ
 ------------------------------
@@ -319,3 +320,20 @@ PostgreSQLやPHPパッケージの設定がうまく行えていないと、
 
 `Trello`などと比べるとUIはまだ洗練中という印象ですが、
 基本的な機能はほぼ抑えているので、隙を見て使っていこうかな。
+
+
+#### 追記： 2015/08/28
+`LibreBoard`というのもあるらしい。こちらもTrelloクローンのOSS。  
+Dockerfileも用意されてたので、インストールが楽すぎて涙。
+
+> GitHub: LibreBoard  
+> https://github.com/libreboard/libreboard
+
+ちょっと触った感じだと、かなり絞ったシンプルなTrelloという感じ。
+機能面では、`Restyaboard`の方が豊富な印象だが、
+その分、UIもシンプルでとっつきやすい。
+
+そのうち、細かい機能比較とかもまとめておきたい。
+
+
+
