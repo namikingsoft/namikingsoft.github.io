@@ -2,7 +2,8 @@
 
 <p><img src="/images/post/2015/08/install-restyaboard/index.jpg" alt="Resyaboard ScreenShot" /></p>
 
-<p><code>Restyaboard</code>は今年の中旬頃公開された、かんばん形式でプロジェクトを管理できるオープンソースソフトウェア。</p>
+<p><code>Restyaboard</code>はプロジェクトをかんばん形式で管理できるオープンソースソフトウェア。
+GitHubを見ると今年の中旬頃に<code>Initial commit</code>ということで、表に出たのは最近なんだろうか。</p>
 
 <p><code>Pivotal Tracker</code>, <code>Trello</code>あたりは仕事でも使いたいなーとは思うのですが、<br />
 クラウドっすか・・(^_^;) みたいな現場もあるので、
@@ -23,7 +24,7 @@
 <code>Vagrant</code>+<code>Itamae</code>で、構成管理ファイルも作っておいた。</p>
 
 <blockquote>
-<p>GitHub: Provision restyaboard<br />
+<p>GitHub: Provision Restyaboard<br />
 <a href="https://github.com/namikingsoft/provision-restyaboard">https://github.com/namikingsoft/provision-restyaboard</a></p>
 </blockquote>
 
@@ -33,7 +34,7 @@
 <li>インフラ
 
 <ul>
-<li>AWS EC2 ti2.micro</li>
+<li>AWS EC2 t2.micro</li>
 </ul></li>
 <li>OS/ディストリビューション
 
@@ -55,7 +56,7 @@
 <ul>
 <li>PostgreSQL 9.x</li>
 <li>PHP 5.x</li>
-<li>Nginx</li>
+<li>nginx</li>
 <li>node.js (ビルドに必要)</li>
 <li>Elasticsearch (任意？)</li>
 </ul></li>
@@ -152,7 +153,7 @@ $ psql -U postgres -d restyaboard -f \
 $ exit
 </code></pre>
 
-<h3 id="nginx:b5a2865b9ccb73515b3dffb76a8b1993">Nginx</h3>
+<h3 id="nginx:b5a2865b9ccb73515b3dffb76a8b1993">nginx</h3>
 
 <p>WebAPI用のサーバー。</p>
 
@@ -195,7 +196,7 @@ $ sudo service nginx start
 
 <h4 id="php-fpmの設定:b5a2865b9ccb73515b3dffb76a8b1993">php-fpmの設定</h4>
 
-<p>デフォルト設定がApache用になっているので、Nginx用に書き換える。</p>
+<p>デフォルト設定がApache用になっているので、nginx用に書き換える。</p>
 
 <pre><code class="language-bash">$ sudo vi /etc/php-fpm.d/www.conf
 </code></pre>
@@ -276,9 +277,6 @@ Password: restya
 
 <h4 id="つまづいた点:b5a2865b9ccb73515b3dffb76a8b1993">つまづいた点</h4>
 
-<p>PostgreSQLやPHPパッケージの設定がうまく行えていないと、
-以下の様な不具合が出たりする。</p>
-
 <ul>
 <li>ログインフォームが表示されない
 
@@ -305,6 +303,9 @@ Password: restya
 </ul></li>
 </ul>
 
+<p>PostgreSQLやPHPパッケージの設定がうまく行えていないと、
+上の様な不具合が出たりする。</p>
+
 <h2 id="まとめ:b5a2865b9ccb73515b3dffb76a8b1993">まとめ</h2>
 
 <p>構築手順や必要なパッケージが全て公開されていないため、
@@ -312,6 +313,22 @@ Password: restya
 
 <p><code>Trello</code>などと比べるとUIはまだ洗練中という印象ですが、
 基本的な機能はほぼ抑えているので、隙を見て使っていこうかな。</p>
+
+<h4 id="追記-2015-08-28:b5a2865b9ccb73515b3dffb76a8b1993">追記： 2015/08/28</h4>
+
+<p><code>LibreBoard</code>というのもあるらしい。こちらもTrelloクローンのOSS。<br />
+Dockerfileも用意されてたので、インストールが楽すぎて涙。</p>
+
+<blockquote>
+<p>GitHub: LibreBoard<br />
+<a href="https://github.com/libreboard/libreboard">https://github.com/libreboard/libreboard</a></p>
+</blockquote>
+
+<p>ちょっと触った感じだと、かなり絞ったシンプルなTrelloという感じ。
+機能面では、<code>Restyaboard</code>の方が豊富な印象だが、
+その分、UIもシンプルでとっつきやすい。</p>
+
+<p>そのうち、細かい機能比較とかもまとめておきたい。</p>
 </div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
 <script type="text/javascript">
     var disqus_shortname = 'namikingsoft';

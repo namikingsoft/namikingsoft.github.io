@@ -19,7 +19,8 @@
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/08/install-restyaboard/index.jpg&#34; alt=&#34;Resyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;code&gt;Restyaboard&lt;/code&gt;は今年の中旬頃公開された、かんばん形式でプロジェクトを管理できるオープンソースソフトウェア。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Restyaboard&lt;/code&gt;はプロジェクトをかんばん形式で管理できるオープンソースソフトウェア。
+GitHubを見ると今年の中旬頃に&lt;code&gt;Initial commit&lt;/code&gt;ということで、表に出たのは最近なんだろうか。&lt;/p&gt;
 
 &lt;p&gt;&lt;code&gt;Pivotal Tracker&lt;/code&gt;, &lt;code&gt;Trello&lt;/code&gt;あたりは仕事でも使いたいなーとは思うのですが、&lt;br /&gt;
 クラウドっすか・・(^_^;) みたいな現場もあるので、
@@ -40,7 +41,7 @@
 &lt;code&gt;Vagrant&lt;/code&gt;+&lt;code&gt;Itamae&lt;/code&gt;で、構成管理ファイルも作っておいた。&lt;/p&gt;
 
 &lt;blockquote&gt;
-&lt;p&gt;GitHub: Provision restyaboard&lt;br /&gt;
+&lt;p&gt;GitHub: Provision Restyaboard&lt;br /&gt;
 &lt;a href=&#34;https://github.com/namikingsoft/provision-restyaboard&#34;&gt;https://github.com/namikingsoft/provision-restyaboard&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
@@ -50,7 +51,7 @@
 &lt;li&gt;インフラ
 
 &lt;ul&gt;
-&lt;li&gt;AWS EC2 ti2.micro&lt;/li&gt;
+&lt;li&gt;AWS EC2 t2.micro&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;li&gt;OS/ディストリビューション
 
@@ -72,7 +73,7 @@
 &lt;ul&gt;
 &lt;li&gt;PostgreSQL 9.x&lt;/li&gt;
 &lt;li&gt;PHP 5.x&lt;/li&gt;
-&lt;li&gt;Nginx&lt;/li&gt;
+&lt;li&gt;nginx&lt;/li&gt;
 &lt;li&gt;node.js (ビルドに必要)&lt;/li&gt;
 &lt;li&gt;Elasticsearch (任意？)&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
@@ -169,7 +170,7 @@ $ psql -U postgres -d restyaboard -f \
 $ exit
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;nginx:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;Nginx&lt;/h3&gt;
+&lt;h3 id=&#34;nginx:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;nginx&lt;/h3&gt;
 
 &lt;p&gt;WebAPI用のサーバー。&lt;/p&gt;
 
@@ -212,7 +213,7 @@ $ sudo service nginx start
 
 &lt;h4 id=&#34;php-fpmの設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;php-fpmの設定&lt;/h4&gt;
 
-&lt;p&gt;デフォルト設定がApache用になっているので、Nginx用に書き換える。&lt;/p&gt;
+&lt;p&gt;デフォルト設定がApache用になっているので、nginx用に書き換える。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /etc/php-fpm.d/www.conf
 &lt;/code&gt;&lt;/pre&gt;
@@ -293,9 +294,6 @@ Password: restya
 
 &lt;h4 id=&#34;つまづいた点:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;つまづいた点&lt;/h4&gt;
 
-&lt;p&gt;PostgreSQLやPHPパッケージの設定がうまく行えていないと、
-以下の様な不具合が出たりする。&lt;/p&gt;
-
 &lt;ul&gt;
 &lt;li&gt;ログインフォームが表示されない
 
@@ -322,6 +320,9 @@ Password: restya
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;PostgreSQLやPHPパッケージの設定がうまく行えていないと、
+上の様な不具合が出たりする。&lt;/p&gt;
+
 &lt;h2 id=&#34;まとめ:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;構築手順や必要なパッケージが全て公開されていないため、
@@ -329,6 +330,22 @@ Password: restya
 
 &lt;p&gt;&lt;code&gt;Trello&lt;/code&gt;などと比べるとUIはまだ洗練中という印象ですが、
 基本的な機能はほぼ抑えているので、隙を見て使っていこうかな。&lt;/p&gt;
+
+&lt;h4 id=&#34;追記-2015-08-28:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;追記： 2015/08/28&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;LibreBoard&lt;/code&gt;というのもあるらしい。こちらもTrelloクローンのOSS。&lt;br /&gt;
+Dockerfileも用意されてたので、インストールが楽すぎて涙。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: LibreBoard&lt;br /&gt;
+&lt;a href=&#34;https://github.com/libreboard/libreboard&#34;&gt;https://github.com/libreboard/libreboard&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;ちょっと触った感じだと、かなり絞ったシンプルなTrelloという感じ。
+機能面では、&lt;code&gt;Restyaboard&lt;/code&gt;の方が豊富な印象だが、
+その分、UIもシンプルでとっつきやすい。&lt;/p&gt;
+
+&lt;p&gt;そのうち、細かい機能比較とかもまとめておきたい。&lt;/p&gt;
 </description>
     </item>
     
