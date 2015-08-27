@@ -22,7 +22,6 @@
           i.fa.fa-lg.fa-twitter
           span TWITTER
   .module-poweredby__hugo
-    img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=45&r=g"
     p
       | Written by 
       a href="/about" @namikingsoft
