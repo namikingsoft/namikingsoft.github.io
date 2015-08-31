@@ -1,13 +1,13 @@
 ---
 Categories:
-  - プロジェクト管理ツール
+  - かんばん式プロジェクト管理
 Tags:
   - Restyaboard
   - OSS
   - Vagrant
   - Itamae
 date: 2015-08-27T08:16:13+09:00
-title: かんばん系プロジェクト管理OSSのRestyaboardをインストールしてみる
+title: かんばん式プロジェクト管理OSSのRestyaboardをインストールしてみる
 ---
 
 ![Resyaboard ScreenShot](/images/post/2015/08/install-restyaboard/index.jpg)
@@ -31,10 +31,10 @@ AMIも提供しているとのことですが、
 ------------------------------
 
 必要なコンポーネントがそこそこ多く、インストール手順も面倒なため、  
-`Vagrant`+`Itamae`で、構成管理ファイルも作っておいた。
+`Dockerfile`を作っておいた。追記：2015/08/31
 
-> GitHub: Provision Restyaboard  
-> https://github.com/namikingsoft/provision-restyaboard
+> GitHub: Docker Restyaboard  
+> https://github.com/namikingsoft/docker-restyaboard
 
 
 ### 動作確認環境
@@ -324,7 +324,7 @@ PostgreSQLやPHPパッケージの設定がうまく行えていないと、
 
 #### 追記： 2015/08/28
 `LibreBoard`というのもあるらしい。こちらもTrelloクローンのOSS。  
-Dockerfileも用意されてたので、インストールが楽すぎて涙。
+Dockerfileも用意されてたので、インストールが楽すぎて泣く。
 
 > GitHub: LibreBoard  
 > https://github.com/libreboard/libreboard
