@@ -9,7 +9,7 @@ date: 2015-09-01T10:30:23+09:00
 title: TAIGA on Dockerで本格アジャイル開発管理
 ---
 
-やたらデザインがきれいなアジャイルプロジェクト管理ツール。  
+`TAIGA`は、やたらデザインがきれいなアジャイルプロジェクト管理ツール。  
 `Trello`クローンという感じはなく、`Redmine`拡張の`Alminium`に似ている。
 
 ストーリーカードの重み付けやタスクボード、バーンダウンチャートなども備えており、
@@ -19,7 +19,7 @@ title: TAIGA on Dockerで本格アジャイル開発管理
 ![TAIGA ScreenShot](/images/post/2015/09/docker-taiga/taiga02.png)
 
 
-### 導入手順
+### Dockerを利用した導入手順
 
 以下の`docker-compose.yml`とイメージを参考/利用させていただきました。
 

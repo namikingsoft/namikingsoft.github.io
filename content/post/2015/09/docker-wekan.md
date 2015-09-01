@@ -21,7 +21,7 @@ title: Wekan on Dockerでお手軽かんばん式プロジェクト管理
 ![Wekan ScreenShot](/images/post/2015/09/docker-wekan/wekan01.jpg)
 
 
-### 導入手順
+### Dockerを利用した導入手順
 
 公式のGitHubに置いてあったDockerfileを参考にさせていただく。
 
