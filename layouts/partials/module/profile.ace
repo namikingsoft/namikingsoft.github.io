@@ -2,7 +2,11 @@
   .module-profile__avatar
     img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"
     small
+      {{ if eq .Section "post" }}
       | 書いた人
+      {{ else }}
+      | 書いてる人
+      {{ end }}
       br
       | Written by
   .module-profile__text

@@ -2,6 +2,7 @@
 html lang=ja
   head
     = include partials/head/common.html .
+    = include partials/head/noindex.html .
   body
     = include partials/layout/sitenavi.html .
     = include partials/layout/headline-list.html .
