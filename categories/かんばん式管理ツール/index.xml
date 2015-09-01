@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Namiking.net</title>
-    <link>http://blog.namiking.net/</link>
-    <description>Recent content on Namiking.net</description>
+    <title>かんばん式管理ツール on Namiking.net</title>
+    <link>http://blog.namiking.net/categories/%E3%81%8B%E3%82%93%E3%81%B0%E3%82%93%E5%BC%8F%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/</link>
+    <description>Recent content in かんばん式管理ツール on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
     <lastBuildDate>Tue, 01 Sep 2015 10:30:23 +0900</lastBuildDate>
-    <atom:link href="http://blog.namiking.net/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://blog.namiking.net/categories/%E3%81%8B%E3%82%93%E3%81%B0%E3%82%93%E5%BC%8F%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>TAIGA on Dockerで本格アジャイル開発管理</title>
@@ -280,34 +280,6 @@ Password: restya
 Username: user
 Password: restya
 &lt;/code&gt;&lt;/pre&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>ABOUT</title>
-      <link>http://blog.namiking.net/about/</link>
-      <pubDate>Thu, 27 Aug 2015 08:00:22 +0900</pubDate>
-      
-      <guid>http://blog.namiking.net/about/</guid>
-      <description>&lt;div class=&#34;module-about&#34;&gt;
-
-&lt;div class=&#34;module-about__overview&#34;&gt;
-
-&lt;h4&gt;プロフィール&lt;/h4&gt;
-&lt;p&gt;
-&lt;img src=&#34;https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=50&amp;r=g&#34;&gt;
-&lt;strong&gt;namikingsoft&lt;/strong&gt;
-&lt;/p&gt;
-&lt;p&gt;
-最近はJavascriptメインのフロントエンジニアですが、
-インフラ構築/iOS/Androidアプリ開発など、幅広くやっとります。
-&lt;/p&gt;
-&lt;p&gt;
-思いついたら書く。頑張らなければならんのだ。
-&lt;/p&gt;
-&lt;/div&gt;
-
-&lt;p&gt;&lt;/div&gt;&lt;/p&gt;
 </description>
     </item>
     

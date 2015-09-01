@@ -6,346 +6,280 @@
     <description>Recent content in Oss on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Thu, 27 Aug 2015 08:16:13 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 01 Sep 2015 10:30:23 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/tags/oss/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>かんばん系プロジェクト管理OSSのRestyaboardをインストールしてみる</title>
-      <link>http://blog.namiking.net/post/2015/08/install-restyaboard/</link>
-      <pubDate>Thu, 27 Aug 2015 08:16:13 +0900</pubDate>
+      <title>TAIGA on Dockerで本格アジャイル開発管理</title>
+      <link>http://blog.namiking.net/post/2015/09/docker-taiga/</link>
+      <pubDate>Tue, 01 Sep 2015 10:30:23 +0900</pubDate>
       
-      <guid>http://blog.namiking.net/post/2015/08/install-restyaboard/</guid>
+      <guid>http://blog.namiking.net/post/2015/09/docker-taiga/</guid>
       <description>
 
-&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/08/install-restyaboard/index.jpg&#34; alt=&#34;Resyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;やたらデザインがきれいなアジャイルプロジェクト管理ツール。&lt;br /&gt;
+&lt;code&gt;Trello&lt;/code&gt;クローンという感じはなく、&lt;code&gt;Redmine&lt;/code&gt;拡張の&lt;code&gt;Alminium&lt;/code&gt;に似ている。&lt;/p&gt;
 
-&lt;p&gt;&lt;code&gt;Restyaboard&lt;/code&gt;はプロジェクトをかんばん形式で管理できるオープンソースソフトウェア。
-GitHubを見ると今年の中旬頃に&lt;code&gt;Initial commit&lt;/code&gt;ということで、表に出たのは最近なんだろうか。&lt;/p&gt;
+&lt;p&gt;ストーリーカードの重み付けやタスクボード、バーンダウンチャートなども備えており、
+しっかりとアジャイル開発をやりたい場合はおすすめ。&lt;/p&gt;
 
-&lt;p&gt;&lt;code&gt;Pivotal Tracker&lt;/code&gt;, &lt;code&gt;Trello&lt;/code&gt;あたりは仕事でも使いたいなーとは思うのですが、&lt;br /&gt;
-クラウドっすか・・(^_^;) みたいな現場もあるので、
-クローズドな環境に導入できるかんばんツールはかなりありがたい。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-taiga/taiga01.png&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-taiga/taiga02.png&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;blockquote&gt;
-&lt;p&gt;Restyaboard | Trello like kanban board. Based on Restya platform.&lt;br /&gt;
-&lt;a href=&#34;http://restya.com/board/&#34;&gt;http://restya.com/board/&lt;/a&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
+&lt;h3 id=&#34;導入手順:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;導入手順&lt;/h3&gt;
 
-&lt;p&gt;AMIも提供しているとのことですが、
-どの環境でも導入できるように構築手順を確立しておきたい。
-んが、公式ドキュメントにインストール手順が記載されていなかったので、試行錯誤して何とか動くところまで持ち込んでみた。&lt;/p&gt;
-
-&lt;h2 id=&#34;インストール手順:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール手順&lt;/h2&gt;
-
-&lt;p&gt;必要なコンポーネントがそこそこ多く、インストール手順も面倒なため、&lt;br /&gt;
-&lt;code&gt;Vagrant&lt;/code&gt;+&lt;code&gt;Itamae&lt;/code&gt;で、構成管理ファイルも作っておいた。&lt;/p&gt;
+&lt;p&gt;以下の&lt;code&gt;docker-compose.yml&lt;/code&gt;とイメージを参考/利用させていただきました。&lt;/p&gt;
 
 &lt;blockquote&gt;
-&lt;p&gt;GitHub: Provision Restyaboard&lt;br /&gt;
-&lt;a href=&#34;https://github.com/namikingsoft/provision-restyaboard&#34;&gt;https://github.com/namikingsoft/provision-restyaboard&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;GitHub: htdvisser/taiga-docker&lt;br /&gt;
+&lt;a href=&#34;https://github.com/htdvisser/taiga-docker&#34;&gt;https://github.com/htdvisser/taiga-docker&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;動作確認環境:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;動作確認環境&lt;/h3&gt;
+&lt;h4 id=&#34;00-事前準備:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;00. 事前準備&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;をインストールしておく。&lt;/p&gt;
+
+&lt;h4 id=&#34;01-docker-compose-yml-設置:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+
+&lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
+&lt;code&gt;hostname&lt;/code&gt;, &lt;code&gt;EMAIL_*&lt;/code&gt;辺りは各々の環境に合わせて書き換える。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;data:
+  image: tianon/true
+  volumes:
+    - /var/lib/postgresql/data
+    - /usr/local/taiga/media
+    - /usr/local/taiga/static
+    - /usr/local/taiga/logs
+
+db:
+  image: postgres
+  environment:
+    POSTGRES_USER: taiga
+    POSTGRES_PASSWORD: password
+  volumes_from:
+    - data
+  restart: always
+
+taigaback:
+  image: htdvisser/taiga-back:stable
+  hostname: example.com
+  environment:
+    SECRET_KEY: examplesecretkey
+    EMAIL_USE_TLS: True
+    EMAIL_HOST: smtp.gmail.com
+    EMAIL_PORT: 587
+    EMAIL_HOST_USER: example@gmail.com
+    EMAIL_HOST_PASSWORD: password
+  links:
+    - db:postgres
+  volumes_from:
+    - data
+  restart: always
+
+taigafront:
+  image: htdvisser/taiga-front-dist:stable
+  hostname: example.com
+  links:
+    - taigaback
+  volumes_from:
+    - data
+  ports:
+    - 0.0.0.0:80:80
+  restart: always
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;02-docker起動:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;02. Docker起動&lt;/h4&gt;
+
+&lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker-compose up -d
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;03-足りないdbレコードを挿入:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;03. 足りないDBレコードを挿入&lt;/h4&gt;
+
+&lt;p&gt;Docker起動時に、ある程度初期DBデータの挿入が行われるが、
+おそらく&lt;code&gt;TAIGA&lt;/code&gt;のバージョンアップで、必要なDBデータが増えたのか、
+動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
+取り急ぎ、こちらのコマンドで入れておく。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;docker exec -it (taigabackコンテナID) \
+  python /usr/local/taiga/taiga-back/manage.py \
+    loaddata initial_project_templates
+
+docker exec -it (taigabackコンテナID) \
+  python /usr/local/taiga/taiga-back/manage.py \
+    loaddata initial_project_templates initial_user
+
+docker exec -it (taigabackコンテナID) \
+  python /usr/local/taiga/taiga-back/manage.py \
+    loaddata initial_project_templates initial_role
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;04-動作確認:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;04. 動作確認&lt;/h4&gt;
+
+&lt;h5 id=&#34;通常画面:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;通常画面&lt;/h5&gt;
+
+&lt;p&gt;画面内の「create your free account here」からユーザー登録を行う。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://(SERVER_IP)/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;管理画面:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;管理画面&lt;/h5&gt;
+
+&lt;p&gt;DBレコード操作などを行う画面？&lt;br /&gt;
+通常運用であれば、使わなくてもよい画面と思われる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://(SERVER_IP)/admin/
+Username: admin
+Password: 123123
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;導入でつまづいた点:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;導入でつまづいた点&lt;/h3&gt;
+
+&lt;h5 id=&#34;新規ユーザー登録ボタン押下後に-次画面に遷移しない:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;新規ユーザー登録ボタン押下後に、次画面に遷移しない。&lt;/h5&gt;
 
 &lt;ul&gt;
-&lt;li&gt;インフラ
-
-&lt;ul&gt;
-&lt;li&gt;AWS EC2 t2.micro&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;OS/ディストリビューション
-
-&lt;ul&gt;
-&lt;li&gt;Amazon Linux&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;インストールするソフトウェア
-
-&lt;ul&gt;
-&lt;li&gt;Restyaboard Ver.0.1.1&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;デプロイパス
-
-&lt;ul&gt;
-&lt;li&gt;/var/www/board&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;必要なミドルウェア
-
-&lt;ul&gt;
-&lt;li&gt;PostgreSQL 9.x&lt;/li&gt;
-&lt;li&gt;PHP 5.x&lt;/li&gt;
-&lt;li&gt;nginx&lt;/li&gt;
-&lt;li&gt;node.js (ビルドに必要)&lt;/li&gt;
-&lt;li&gt;Elasticsearch (任意？)&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;SMTP設定が正しくない。&lt;/li&gt;
+&lt;li&gt;Docker起動直後に登録した。(初期DBデータ登録が終わっていない？)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;node-js:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;node.js&lt;/h3&gt;
-
-&lt;p&gt;サーバー動作には使わないっぽいが、
-&lt;code&gt;less&lt;/code&gt;や&lt;code&gt;jst&lt;/code&gt;のビルドに必要。&lt;/p&gt;
-
-&lt;h4 id=&#34;インストール:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y nodejs npm
-$ sudo npm install -g grunt-cli
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;restyaboard:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;Restyaboard&lt;/h3&gt;
-
-&lt;h4 id=&#34;ダウンロード:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ダウンロード&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ cd /var/www
-$ sudo git clone https://github.com/RestyaPlatform/board.git
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;パーミッション設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;パーミッション設定&lt;/h4&gt;
-
-&lt;p&gt;アップロードした画像やファイルを保存するディレクトリに書き込み権限を付加。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo chmod -R o+w /var/www/board/client/img
-$ sudo chmod -R o+w /var/www/board/media
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;ビルド:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ビルド&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ cd /var/www/board
-$ sudo npm install
-$ sudo grunt build
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;r設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;R設定&lt;/h4&gt;
-
-&lt;p&gt;PostgreSQL関連の認証情報が初期化されたので、環境に応じて設定を変更する。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /var/www/board/server/php/R/config.inc.php
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;ここでは以下の項目を書き換えた。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;define(&#39;R_DB_USER&#39;, &#39;restya&#39;);
-define(&#39;R_DB_PASSWORD&#39;, &#39;password&#39;);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;postgresql:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;PostgreSQL&lt;/h3&gt;
-
-&lt;h4 id=&#34;インストール-サービス起動:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール＆サービス起動&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y postgresql94-server
-
-$ sudo chkconfig postgresql94 on
-$ sudo service postgresql94 initdb
-$ sudo service postgresql94 start
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;db設定-ユーザー作成:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;DB設定＆ユーザー作成&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo su - postgres
-$ psql -U postgres -c \
-  &amp;quot;CREATE USER restya WITH ENCRYPTED PASSWORD &#39;password&#39;&amp;quot;
-$ psql -U postgres -c \
-  &amp;quot;CREATE DATABASE restyaboard OWNER restya ENCODING &#39;UTF8&#39;&amp;quot;
-$ exit
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;認証設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;認証設定&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /var/lib/pgsql94/data/pg_hba.conf
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;既存のものはコメントアウトして、以下を追記する。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;local all postgres peer
-local all all md5
-host all all 127.0.0.1/32 md5
-host all all ::1/128 md5
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;code&gt;host&lt;/code&gt;の設定をしないと、PHPで接続エラーが出るので注意。&lt;/p&gt;
-
-&lt;h4 id=&#34;初期データ登録:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;初期データ登録&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo su - postgres
-$ psql -U postgres -d restyaboard -f \
-  /var/www/board/sql/restyaboard_with_empty_data.sql
-$ exit
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;nginx:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;nginx&lt;/h3&gt;
-
-&lt;p&gt;WebAPI用のサーバー。&lt;/p&gt;
-
-&lt;h4 id=&#34;インストール-1:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y nginx
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;conf設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;conf設定&lt;/h4&gt;
-
-&lt;p&gt;設定例はRestyaboardのデプロイパスに格納されているので、
-そこからコピーして、環境に応じて書き換える。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo cp /var/www/board/restyaboard.conf /etc/nginx/conf.d/
-$ sudo vi /etc/nginx/conf.d/restyaboard.conf
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;一括置換 &lt;code&gt;/usr/share/nginx/html&lt;/code&gt; → &lt;code&gt;/var/www/board&lt;/code&gt;&lt;/p&gt;
-
-&lt;h4 id=&#34;サービス起動:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;サービス起動&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo chkconfig nginx on
-$ sudo service nginx start
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;php:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;PHP&lt;/h3&gt;
-
-&lt;p&gt;RestyaboardのPHPソースに&lt;code&gt;PHP version 5&lt;/code&gt;とあるので、PHP5.6で動作させてみる。
-以下のパッケージをいれれば、ひと通り動作するっぽい。&lt;/p&gt;
-
-&lt;h4 id=&#34;インストール-2:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y \
-    php56 php56-fpm php56-pgsql php56-mbstring php56-gd php56-pecl-imagick
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;code&gt;Amazon Linux&lt;/code&gt;であれば、標準リポジトリにPHP5.6が入っているみたい。
-別ディストリビューションであれば、&lt;code&gt;remi&lt;/code&gt;リポジトリなどを追加してから、
-インストールする。&lt;/p&gt;
-
-&lt;h4 id=&#34;php-fpmの設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;php-fpmの設定&lt;/h4&gt;
-
-&lt;p&gt;デフォルト設定がApache用になっているので、nginx用に書き換える。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /etc/php-fpm.d/www.conf
-&lt;/code&gt;&lt;/pre&gt;
+&lt;h5 id=&#34;プロジェクトの作成途中で次画面に遷移しなくなる:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;プロジェクトの作成途中で次画面に遷移しなくなる。&lt;/h5&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;code&gt;user = apache&lt;/code&gt; →  &lt;code&gt;user = nginx&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;group = apache&lt;/code&gt; →  &lt;code&gt;group = nginx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;追加DBデータを挿入していない。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
 
-&lt;h4 id=&#34;サービス起動-1:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;サービス起動&lt;/h4&gt;
+&lt;hr /&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo chkconfig php-fpm on
-$ sudo service php-fpm start
+&lt;ol&gt;
+&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Wekan on Dockerでお手軽かんばん式プロジェクト管理</title>
+      <link>http://blog.namiking.net/post/2015/09/docker-wekan/</link>
+      <pubDate>Tue, 01 Sep 2015 09:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/docker-wekan/</guid>
+      <description>
+
+&lt;p&gt;かんばん式管理ツール&lt;code&gt;Wekan&lt;/code&gt;は&lt;code&gt;Trello&lt;/code&gt;クローンの一つ。&lt;br /&gt;
+ちょっと前まで、&lt;code&gt;LibreBoard&lt;/code&gt;という名前の&lt;code&gt;Trello&lt;/code&gt;クローンでしたが、
+最近、&lt;code&gt;Wekan&lt;/code&gt;という名前に変わったようです。&lt;br /&gt;
+必要最低限の機能がコンパクトにまとまっていて非常に扱いやすい。&lt;/p&gt;
+
+&lt;p&gt;少し触ってみたところ、機能的には&lt;code&gt;LibreBoard&lt;/code&gt;のままで、
+以前より見栄えにオリジナリティが増したように感じます。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-wekan/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;導入手順&lt;/h3&gt;
+
+&lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: wekan/wekan&lt;br /&gt;
+&lt;a href=&#34;https://github.com/wekan/wekan&#34;&gt;https://github.com/wekan/wekan&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;00-事前準備:a3ec11490e4688501750670051fa9d02&#34;&gt;00. 事前準備&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;をインストールしておく。&lt;/p&gt;
+
+&lt;h4 id=&#34;01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+
+&lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
+&lt;code&gt;ROOT_URL&lt;/code&gt;辺りを各々の環境に合わせて書き換える。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;data:
+  image: busybox
+  volumes:
+    - /data/db
+
+mongo:
+  image: mongo
+  volumes_from:
+    - data
+  restart: always
+
+wekan:
+  image: mquandalle/wekan
+  environment:
+    MONGO_URL: mongodb://db
+    ROOT_URL: http://example.com
+  links:
+    - mongo:db
+  ports:
+    - &amp;quot;8080:80&amp;quot;
+  restart: always
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;elasticsearch:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ElasticSearch&lt;/h3&gt;
+&lt;h4 id=&#34;02-docker起動:a3ec11490e4688501750670051fa9d02&#34;&gt;02. Docker起動&lt;/h4&gt;
 
-&lt;p&gt;無くても、ある程度動くっぽいが一応。&lt;br /&gt;
-URLやIndexの設定は、インストール後のRestyaboard管理画面からできる。&lt;/p&gt;
+&lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
 
-&lt;h4 id=&#34;リポジトリ追加:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;リポジトリ追加&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo vi /etc/yum.repos.d/elasticsearch.repo
+&lt;pre&gt;&lt;code&gt;docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;[elasticsearch-1.0]
-name=Elasticsearch repository for 1.0.x packages
-baseurl=http://packages.elasticsearch.org/elasticsearch/1.0/centos
-gpgcheck=1
-gpgkey=http://packages.elasticsearch.org/GPG-KEY-elasticsearch
-enabled=0
+&lt;h4 id=&#34;03-動作確認:a3ec11490e4688501750670051fa9d02&#34;&gt;03. 動作確認&lt;/h4&gt;
+
+&lt;p&gt;画面内の「登録する」から、ユーザーを登録を行う。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://(SERVER_IP):8080/
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Restyaboard on Dockerで多機能かんばん式プロジェクト管理</title>
+      <link>http://blog.namiking.net/post/2015/09/docker-restyaboard/</link>
+      <pubDate>Tue, 01 Sep 2015 08:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/docker-restyaboard/</guid>
+      <description>
+
+&lt;p&gt;&lt;code&gt;Restyaboard&lt;/code&gt;は&lt;code&gt;Trello&lt;/code&gt;クローンの一つですが、UIは前衛的で多機能。&lt;br /&gt;
+Trelloだと、有料ユーザーしかできないことが、普通にできたりする。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-restyaboard/restyaboard01.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;導入手順&lt;/h3&gt;
+
+&lt;p&gt;公式ページに必要なミドルウェアは書いてあるが、
+導入手順が書かれていないっぽい。
+ちみちみデバッグしながら、構築した手順を&lt;code&gt;Dockerfile&lt;/code&gt;にまとめておいた。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: namikingsoft/docker-restyaboard
+&lt;a href=&#34;https://github.com/namikingsoft/docker-restyaboard&#34;&gt;https://github.com/namikingsoft/docker-restyaboard&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;以下のコマンドで、Docker環境を構築できる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/docker-restyaboard.git
+cd docker-restyaboard
+
+docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;インストール-サービス起動-1:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;インストール＆サービス起動&lt;/h4&gt;
+&lt;p&gt;動作確認URLは以下。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ sudo yum install -y --enablerepo=&#39;elasticsearch-1.0&#39; elasticsearch
+&lt;pre&gt;&lt;code&gt;http://(ServerIP):1234
 
-$ sudo chkconfig elasticsearch on
-$ sudo service elasticsearch start
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;crontab設定:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;Crontab設定&lt;/h4&gt;
-
-&lt;p&gt;インデックス更新のために、Crontabを設定する。&lt;br /&gt;
-5分毎に更新する場合は、以下のようにする。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ crontab -e
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;*/5 * * * * php /var/www/board/server/php/R/shell/cron.php
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;ファイアウォール設定など:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ファイアウォール設定など&lt;/h3&gt;
-
-&lt;p&gt;AWSならセキュリティグループから、
-その他Linuxなら&lt;code&gt;iptables&lt;/code&gt;,&lt;code&gt;firewalld&lt;/code&gt;などから、
-&lt;code&gt;80&lt;/code&gt;ポートを外向けに開放しておく。&lt;/p&gt;
-
-&lt;h2 id=&#34;動作確認:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;動作確認&lt;/h2&gt;
-
-&lt;h4 id=&#34;url:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;URL&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code&gt;http://(サーバーIP)/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;ログインフォームが出てくれば、大方OK。&lt;/p&gt;
-
-&lt;h4 id=&#34;ログイン情報:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;ログイン情報&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code&gt;管理者権限
+管理ユーザー
 Username: admin
 Password: restya
 
-ユーザー権限
+一般ユーザー
 Username: user
 Password: restya
 &lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;つまづいた点:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;つまづいた点&lt;/h4&gt;
-
-&lt;ul&gt;
-&lt;li&gt;ログインフォームが表示されない
-
-&lt;ul&gt;
-&lt;li&gt;PostgreSQLとのコネクションに失敗していた。&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pg_hba.conf&lt;/code&gt;でhostを設定することで解決&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;ログイン後のフッターメニューが表示されない
-
-&lt;ul&gt;
-&lt;li&gt;PostgreSQLとのコネクションに失敗していた。&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;pg_hba.conf&lt;/code&gt;でhostを設定することで解決&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;アップロードした画像が表示されない。
-
-&lt;ul&gt;
-&lt;li&gt;パーミッションの設定が正しくない。&lt;/li&gt;
-&lt;li&gt;PHPパッケージが足りてなかった、&lt;code&gt;php-gd&lt;/code&gt;,&lt;code&gt;php-pecl-imagick&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;ボード編集中に、APIサーバーエラー(500)が頻発する
-
-&lt;ul&gt;
-&lt;li&gt;PHPパッケージが足りてなかった、&lt;code&gt;mstring&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;PostgreSQLやPHPパッケージの設定がうまく行えていないと、
-上の様な不具合が出たりする。&lt;/p&gt;
-
-&lt;h2 id=&#34;まとめ:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;まとめ&lt;/h2&gt;
-
-&lt;p&gt;構築手順や必要なパッケージが全て公開されていないため、
-インストールはほぼデバッグ作業でしたが、なんとかうまく動かせるまでに至った。&lt;/p&gt;
-
-&lt;p&gt;&lt;code&gt;Trello&lt;/code&gt;などと比べるとUIはまだ洗練中という印象ですが、
-基本的な機能はほぼ抑えているので、隙を見て使っていこうかな。&lt;/p&gt;
-
-&lt;h4 id=&#34;追記-2015-08-28:b5a2865b9ccb73515b3dffb76a8b1993&#34;&gt;追記： 2015/08/28&lt;/h4&gt;
-
-&lt;p&gt;&lt;code&gt;LibreBoard&lt;/code&gt;というのもあるらしい。こちらもTrelloクローンのOSS。&lt;br /&gt;
-Dockerfileも用意されてたので、インストールが楽すぎて涙。&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;GitHub: LibreBoard&lt;br /&gt;
-&lt;a href=&#34;https://github.com/libreboard/libreboard&#34;&gt;https://github.com/libreboard/libreboard&lt;/a&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;ちょっと触った感じだと、かなり絞ったシンプルなTrelloという感じ。
-機能面では、&lt;code&gt;Restyaboard&lt;/code&gt;の方が豊富な印象だが、
-その分、UIもシンプルでとっつきやすい。&lt;/p&gt;
-
-&lt;p&gt;そのうち、細かい機能比較とかもまとめておきたい。&lt;/p&gt;
 </description>
     </item>
     

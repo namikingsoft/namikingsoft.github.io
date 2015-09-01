@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Namiking.net</title>
-    <link>http://blog.namiking.net/</link>
-    <description>Recent content on Namiking.net</description>
+    <title>Taiga on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/taiga/</link>
+    <description>Recent content in Taiga on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
     <lastBuildDate>Tue, 01 Sep 2015 10:30:23 +0900</lastBuildDate>
-    <atom:link href="http://blog.namiking.net/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://blog.namiking.net/tags/taiga/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>TAIGA on Dockerで本格アジャイル開発管理</title>
@@ -158,156 +158,6 @@ Password: 123123
  &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Wekan on Dockerでお手軽かんばん式プロジェクト管理</title>
-      <link>http://blog.namiking.net/post/2015/09/docker-wekan/</link>
-      <pubDate>Tue, 01 Sep 2015 09:30:23 +0900</pubDate>
-      
-      <guid>http://blog.namiking.net/post/2015/09/docker-wekan/</guid>
-      <description>
-
-&lt;p&gt;かんばん式管理ツール&lt;code&gt;Wekan&lt;/code&gt;は&lt;code&gt;Trello&lt;/code&gt;クローンの一つ。&lt;br /&gt;
-ちょっと前まで、&lt;code&gt;LibreBoard&lt;/code&gt;という名前の&lt;code&gt;Trello&lt;/code&gt;クローンでしたが、
-最近、&lt;code&gt;Wekan&lt;/code&gt;という名前に変わったようです。&lt;br /&gt;
-必要最低限の機能がコンパクトにまとまっていて非常に扱いやすい。&lt;/p&gt;
-
-&lt;p&gt;少し触ってみたところ、機能的には&lt;code&gt;LibreBoard&lt;/code&gt;のままで、
-以前より見栄えにオリジナリティが増したように感じます。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-wekan/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&#34;導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;導入手順&lt;/h3&gt;
-
-&lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;GitHub: wekan/wekan&lt;br /&gt;
-&lt;a href=&#34;https://github.com/wekan/wekan&#34;&gt;https://github.com/wekan/wekan&lt;/a&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h4 id=&#34;00-事前準備:a3ec11490e4688501750670051fa9d02&#34;&gt;00. 事前準備&lt;/h4&gt;
-
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;をインストールしておく。&lt;/p&gt;
-
-&lt;h4 id=&#34;01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
-
-&lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
-&lt;code&gt;ROOT_URL&lt;/code&gt;辺りを各々の環境に合わせて書き換える。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;data:
-  image: busybox
-  volumes:
-    - /data/db
-
-mongo:
-  image: mongo
-  volumes_from:
-    - data
-  restart: always
-
-wekan:
-  image: mquandalle/wekan
-  environment:
-    MONGO_URL: mongodb://db
-    ROOT_URL: http://example.com
-  links:
-    - mongo:db
-  ports:
-    - &amp;quot;8080:80&amp;quot;
-  restart: always
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;02-docker起動:a3ec11490e4688501750670051fa9d02&#34;&gt;02. Docker起動&lt;/h4&gt;
-
-&lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;docker-compose up -d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;03-動作確認:a3ec11490e4688501750670051fa9d02&#34;&gt;03. 動作確認&lt;/h4&gt;
-
-&lt;p&gt;画面内の「登録する」から、ユーザーを登録を行う。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://(SERVER_IP):8080/
-&lt;/code&gt;&lt;/pre&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Restyaboard on Dockerで多機能かんばん式プロジェクト管理</title>
-      <link>http://blog.namiking.net/post/2015/09/docker-restyaboard/</link>
-      <pubDate>Tue, 01 Sep 2015 08:30:23 +0900</pubDate>
-      
-      <guid>http://blog.namiking.net/post/2015/09/docker-restyaboard/</guid>
-      <description>
-
-&lt;p&gt;&lt;code&gt;Restyaboard&lt;/code&gt;は&lt;code&gt;Trello&lt;/code&gt;クローンの一つですが、UIは前衛的で多機能。&lt;br /&gt;
-Trelloだと、有料ユーザーしかできないことが、普通にできたりする。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-restyaboard/restyaboard01.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&#34;導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;導入手順&lt;/h3&gt;
-
-&lt;p&gt;公式ページに必要なミドルウェアは書いてあるが、
-導入手順が書かれていないっぽい。
-ちみちみデバッグしながら、構築した手順を&lt;code&gt;Dockerfile&lt;/code&gt;にまとめておいた。&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;GitHub: namikingsoft/docker-restyaboard
-&lt;a href=&#34;https://github.com/namikingsoft/docker-restyaboard&#34;&gt;https://github.com/namikingsoft/docker-restyaboard&lt;/a&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;以下のコマンドで、Docker環境を構築できる。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/docker-restyaboard.git
-cd docker-restyaboard
-
-docker-compose up -d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;動作確認URLは以下。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://(ServerIP):1234
-
-管理ユーザー
-Username: admin
-Password: restya
-
-一般ユーザー
-Username: user
-Password: restya
-&lt;/code&gt;&lt;/pre&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>ABOUT</title>
-      <link>http://blog.namiking.net/about/</link>
-      <pubDate>Thu, 27 Aug 2015 08:00:22 +0900</pubDate>
-      
-      <guid>http://blog.namiking.net/about/</guid>
-      <description>&lt;div class=&#34;module-about&#34;&gt;
-
-&lt;div class=&#34;module-about__overview&#34;&gt;
-
-&lt;h4&gt;プロフィール&lt;/h4&gt;
-&lt;p&gt;
-&lt;img src=&#34;https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=50&amp;r=g&#34;&gt;
-&lt;strong&gt;namikingsoft&lt;/strong&gt;
-&lt;/p&gt;
-&lt;p&gt;
-最近はJavascriptメインのフロントエンジニアですが、
-インフラ構築/iOS/Androidアプリ開発など、幅広くやっとります。
-&lt;/p&gt;
-&lt;p&gt;
-思いついたら書く。頑張らなければならんのだ。
-&lt;/p&gt;
-&lt;/div&gt;
-
-&lt;p&gt;&lt;/div&gt;&lt;/p&gt;
 </description>
     </item>
     

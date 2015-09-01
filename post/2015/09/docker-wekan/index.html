@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>Wekan on Dockerでお手軽かんばん式プロジェクト管理 - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>Wekan on Dockerでお手軽かんばん式プロジェクト管理</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2015-09-01 (Tue)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/%E3%81%8B%E3%82%93%E3%81%B0%E3%82%93%E5%BC%8F%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB">かんばん式管理ツール</a></li><li><a class="label label-default" href="/tags/wekan">Wekan</a></li><li><a class="label label-default" href="/tags/libreboard">LibreBoard</a></li><li><a class="label label-default" href="/tags/docker">Docker</a></li><li><a class="label label-default" href="/tags/oss">OSS</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p>かんばん式管理ツール<code>Wekan</code>は<code>Trello</code>クローンの一つ。<br />
+ちょっと前まで、<code>LibreBoard</code>という名前の<code>Trello</code>クローンでしたが、
+最近、<code>Wekan</code>という名前に変わったようです。<br />
+必要最低限の機能がコンパクトにまとまっていて非常に扱いやすい。</p>
+
+<p>少し触ってみたところ、機能的には<code>LibreBoard</code>のままで、
+以前より見栄えにオリジナリティが増したように感じます。</p>
+
+<p><img src="/images/post/2015/09/docker-wekan/wekan01.jpg" alt="Wekan ScreenShot" /></p>
+
+<h3 id="導入手順:a3ec11490e4688501750670051fa9d02">導入手順</h3>
+
+<p>公式のGitHubに置いてあったDockerfileを参考にさせていただく。</p>
+
+<blockquote>
+<p>GitHub: wekan/wekan<br />
+<a href="https://github.com/wekan/wekan">https://github.com/wekan/wekan</a></p>
+</blockquote>
+
+<h4 id="00-事前準備:a3ec11490e4688501750670051fa9d02">00. 事前準備</h4>
+
+<p><code>Docker</code>と<code>docker-compose</code>をインストールしておく。</p>
+
+<h4 id="01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02">01. docker-compose.yml 設置</h4>
+
+<p>以下の内容の<code>docker-compose.yml</code>を設置する。<br />
+<code>ROOT_URL</code>辺りを各々の環境に合わせて書き換える。</p>
+
+<pre><code>data:
+  image: busybox
+  volumes:
+    - /data/db
+
+mongo:
+  image: mongo
+  volumes_from:
+    - data
+  restart: always
+
+wekan:
+  image: mquandalle/wekan
+  environment:
+    MONGO_URL: mongodb://db
+    ROOT_URL: http://example.com
+  links:
+    - mongo:db
+  ports:
+    - &quot;8080:80&quot;
+  restart: always
+</code></pre>
+
+<h4 id="02-docker起動:a3ec11490e4688501750670051fa9d02">02. Docker起動</h4>
+
+<p>先ほどの<code>docker-compose.yml</code>があるディレクトリ内で、以下のコマンドを入力。</p>
+
+<pre><code>docker-compose up -d
+</code></pre>
+
+<h4 id="03-動作確認:a3ec11490e4688501750670051fa9d02">03. 動作確認</h4>
+
+<p>画面内の「登録する」から、ユーザーを登録を行う。</p>
+
+<pre><code>http://(SERVER_IP):8080/
+</code></pre>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2015\/09\/docker-wekan\/';
+    var disqus_title = 'Wekan on Dockerでお手軽かんばん式プロジェクト管理';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2015\/09\/docker-wekan\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"><h3>同じシリーズの記事</h3><ul><li><a href="http://blog.namiking.net/post/2015/09/docker-taiga/">TAIGA on Dockerで本格アジャイル開発管理</a></li><li>Wekan on Dockerでお手軽かんばん式プロジェクト管理 (現在の記事)</li><li><a href="http://blog.namiking.net/post/2015/09/docker-restyaboard/">Restyaboard on Dockerで多機能かんばん式プロジェクト管理</a></li></ul></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"><a href="/post/2015/09/docker-taiga/" title="TAIGA on Dockerで本格アジャイル開発管理"><i class="fa fa-arrow-circle-o-left"></i><p class="hidden-xs">2015-09-01 (Tue)</p></a></div><div class="module-paging__next col-xs-6"><a href="/post/2015/09/docker-restyaboard/" title="Restyaboard on Dockerで多機能かんばん式プロジェクト管理"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2015-09-01 (Tue)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2015/09/docker-wekan/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2015/09/docker-wekan/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2015/09/docker-wekan/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2015/09/docker-wekan/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2015/09/docker-wekan/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2015%2f09%2fdocker-wekan%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-taiga/">TAIGA on Dockerで本格アジャイル開発管理</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-wekan/">Wekan on Dockerでお手軽かんばん式プロジェクト管理</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-restyaboard/">Restyaboard on Dockerで多機能かんばん式プロジェクト管理</a></dd><dt>2015-08-27 (Thu)</dt><dd><a href="http://blog.namiking.net/about/">ABOUT</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/docker">docker(3)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/oss">oss(3)</a></li><li><a href="/tags/restyaboard">restyaboard(1)</a></li><li><a href="/tags/taiga">taiga(1)</a></li><li><a href="/tags/wekan">wekan(1)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>

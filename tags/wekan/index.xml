@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Wekan on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/wekan/</link>
+    <description>Recent content in Wekan on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Tue, 01 Sep 2015 09:30:23 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/wekan/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Wekan on Dockerでお手軽かんばん式プロジェクト管理</title>
+      <link>http://blog.namiking.net/post/2015/09/docker-wekan/</link>
+      <pubDate>Tue, 01 Sep 2015 09:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/docker-wekan/</guid>
+      <description>
+
+&lt;p&gt;かんばん式管理ツール&lt;code&gt;Wekan&lt;/code&gt;は&lt;code&gt;Trello&lt;/code&gt;クローンの一つ。&lt;br /&gt;
+ちょっと前まで、&lt;code&gt;LibreBoard&lt;/code&gt;という名前の&lt;code&gt;Trello&lt;/code&gt;クローンでしたが、
+最近、&lt;code&gt;Wekan&lt;/code&gt;という名前に変わったようです。&lt;br /&gt;
+必要最低限の機能がコンパクトにまとまっていて非常に扱いやすい。&lt;/p&gt;
+
+&lt;p&gt;少し触ってみたところ、機能的には&lt;code&gt;LibreBoard&lt;/code&gt;のままで、
+以前より見栄えにオリジナリティが増したように感じます。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-wekan/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;導入手順&lt;/h3&gt;
+
+&lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: wekan/wekan&lt;br /&gt;
+&lt;a href=&#34;https://github.com/wekan/wekan&#34;&gt;https://github.com/wekan/wekan&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;00-事前準備:a3ec11490e4688501750670051fa9d02&#34;&gt;00. 事前準備&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;をインストールしておく。&lt;/p&gt;
+
+&lt;h4 id=&#34;01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+
+&lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
+&lt;code&gt;ROOT_URL&lt;/code&gt;辺りを各々の環境に合わせて書き換える。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;data:
+  image: busybox
+  volumes:
+    - /data/db
+
+mongo:
+  image: mongo
+  volumes_from:
+    - data
+  restart: always
+
+wekan:
+  image: mquandalle/wekan
+  environment:
+    MONGO_URL: mongodb://db
+    ROOT_URL: http://example.com
+  links:
+    - mongo:db
+  ports:
+    - &amp;quot;8080:80&amp;quot;
+  restart: always
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;02-docker起動:a3ec11490e4688501750670051fa9d02&#34;&gt;02. Docker起動&lt;/h4&gt;
+
+&lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;docker-compose up -d
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;03-動作確認:a3ec11490e4688501750670051fa9d02&#34;&gt;03. 動作確認&lt;/h4&gt;
+
+&lt;p&gt;画面内の「登録する」から、ユーザーを登録を行う。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://(SERVER_IP):8080/
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
