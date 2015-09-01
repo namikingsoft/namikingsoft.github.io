@@ -22,7 +22,7 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-restyaboard/restyaboard01.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;公式ページに必要なミドルウェアは書いてあるが、
 導入手順が書かれていないっぽい。

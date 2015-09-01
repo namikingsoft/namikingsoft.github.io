@@ -17,7 +17,7 @@
       <guid>http://blog.namiking.net/post/2015/09/docker-taiga/</guid>
       <description>
 
-&lt;p&gt;やたらデザインがきれいなアジャイルプロジェクト管理ツール。&lt;br /&gt;
+&lt;p&gt;&lt;code&gt;TAIGA&lt;/code&gt;は、やたらデザインがきれいなアジャイルプロジェクト管理ツール。&lt;br /&gt;
 &lt;code&gt;Trello&lt;/code&gt;クローンという感じはなく、&lt;code&gt;Redmine&lt;/code&gt;拡張の&lt;code&gt;Alminium&lt;/code&gt;に似ている。&lt;/p&gt;
 
 &lt;p&gt;ストーリーカードの重み付けやタスクボード、バーンダウンチャートなども備えており、
@@ -26,7 +26,7 @@
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-taiga/taiga01.png&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;
 &lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-taiga/taiga02.png&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;導入手順:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;以下の&lt;code&gt;docker-compose.yml&lt;/code&gt;とイメージを参考/利用させていただきました。&lt;/p&gt;
 
@@ -179,7 +179,7 @@ Password: 123123
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-wekan/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
 
@@ -249,7 +249,7 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-restyaboard/restyaboard01.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;公式ページに必要なミドルウェアは書いてあるが、
 導入手順が書かれていないっぽい。
