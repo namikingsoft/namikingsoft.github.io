@@ -18,6 +18,9 @@ title: TAIGA on Dockerで本格アジャイル開発管理
 ![TAIGA ScreenShot](/images/post/2015/09/docker-taiga/taiga01.png)
 ![TAIGA ScreenShot](/images/post/2015/09/docker-taiga/taiga02.png)
 
+> Taiga.Io | Agile, Open Source, Free Project Management System  
+> https://taiga.io/
+
 
 ### Dockerを利用した導入手順
 

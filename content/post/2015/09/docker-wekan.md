@@ -20,6 +20,9 @@ title: Wekan on Dockerでお手軽かんばん式プロジェクト管理
 
 ![Wekan ScreenShot](/images/post/2015/09/docker-wekan/wekan01.jpg)
 
+> Wekan (旧LibreBoard)  
+> http://newui.libreboard.com
+
 
 ### Dockerを利用した導入手順
 
