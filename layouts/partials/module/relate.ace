@@ -14,7 +14,7 @@
     {{ if $hasCategory }}
     li
       {{ if eq $permalink .Permalink }}
-      | {{ .Title }} (現在の記事)
+      | {{ .Title }}
       {{ else }}
       a href="{{ .Permalink }}" {{ .Title }}
       {{ end }}
