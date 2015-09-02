@@ -32,7 +32,7 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 
 `Docker`と`docker-compose`[^1]をインストールしておく。
 
-[^1]: [docker-composeのインストールとバージョン差異エラー回避方法](/post/2015/09/install-docker-compose/)
+[^1]: 参考： [docker-composeのインストールとバージョン差異エラー回避方法](/post/2015/09/install-docker-compose/)
 
 #### 01. Dockerイメージビルドとコンテナ起動
 

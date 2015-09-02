@@ -35,7 +35,7 @@ title: Wekan on Dockerでお手軽かんばん式プロジェクト管理
 
 `Docker`と`docker-compose`[^1]をインストールしておく。
 
-[^1]: [docker-composeのインストールとバージョン差異エラー回避方法](/post/2015/09/install-docker-compose/)
+[^1]: 参考： [docker-composeのインストールとバージョン差異エラー回避方法](/post/2015/09/install-docker-compose/)
 
 #### 01. docker-compose.yml 設置
 
