@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Docker Compose on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/docker-compose/</link>
+    <description>Recent content in Docker Compose on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Wed, 02 Sep 2015 08:30:23 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/docker-compose/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>docker-composeのインストールとバージョン差異エラー回避方法</title>
+      <link>http://blog.namiking.net/post/2015/09/install-docker-compose/</link>
+      <pubDate>Wed, 02 Sep 2015 08:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/install-docker-compose/</guid>
+      <description>
+
+&lt;p&gt;&lt;code&gt;docker-compose&lt;/code&gt;はDockerコンテナの構成管理ツール。&lt;br /&gt;
+昔は&lt;code&gt;fig&lt;/code&gt;という名前のツールだったが、Dockerと統合して名前を変更したとのこと。&lt;/p&gt;
+
+&lt;p&gt;データボリューム, DB, バックエンド、フロントエンドなど、
+サービスの稼働に複数コンテナが必要な場合、立ち上げが非常に簡単になる。&lt;/p&gt;
+
+&lt;p&gt;インストール自体はシンプルだが、
+Dockerのバージョンによっては実行時にエラーが出てしまうようなので、
+エラー回避方法もまとめておく。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Overview of Docker Compose&lt;br /&gt;
+&lt;a href=&#34;https://docs.docker.com/compose/&#34;&gt;https://docs.docker.com/compose/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;インストール手順:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;インストール手順&lt;/h3&gt;
+
+&lt;p&gt;公式ドキュメントに対応OSごとのインストール方法がまとめてあった。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Docker Compose: Supported installation&lt;br /&gt;
+&lt;a href=&#34;https://docs.docker.com/installation/&#34;&gt;https://docs.docker.com/installation/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;OS共通の方法で一番簡単なのが、&lt;code&gt;pip&lt;/code&gt;でインストールする方法。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;pip install -U docker-compose
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;pip&lt;/code&gt;がない場合は、&lt;code&gt;easy_install&lt;/code&gt;でインストールできる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;easy_install pip
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;バージョン差異エラー回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;バージョン差異エラー回避方法&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;docker-compose up&lt;/code&gt;などの実行時に、以下の様なエラーが表示されることがある。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;client and server don&#39;t have same version (client : 1.19, server: 1.18)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;原因:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;原因&lt;/h4&gt;
+
+&lt;p&gt;このエラーは、インストールされている&lt;code&gt;Dockerサーバー&lt;/code&gt;のバージョンと、
+&lt;code&gt;docker-composeクライアント(API)&lt;/code&gt;のバージョンに互換性がない時に表示されるらしい。&lt;/p&gt;
+
+&lt;h4 id=&#34;回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;回避方法&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;COMPOSE_API_VERSION&lt;/code&gt;環境変数にサーバーのバージョンを設定すれば、
+&lt;code&gt;docker-compose&lt;/code&gt;の方で、サーバーのバージョンに合わせて通信してくれるとのこと。
+&lt;code&gt;auto&lt;/code&gt;を設定すれば、自動で調整してくれるみたい。便利。&lt;/p&gt;
+
+&lt;p&gt;以下のコマンドを入力するか、&lt;code&gt;/etc/profile&lt;/code&gt;とか&lt;code&gt;~/.bash_profile&lt;/code&gt;あたりに追記しておく。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;export COMPOSE_API_VERSION=auto
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;/etc/environment&lt;/code&gt;に追記する場合は以下のようにする。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;COMPOSE_API_VERSION=auto
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;docker-composeの利用例:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;docker-composeの利用例&lt;/h3&gt;
+
+&lt;p&gt;当ブログの以下の記事で、具体的な使用例を紹介しているので、参照されたい。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-taiga/&#34;&gt;TAIGA on Dockerで本格アジャイル開発管理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-wekan/&#34;&gt;Wekan on Dockerでお手軽かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-restyaboard/&#34;&gt;Restyaboard on Dockerで多機能かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

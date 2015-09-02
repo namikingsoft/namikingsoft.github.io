@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>docker-composeのインストールとバージョン差異エラー回避方法 - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>docker-composeのインストールとバージョン差異エラー回避方法</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2015-09-02 (Wed)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/docker%E9%96%A2%E9%80%A3">Docker関連</a></li><li><a class="label label-default" href="/tags/docker">Docker</a></li><li><a class="label label-default" href="/tags/docker-compose">docker-compose</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p><code>docker-compose</code>はDockerコンテナの構成管理ツール。<br />
+昔は<code>fig</code>という名前のツールだったが、Dockerと統合して名前を変更したとのこと。</p>
+
+<p>データボリューム, DB, バックエンド、フロントエンドなど、
+サービスの稼働に複数コンテナが必要な場合、立ち上げが非常に簡単になる。</p>
+
+<p>インストール自体はシンプルだが、
+Dockerのバージョンによっては実行時にエラーが出てしまうようなので、
+エラー回避方法もまとめておく。</p>
+
+<blockquote>
+<p>Overview of Docker Compose<br />
+<a href="https://docs.docker.com/compose/">https://docs.docker.com/compose/</a></p>
+</blockquote>
+
+<h3 id="インストール手順:fce77b3f97c5854a016ed64fe44c5a99">インストール手順</h3>
+
+<p>公式ドキュメントに対応OSごとのインストール方法がまとめてあった。</p>
+
+<blockquote>
+<p>Docker Compose: Supported installation<br />
+<a href="https://docs.docker.com/installation/">https://docs.docker.com/installation/</a></p>
+</blockquote>
+
+<p>OS共通の方法で一番簡単なのが、<code>pip</code>でインストールする方法。</p>
+
+<pre><code class="language-bash">pip install -U docker-compose
+</code></pre>
+
+<p><code>pip</code>がない場合は、<code>easy_install</code>でインストールできる。</p>
+
+<pre><code class="language-bash">easy_install pip
+</code></pre>
+
+<h3 id="バージョン差異エラー回避方法:fce77b3f97c5854a016ed64fe44c5a99">バージョン差異エラー回避方法</h3>
+
+<p><code>docker-compose up</code>などの実行時に、以下の様なエラーが表示されることがある。</p>
+
+<pre><code>client and server don't have same version (client : 1.19, server: 1.18)
+</code></pre>
+
+<h4 id="原因:fce77b3f97c5854a016ed64fe44c5a99">原因</h4>
+
+<p>このエラーは、インストールされている<code>Dockerサーバー</code>のバージョンと、
+<code>docker-composeクライアント(API)</code>のバージョンに互換性がない時に表示されるらしい。</p>
+
+<h4 id="回避方法:fce77b3f97c5854a016ed64fe44c5a99">回避方法</h4>
+
+<p><code>COMPOSE_API_VERSION</code>環境変数にサーバーのバージョンを設定すれば、
+<code>docker-compose</code>の方で、サーバーのバージョンに合わせて通信してくれるとのこと。
+<code>auto</code>を設定すれば、自動で調整してくれるみたい。便利。</p>
+
+<p>以下のコマンドを入力するか、<code>/etc/profile</code>とか<code>~/.bash_profile</code>あたりに追記しておく。</p>
+
+<pre><code>export COMPOSE_API_VERSION=auto
+</code></pre>
+
+<p><code>/etc/environment</code>に追記する場合は以下のようにする。</p>
+
+<pre><code>COMPOSE_API_VERSION=auto
+</code></pre>
+
+<h3 id="docker-composeの利用例:fce77b3f97c5854a016ed64fe44c5a99">docker-composeの利用例</h3>
+
+<p>当ブログの以下の記事で、具体的な使用例を紹介しているので、参照されたい。</p>
+
+<ul>
+<li><a href="/post/2015/09/docker-taiga/">TAIGA on Dockerで本格アジャイル開発管理</a></li>
+<li><a href="/post/2015/09/docker-wekan/">Wekan on Dockerでお手軽かんばん式プロジェクト管理</a></li>
+<li><a href="/post/2015/09/docker-restyaboard/">Restyaboard on Dockerで多機能かんばん式プロジェクト管理</a></li>
+</ul>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2015\/09\/install-docker-compose\/';
+    var disqus_title = 'docker-composeのインストールとバージョン差異エラー回避方法';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2015\/09\/install-docker-compose\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2015/09/docker-taiga/" title="TAIGA on Dockerで本格アジャイル開発管理"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2015-09-01 (Tue)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2015/09/install-docker-compose/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2015/09/install-docker-compose/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2015/09/install-docker-compose/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2015/09/install-docker-compose/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2015/09/install-docker-compose/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2015%2f09%2finstall-docker-compose%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2015-09-02 (Wed)</dt><dd><a href="http://blog.namiking.net/post/2015/09/install-docker-compose/">docker-composeのインストールとバージョン差異エラー回避方法</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-taiga/">TAIGA on Dockerで本格アジャイル開発管理</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-wekan/">Wekan on Dockerでお手軽かんばん式プロジェクト管理</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-restyaboard/">Restyaboard on Dockerで多機能かんばん式プロジェクト管理</a></dd><dt>2015-08-27 (Thu)</dt><dd><a href="http://blog.namiking.net/about/">ABOUT</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/docker">docker(4)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/oss">oss(3)</a></li><li><a href="/tags/restyaboard">restyaboard(1)</a></li><li><a href="/tags/taiga">taiga(1)</a></li><li><a href="/tags/wekan">wekan(1)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>

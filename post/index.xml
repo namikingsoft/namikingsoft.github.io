@@ -6,8 +6,90 @@
     <description>Recent content in Posts on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Tue, 01 Sep 2015 10:30:23 +0900</lastBuildDate>
+    <lastBuildDate>Wed, 02 Sep 2015 08:30:23 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>docker-composeのインストールとバージョン差異エラー回避方法</title>
+      <link>http://blog.namiking.net/post/2015/09/install-docker-compose/</link>
+      <pubDate>Wed, 02 Sep 2015 08:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/install-docker-compose/</guid>
+      <description>
+
+&lt;p&gt;&lt;code&gt;docker-compose&lt;/code&gt;はDockerコンテナの構成管理ツール。&lt;br /&gt;
+昔は&lt;code&gt;fig&lt;/code&gt;という名前のツールだったが、Dockerと統合して名前を変更したとのこと。&lt;/p&gt;
+
+&lt;p&gt;データボリューム, DB, バックエンド、フロントエンドなど、
+サービスの稼働に複数コンテナが必要な場合、立ち上げが非常に簡単になる。&lt;/p&gt;
+
+&lt;p&gt;インストール自体はシンプルだが、
+Dockerのバージョンによっては実行時にエラーが出てしまうようなので、
+エラー回避方法もまとめておく。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Overview of Docker Compose&lt;br /&gt;
+&lt;a href=&#34;https://docs.docker.com/compose/&#34;&gt;https://docs.docker.com/compose/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;インストール手順:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;インストール手順&lt;/h3&gt;
+
+&lt;p&gt;公式ドキュメントに対応OSごとのインストール方法がまとめてあった。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Docker Compose: Supported installation&lt;br /&gt;
+&lt;a href=&#34;https://docs.docker.com/installation/&#34;&gt;https://docs.docker.com/installation/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;OS共通の方法で一番簡単なのが、&lt;code&gt;pip&lt;/code&gt;でインストールする方法。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;pip install -U docker-compose
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;pip&lt;/code&gt;がない場合は、&lt;code&gt;easy_install&lt;/code&gt;でインストールできる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;easy_install pip
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;バージョン差異エラー回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;バージョン差異エラー回避方法&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;docker-compose up&lt;/code&gt;などの実行時に、以下の様なエラーが表示されることがある。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;client and server don&#39;t have same version (client : 1.19, server: 1.18)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;原因:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;原因&lt;/h4&gt;
+
+&lt;p&gt;このエラーは、インストールされている&lt;code&gt;Dockerサーバー&lt;/code&gt;のバージョンと、
+&lt;code&gt;docker-composeクライアント(API)&lt;/code&gt;のバージョンに互換性がない時に表示されるらしい。&lt;/p&gt;
+
+&lt;h4 id=&#34;回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;回避方法&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;COMPOSE_API_VERSION&lt;/code&gt;環境変数にサーバーのバージョンを設定すれば、
+&lt;code&gt;docker-compose&lt;/code&gt;の方で、サーバーのバージョンに合わせて通信してくれるとのこと。
+&lt;code&gt;auto&lt;/code&gt;を設定すれば、自動で調整してくれるみたい。便利。&lt;/p&gt;
+
+&lt;p&gt;以下のコマンドを入力するか、&lt;code&gt;/etc/profile&lt;/code&gt;とか&lt;code&gt;~/.bash_profile&lt;/code&gt;あたりに追記しておく。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;export COMPOSE_API_VERSION=auto
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;/etc/environment&lt;/code&gt;に追記する場合は以下のようにする。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;COMPOSE_API_VERSION=auto
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;docker-composeの利用例:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;docker-composeの利用例&lt;/h3&gt;
+
+&lt;p&gt;当ブログの以下の記事で、具体的な使用例を紹介しているので、参照されたい。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-taiga/&#34;&gt;TAIGA on Dockerで本格アジャイル開発管理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-wekan/&#34;&gt;Wekan on Dockerでお手軽かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-restyaboard/&#34;&gt;Restyaboard on Dockerで多機能かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>TAIGA on Dockerで本格アジャイル開発管理</title>
@@ -42,7 +124,7 @@
 
 &lt;h4 id=&#34;00-事前準備:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
 &lt;h4 id=&#34;01-docker-compose-yml-設置:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
 
@@ -103,9 +185,10 @@ taigafront:
 
 &lt;h4 id=&#34;03-足りないdbレコードを挿入:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;03. 足りないDBレコードを挿入&lt;/h4&gt;
 
-&lt;p&gt;Docker起動時に、ある程度初期DBデータの挿入が行われるが、
-おそらく&lt;code&gt;TAIGA&lt;/code&gt;のバージョンアップで、必要なDBデータが増えたのか、
-動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
+&lt;p&gt;Dockerコンテナ起動時に、初期DBデータの挿入が行われるが、
+おそらく&lt;code&gt;TAIGA&lt;/code&gt;のバージョンアップで、必要なDBデータが増えたっぽい。&lt;/p&gt;
+
+&lt;p&gt;動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
 取り急ぎ、こちらのコマンドで入れておく。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;docker exec -it (taigabackコンテナID) \
@@ -159,8 +242,10 @@ Password: 123123
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
+&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
  &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -200,7 +285,7 @@ Password: 123123
 
 &lt;h4 id=&#34;00-事前準備:a3ec11490e4688501750670051fa9d02&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:a3ec11490e4688501750670051fa9d02:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
 &lt;h4 id=&#34;01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
 
@@ -243,6 +328,15 @@ wekan:
 
 &lt;pre&gt;&lt;code&gt;http://(SERVER_IP):8080/
 &lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
 </description>
     </item>
     
@@ -271,9 +365,15 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 ちみちみデバッグしながら、構築した手順を&lt;code&gt;Dockerfile&lt;/code&gt;にまとめておいた。&lt;/p&gt;
 
 &lt;blockquote&gt;
-&lt;p&gt;GitHub: namikingsoft/docker-restyaboard
+&lt;p&gt;GitHub: namikingsoft/docker-restyaboard&lt;br /&gt;
 &lt;a href=&#34;https://github.com/namikingsoft/docker-restyaboard&#34;&gt;https://github.com/namikingsoft/docker-restyaboard&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
+
+&lt;h4 id=&#34;00-事前準備:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;00. 事前準備&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+
+&lt;h4 id=&#34;01-dockerイメージビルドとコンテナ起動:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;01. Dockerイメージビルドとコンテナ起動&lt;/h4&gt;
 
 &lt;p&gt;以下のコマンドで、Docker環境を構築できる。&lt;/p&gt;
 
@@ -283,7 +383,10 @@ cd docker-restyaboard
 docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;動作確認URLは以下。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;docker-compose up -d&lt;/code&gt;でイメージのビルドとコンテナ起動を全て自動でやってくれる。
+イメージビルドにそこそこ時間が掛かるので注意。&lt;/p&gt;
+
+&lt;h4 id=&#34;02-動作確認:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;02. 動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code&gt;http://(ServerIP):1234
 
@@ -295,6 +398,15 @@ Password: restya
 Username: user
 Password: restya
 &lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
 </description>
     </item>
     

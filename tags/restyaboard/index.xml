@@ -34,9 +34,15 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 ちみちみデバッグしながら、構築した手順を&lt;code&gt;Dockerfile&lt;/code&gt;にまとめておいた。&lt;/p&gt;
 
 &lt;blockquote&gt;
-&lt;p&gt;GitHub: namikingsoft/docker-restyaboard
+&lt;p&gt;GitHub: namikingsoft/docker-restyaboard&lt;br /&gt;
 &lt;a href=&#34;https://github.com/namikingsoft/docker-restyaboard&#34;&gt;https://github.com/namikingsoft/docker-restyaboard&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
+
+&lt;h4 id=&#34;00-事前準備:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;00. 事前準備&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+
+&lt;h4 id=&#34;01-dockerイメージビルドとコンテナ起動:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;01. Dockerイメージビルドとコンテナ起動&lt;/h4&gt;
 
 &lt;p&gt;以下のコマンドで、Docker環境を構築できる。&lt;/p&gt;
 
@@ -46,7 +52,10 @@ cd docker-restyaboard
 docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;動作確認URLは以下。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;docker-compose up -d&lt;/code&gt;でイメージのビルドとコンテナ起動を全て自動でやってくれる。
+イメージビルドにそこそこ時間が掛かるので注意。&lt;/p&gt;
+
+&lt;h4 id=&#34;02-動作確認:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;02. 動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code&gt;http://(ServerIP):1234
 
@@ -58,6 +67,15 @@ Password: restya
 Username: user
 Password: restya
 &lt;/code&gt;&lt;/pre&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
 </description>
     </item>
     
