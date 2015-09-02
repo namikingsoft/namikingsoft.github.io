@@ -24,8 +24,17 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 導入手順が書かれていないっぽい。
 ちみちみデバッグしながら、構築した手順を`Dockerfile`にまとめておいた。
 
-> GitHub: namikingsoft/docker-restyaboard
+> GitHub: namikingsoft/docker-restyaboard  
 > https://github.com/namikingsoft/docker-restyaboard
+
+
+#### 00. 事前準備
+
+`Docker`と`docker-compose`[^1]をインストールしておく。
+
+[^1]: [docker-composeのインストールとバージョン差異エラー回避方法](/post/2015/09/install-docker-compose/)
+
+#### 01. Dockerイメージビルドとコンテナ起動
 
 以下のコマンドで、Docker環境を構築できる。
 
@@ -36,7 +45,10 @@ cd docker-restyaboard
 docker-compose up -d
 ```
 
-動作確認URLは以下。
+`docker-compose up -d`でイメージのビルドとコンテナ起動を全て自動でやってくれる。
+イメージビルドにそこそこ時間が掛かるので注意。
+
+#### 02. 動作確認
 
 ```
 http://(ServerIP):1234

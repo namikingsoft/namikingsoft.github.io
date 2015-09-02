@@ -31,7 +31,9 @@ title: TAIGA on Dockerで本格アジャイル開発管理
 
 #### 00. 事前準備
 
-`Docker`と`docker-compose`をインストールしておく。
+`Docker`と`docker-compose`[^1]をインストールしておく。
+
+[^1]: [docker-composeのインストールとバージョン差異エラー回避方法](/post/2015/09/install-docker-compose/)
 
 #### 01. docker-compose.yml 設置
 
@@ -93,10 +95,13 @@ docker-compose up -d
 
 #### 03. 足りないDBレコードを挿入
 
-Docker起動時に、ある程度初期DBデータの挿入が行われるが、
-おそらく`TAIGA`のバージョンアップで、必要なDBデータが増えたのか、
-動作確認時にプロジェクトが作成できない[^1]、などの不具合を起こしていたので、
+Dockerコンテナ起動時に、初期DBデータの挿入が行われるが、
+おそらく`TAIGA`のバージョンアップで、必要なDBデータが増えたっぽい。
+
+動作確認時にプロジェクトが作成できない[^2]、などの不具合を起こしていたので、
 取り急ぎ、こちらのコマンドで入れておく。
+
+[^2]: 参考： https://github.com/taigaio/taiga-scripts/issues/23
 
 ```bash
 docker exec -it (taigabackコンテナID) \
@@ -140,4 +145,3 @@ Password: 123123
 * 追加DBデータを挿入していない。
 
 
-[^1]: 参考： https://github.com/taigaio/taiga-scripts/issues/23
