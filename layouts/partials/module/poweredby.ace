@@ -23,7 +23,7 @@
           span TWITTER
   .module-poweredby__hugo
     p
-      | Written by 
+      | Designed &amp; Written by 
       a href="/about" @namikingsoft
     p
       | Powered by 
