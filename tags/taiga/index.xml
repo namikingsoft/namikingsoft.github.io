@@ -6,8 +6,186 @@
     <description>Recent content in Taiga on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Tue, 01 Sep 2015 10:30:23 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 04 Sep 2015 08:30:23 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/tags/taiga/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>オープンソースのかんばん式管理ツールを３つほど試してみた</title>
+      <link>http://blog.namiking.net/post/2015/09/kanban-board/</link>
+      <pubDate>Fri, 04 Sep 2015 08:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/kanban-board/</guid>
+      <description>
+
+&lt;p&gt;コンプライアンス&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を重視する現場で、
+アジャイルなプロジェクト管理ツールが現場で必要になったときに、
+外部Webサービスな&lt;code&gt;Trello&lt;/code&gt;や&lt;code&gt;Pivotal Tracker&lt;/code&gt;を導入しづらいことがある。&lt;/p&gt;
+
+&lt;p&gt;そこで、OSSのかんばん式管理ツールをいくつか探して、&lt;br /&gt;
+色々試して感じたことをまとめておきます。&lt;/p&gt;
+
+&lt;h3 id=&#34;今回試した-かんばん式-プロジェクト管理ツール:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;今回試した &amp;lsquo;かんばん式&amp;rsquo; プロジェクト管理ツール&lt;/h3&gt;
+
+&lt;p&gt;以下に挙げる以外にも、OSSのかんばん式管理ツールは数多く存在するが、
+機能面・とっつきやすさ・導入の容易さなどに基いて、３つだけピックアップさせていただいた。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;TAIGA&lt;br /&gt;
+&lt;a href=&#34;https://taiga.io/&#34;&gt;https://taiga.io/&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Wekan (旧LibreBoard)&lt;br /&gt;
+&lt;a href=&#34;http://newui.libreboard.com&#34;&gt;http://newui.libreboard.com&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+
+&lt;li&gt;&lt;p&gt;Restyaboard&lt;br /&gt;
+&lt;a href=&#34;http://restya.com/board/&#34;&gt;http://restya.com/board/&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&#34;個別のサーバーに実行環境を構築したい場合:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;個別のサーバーに実行環境を構築したい場合&lt;/h4&gt;
+
+&lt;p&gt;各々デモ用のURLが用意されているが、OSSなので個別のサーバー環境や&lt;code&gt;Docker&lt;/code&gt;で試したい場合は、
+当ブログに構築手順の記事があるので、参照されたい。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-taiga/&#34;&gt;TAIGA on Dockerで本格アジャイル開発管理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-wekan/&#34;&gt;Wekan on Dockerでお手軽かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-restyaboard/&#34;&gt;Restyaboard on Dockerで多機能かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&#34;taiga-本格的なアジャイル開発管理:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;TAIGA - 本格的なアジャイル開発管理&lt;/h2&gt;
+
+&lt;p&gt;本格的なアジャイル開発を支援するプロジェクト管理ツール。
+他のかんばん管理ツールに比べて、デザイン洗礼されていて、使っていて気持ちいい。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/taiga01.jpg&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/taiga03.jpg&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/taiga04.jpg&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/taiga02.jpg&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;ここが良かった:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ここが良かった&lt;/h3&gt;
+
+&lt;h4 id=&#34;アジャイル開発管理に特化したテンプレート:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;アジャイル開発管理に特化したテンプレート&lt;/h4&gt;
+
+&lt;p&gt;全体を見渡せるかんばんボードだけではなく、
+期間区切りのスプリントを作成して、バックログからストーリーカードを割り振り、
+各タスクの進捗状況を確認できる&lt;code&gt;タスクボード&lt;/code&gt;機能。&lt;/p&gt;
+
+&lt;p&gt;プロジェクト全体の遅延動向をより正確に把握するために、
+ストーリーカード毎に設定するポイント(難度重み付け)&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;と、
+ストーリーカードの進捗に基いて描写される&lt;code&gt;バーンダウンチャート&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;感覚的には以前使っていた&lt;code&gt;Redmine&lt;/code&gt;のアジャイル拡張の&lt;code&gt;Alminium&lt;/code&gt;に似ている。&lt;br /&gt;
+(アジャイルの管理ツールって概ねこんな感じなのかな)&lt;/p&gt;
+
+&lt;h4 id=&#34;ユーザーごとに権限グループ設定をすることができる:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ユーザーごとに権限グループ設定をすることができる&lt;/h4&gt;
+
+&lt;p&gt;スプリントを追加できるのはオーナーのみとか、
+エンジニア/デザイナーはタスクのみを登録できる。とか、
+グループによって、事細かに権限を設定することができる。&lt;/p&gt;
+
+&lt;p&gt;デフォルトの権限グループとしては、&lt;code&gt;UX&lt;/code&gt;,&lt;code&gt;DESIGN&lt;/code&gt;,&lt;code&gt;FRONT&lt;/code&gt;,&lt;code&gt;BACK&lt;/code&gt;,&lt;code&gt;PRODUCT OWNER&lt;/code&gt;などがあるが、こちらも設定で変更できるっぽい。&lt;/p&gt;
+
+&lt;h3 id=&#34;微妙なところ:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;微妙なところ&lt;/h3&gt;
+
+&lt;h4 id=&#34;軽めに使うには複雑すぎるか:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;軽めに使うには複雑すぎるか&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Redmine&lt;/code&gt;拡張の&lt;code&gt;Alminium&lt;/code&gt;を使った時も思ったことだが、
+メンバーがアジャイル開発手法に慣れていない場合、
+バックログ &amp;gt; スプリント &amp;gt; タスクボードの階層構造に少し戸惑うかもしれない。&lt;/p&gt;
+
+&lt;p&gt;一応、設定からアジャイル開発系のモジュールを無効にできたりするが、
+かんばんボードの列名を別の設定画面で行う必要があったりと、少し面倒くさい。
+シンプルなTODO表として使うなら、&lt;code&gt;Trello&lt;/code&gt;,&lt;code&gt;Wekan&lt;/code&gt;とかの方がとっつきやすいかもしれない。&lt;/p&gt;
+
+&lt;h2 id=&#34;wekan-お手軽かんばん式プロジェクト管理:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;Wekan - お手軽かんばん式プロジェクト管理&lt;/h2&gt;
+
+&lt;p&gt;ちょっと前は、&lt;code&gt;Libreboard&lt;/code&gt;と呼ばれていて、日本語の紹介サイトも豊富に存在した。
+その頃はボード画面から設定画面から、何から何までTrelloにそっくりだったが、
+&lt;code&gt;Wekan&lt;/code&gt;に名を変えてから、少しUIにオリジナリティが増したように感じる。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/wekan02.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;ここが良かった-1:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ここが良かった&lt;/h3&gt;
+
+&lt;h4 id=&#34;シンプル-イズ-ベスト:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;シンプル・イズ・ベスト&lt;/h4&gt;
+
+&lt;p&gt;&lt;code&gt;Trello&lt;/code&gt;の基本機能から、更に必要最低限のものに絞ってるので、非常にとっつきやすい。
+システム開発に限らず、シンプルなTODO管理にも使えそう。
+ひょっとすると、ITアレルギー持ちの老若男女にも使っていただけるかもしれない。&lt;/p&gt;
+
+&lt;p&gt;こういうツールの真髄は、&lt;strong&gt;今どんな課題があるか。どういう状況か。誰が着手してるか。&lt;/strong&gt;を素早く把握することにあるので、
+コミュニケーションツールとして割り切るならば、十分だとは思う。&lt;/p&gt;
+
+&lt;h4 id=&#34;日本語uiに対応:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;日本語UIに対応&lt;/h4&gt;
+
+&lt;p&gt;上のログイン画面のスクリーンショットのとおり、デフォルトで日本語に対応している。
+ログイン後の画面も右上メニューの&lt;code&gt;Change Languege&lt;/code&gt;から日本語にできる。
+英語アレルギー持ちの老若男女にも使っていただけるだろう。&lt;/p&gt;
+
+&lt;h3 id=&#34;微妙なところ-1:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;微妙なところ&lt;/h3&gt;
+
+&lt;h4 id=&#34;アジャイル開発管理に使うにはシンプルすぎるか:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;アジャイル開発管理に使うにはシンプルすぎるか&lt;/h4&gt;
+
+&lt;p&gt;本格的にアジャイル開発に使うには、複数ボードにまたいだりと、
+運用テクニックが必要になりそう。
+あと、&lt;code&gt;Trello&lt;/code&gt;や&lt;code&gt;Restyaboard&lt;/code&gt;にあるようなチェックリスト機能がないので、
+各ストーリーカードの進行状況(タスク状況)をボード上から確認するのは難しい。&lt;/p&gt;
+
+&lt;h2 id=&#34;restyaboard-多機能かんばん式プロジェクト管理:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;Restyaboard - 多機能かんばん式プロジェクト管理&lt;/h2&gt;
+
+&lt;p&gt;基本的には&lt;code&gt;Trello&lt;/code&gt;クローンなのだが、
+シンプル化の&lt;code&gt;Wekan&lt;/code&gt;と違い、多機能化を目指している。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/restya01.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/restya02.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;
+&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/restya03.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;ここが良かった-2:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ここが良かった&lt;/h3&gt;
+
+&lt;h4 id=&#34;他ツールにない前衛的な機能やtrello有料機能が使えたりする:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;他ツールにない前衛的な機能やTrello有料機能が使えたりする&lt;/h4&gt;
+
+&lt;p&gt;例えば、ボードのオーナー以外がストーリーカードを追加することができないが、
+ボード一覧による進捗状況確認、カレンダー表示、デスクトップ通知&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;3&lt;/a&gt;&lt;/sup&gt;、ファビコンに新着通知数表示など、他ツールにない前衛的な機能/UIが豊富。&lt;/p&gt;
+
+&lt;p&gt;チェックリスト、Due Date、ボードの背景に写真が使える、などを見ると、
+機能面では&lt;code&gt;Wekan&lt;/code&gt;より、こちらのほうが&lt;code&gt;Trello&lt;/code&gt;を意識しているかも。
+また、&lt;code&gt;Trello&lt;/code&gt;からデータをインポートする機能が付いているので、
+もし無償版では満足できなくなったら、試してみるのもいいかもしれない。&lt;/p&gt;
+
+&lt;h3 id=&#34;微妙なところ-2:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;微妙なところ&lt;/h3&gt;
+
+&lt;h4 id=&#34;ユーザーインタフェースに少し難あり:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ユーザーインタフェースに少し難あり&lt;/h4&gt;
+
+&lt;p&gt;定期的に再読み込みのロードバーが表示されたり、
+デスクトップ通知が絶え間なく表示されたり、
+ストーリーカードの詳細ポップアップがグィングイン動いたり、
+若干UI効果がうるさいかも。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/RestyaPlatform/board&#34;&gt;GitHub&lt;/a&gt;を見るに、機能面含めて現在開発中のアルファ版という位置づけと思われるので、
+今後のバージョンアップに期待したいところ。&lt;/p&gt;
+
+&lt;h2 id=&#34;あとがき:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;あとがき&lt;/h2&gt;
+
+&lt;p&gt;１年ほど前にOSSのかんばんツールを探してた時は、
+&lt;code&gt;Redmine&lt;/code&gt;の&lt;code&gt;Alminium&lt;/code&gt;ぐらいしか選択肢がなかった気がしたが、
+ものすごいスピードで新サービスが生まれるWeb系の恐ろしさを感じる。&lt;/p&gt;
+
+&lt;p&gt;OSS作者様に感謝すると共に、自分もなにか残してえなあ。と色々弄ってて思った。&lt;/p&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;いまいちピンとこない用語だが、ここでは情報漏洩を気にする企業という意味。内部サーバーだからバッチグーという事ではなく、いかにお固い上席を説得しやすいか。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;フィボナッチ数列っぽいものから重みを選択できる。数列は設定から変更可能。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;Trelloにもデスクトップ通知機能は付いているみたい。&lt;a href=&#34;http://n2p.co.jp/blog/planning/trellotips/&#34;&gt;[参考]&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
+    </item>
     
     <item>
       <title>TAIGA on Dockerで本格アジャイル開発管理</title>
