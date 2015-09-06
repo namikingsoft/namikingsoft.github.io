@@ -1,0 +1,18 @@
+.layout-404
+  .container
+    .layout-404__message
+      .layout-404__message-english
+        span.hidden-xs Sorry...&nbsp;
+        | Page Not Found.
+      .layout-404__message-japanese
+        p お探しのページは見つかりませんでした。
+      .layout-404__message-detail
+        p お探しのページは移動、もしくは削除された可能性があります。
+        p 以下の記事リストから、お探しのページが見つかるかもしれません。
+
+
+    .layout-404__recent
+      h2 直近の記事リスト
+      {{ range .Site.Pages }}
+      = include partials/module/listrow.html .
+      {{ end }}
