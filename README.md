@@ -1,4 +1,4 @@
-Namiking.net Source
+Namiking.net
 ==============================
 Powered by [HUGO](http://gohugo.io/).
 
