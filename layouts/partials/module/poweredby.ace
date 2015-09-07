@@ -21,6 +21,10 @@
         a href="{{ .Site.Params.TwitterURL }}"
           i.fa.fa-lg.fa-twitter
           span TWITTER
+      li
+        a href="{{ .Site.BaseURL }}index.xml"
+          i.fa.fa-lg.fa-rss
+          span RSS
   .module-poweredby__hugo
     p
       | Designed &amp; Written by 
