@@ -35,6 +35,39 @@ https://github.com/namikingsoft/sample-webpack-test
 
 
 
+### 試しにブラウザで動かしてみる
+
+GitHub上の[動作サンプル](https://github.com/namikingsoft/sample-webpack-test)をcloneして、
+webpack-dev-serverを起動したら、
+お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。
+
+http://localhost:8080/webpack-dev-server/
+
+#### コマンド例
+
+```bash
+git clone https://github.com/namikingsoft/sample-webpack-test
+cd sample-webpack-test
+npm install && npm start
+open http://localhost:8080/webpack-dev-server/
+```
+
+#### 動作画面の例
+
+フロントエンドアプリとMochaのSpecを同時に動かしている図。
+Seleniumみたいにギュンギュン動いて楽しい。
+Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。
+
+![Animation](/images/post/2015/09/test-webpack-browser/animation.gif)
+
+Specは走らなくていいから、
+アプリの動作確認だけしたいときは以下のURL[^1]で可能。
+http://localhost:8081/webpack-dev-server/app
+
+[^1]: URLの`app`は`webpack.config.js`のentry項目で設定した連想配列のキー。HTMLはwebpack-dev-serverがメモリ内で自動生成してくれる。
+
+
+
 ### ざっくり解説
 
 #### ファイル構成
@@ -164,39 +197,6 @@ module: {
   </body>
 </html>
 ```
-
-
-### 試しにブラウザで動かしてみる
-
-GitHub上の[動作サンプル](https://github.com/namikingsoft/sample-webpack-test)をcloneして、
-webpack-dev-serverを起動したら、
-お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。
-
-http://localhost:8080/webpack-dev-server/
-
-#### コマンド例
-
-```bash
-git clone https://github.com/namikingsoft/sample-webpack-test
-cd sample-webpack-test
-npm install && npm start
-open http://localhost:8080/webpack-dev-server/
-```
-
-#### 動作画面の例
-
-フロントエンドアプリとMochaのSpecを同時に動かしている図。
-Seleniumみたいにギュンギュン動いて楽しい。
-Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。
-
-![Animation](/images/post/2015/09/test-webpack-browser/animation.gif)
-
-Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL[^1]で可能。
-http://localhost:8081/webpack-dev-server/app
-
-[^1]: URLの`app`は`webpack.config.js`のentry項目で設定した連想配列のキー。HTMLはwebpack-dev-serverがメモリ内で自動生成してくれる。
-
 
 
 ### あとがき
