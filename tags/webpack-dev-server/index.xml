@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Webpack Dev Server on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/webpack-dev-server/</link>
+    <description>Recent content in Webpack Dev Server on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Fri, 11 Sep 2015 08:30:23 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/webpack-dev-server/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>フロントエンドの継続的テストをMocha&#43;webpack&#43;ブラウザでやってみる</title>
+      <link>http://blog.namiking.net/post/2015/09/test-webpack-browser/</link>
+      <pubDate>Fri, 11 Sep 2015 08:30:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/test-webpack-browser/</guid>
+      <description>
+
+&lt;p&gt;webpackの&lt;a href=&#34;http://webpack.github.io/docs/testing.html&#34;&gt;Testing&lt;/a&gt;を眺めてたら、
+ブラウザ上でアプリを動作させながらMochaのSpecを走らせて、
+クライアントサイドのテストをする、
+みたいなことが手軽に出来そうだったので、やってみた。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;webpack-dev-server&lt;/strong&gt;を利用すれば、
+ソースやテストを修正直後に自動リロードされるので、
+継続的テストみたいな手法もとりやすい。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/index.jpg&#34; alt=&#34;ScreenShot&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;動作サンプル:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作サンプル&lt;/h3&gt;
+
+&lt;p&gt;ひと通り動くサンプルを作ったので、以下のGitHubに上げておきます。
+nodeやnpmがインストールされていれば、動作すると思われます。&lt;/p&gt;
+
+&lt;p&gt;&amp;ldquo;Greetingボタンを押したら、その下に挨拶が追加される&amp;rdquo;&lt;br /&gt;
+みたいな動作のサンプルアプリとそのSpecをjQueryでシンプルに組んであります。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: sample-webpack-test&lt;br /&gt;
+&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;https://github.com/namikingsoft/sample-webpack-test&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ざっくり解説&lt;/h3&gt;
+
+&lt;h4 id=&#34;ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ファイル構成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;sample-webpack-test
+├── build
+│   ├── app.js // webpackが吐き出したアプリ本体のバンドルJS。
+│   ├── index.html // アプリとSpecを動作させるHTML
+│   └── spec.js  // webpackが吐き出したSpecのバンドルJS。
+├── spec // このディレクトリ以下に置いた*Spec.jsが実行される
+│   └── mainSpec.js 
+├── src
+│   └── main.js // アプリ本体のソース
+└── webpack.config.js // webpackの設定ファイル
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;build&lt;/code&gt;ディレクトリ内の&lt;code&gt;app.js&lt;/code&gt;と&lt;code&gt;spec.js&lt;/code&gt;は、
+webpack-dev-server内の動作であれば、
+メモリ内のものが呼び出されるようなので、特に設置する必要はなさそう。&lt;/p&gt;
+
+&lt;h4 id=&#34;複数のspecファイルに対応する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
+
+&lt;p&gt;npmのglobモジュールを利用して、
+複数のSpecファイルをエントリーポイントに含めることができる。
+また、requireでglobを書きたい場合は、&lt;a href=&#34;https://github.com/seanchas116/glob-loader&#34;&gt;glob-loader&lt;/a&gt;を使えば、同じようなことができる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;// webpack.config.jsのmodule.exports内
+
+entry: {
+  app: &amp;quot;./src/main.js&amp;quot;,
+  spec: glob.sync(&amp;quot;./spec/**/*Spec.js&amp;quot;),
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;修正後に自動的にテストが走るようにする:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
+
+&lt;p&gt;webpack-dev-serverには、ファイル修正を検知して再読み込みをしてくれる、
+hotモードという機能が付いているので、webpack.config.jsでそれをを有効にする。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;// webpack.config.jsのmodule.exports内
+
+devServer: {
+  // Document Root
+  contentBase: &amp;quot;./build&amp;quot;,
+  // 動作ポート指定
+  port: 8080,
+  // hotモード有効化
+  hot: true,
+  // これがないと、ブラウザで
+  inline: true,
+},
+plugins: [
+  // hotモードに必要なプラグイン
+  new webpack.HotModuleReplacementPlugin(),
+],
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
+
+&lt;p&gt;webpackの&lt;a href=&#34;http://webpack.github.io/docs/testing.html&#34;&gt;Testing&lt;/a&gt;のページにもあるが、
+mocha-loaderを噛ますことで、ブラウザでMochaが利用可能になるJSが吐き出せるようになる。&lt;/p&gt;
+
+&lt;p&gt;SpecファイルをES6で書きたければ、
+babel-loaderを挟むと、一般ブラウザ用のJSに変換できる。
+CoffeeScript+Chaiとかで書いても気持ちよさそう。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;// webpack.config.jsのmodule.exports内
+
+module: {
+  loaders: [
+    // App用
+    {
+      test: /\.js$/,
+      loaders: [&#39;babel&#39;],
+      exclude: /(node_modules|bower_components)/,
+    },
+    // Spec用
+    {
+      test: /Spec\.js$/,
+      loaders: [&#39;mocha&#39;, &#39;babel&#39;],
+      exclude: /(node_modules|bower_components)/,
+    },
+  ],
+},
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
+
+&lt;p&gt;アプリの動作画面にSpec結果のレイアウトを入れ込む。&lt;br /&gt;
+&lt;code&gt;app.js&lt;/code&gt;で必要なUIを書き出すなどの初期処理を行ってから、&lt;code&gt;spec.js&lt;/code&gt;を走らせている。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;!-- build/index.html --&amp;gt;
+
+&amp;lt;!DOCTYPE html&amp;gt;
+&amp;lt;html lang=&amp;quot;ja&amp;quot;&amp;gt;
+  &amp;lt;head&amp;gt;
+    &amp;lt;meta charset=&amp;quot;UTF-8&amp;quot;&amp;gt;
+    &amp;lt;title&amp;gt;App&amp;lt;/title&amp;gt;
+    &amp;lt;style&amp;gt;
+      /* Spec実行結果を表示するレイアウトCSS */
+      .layout-spec {
+        position: fixed;
+        overflow: scroll;
+        top: 0; bottom: 0; right: 0;
+        width: 45%;
+        background-color: #eee;
+      }
+      .layout-spec pre {
+        background-color: #fff;
+      }
+    &amp;lt;/style&amp;gt;
+  &amp;lt;/head&amp;gt;
+  &amp;lt;body&amp;gt;
+    &amp;lt;!-- App実行 --&amp;gt;
+    &amp;lt;script src=&amp;quot;app.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+    &amp;lt;div class=&amp;quot;layout-spec&amp;quot;&amp;gt;
+      &amp;lt;!-- Spec実行 --&amp;gt;
+      &amp;lt;script src=&amp;quot;spec.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+    &amp;lt;/div&amp;gt;
+  &amp;lt;/body&amp;gt;
+&amp;lt;/html&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
+
+&lt;p&gt;GitHub上の&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;動作サンプル&lt;/a&gt;をcloneして、
+webpack-dev-serverを起動したら、
+お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://localhost:8080/webpack-dev-server/&#34;&gt;http://localhost:8080/webpack-dev-server/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h4 id=&#34;コマンド例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;コマンド例&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/sample-webpack-test
+cd sample-webpack-test
+npm install &amp;amp;&amp;amp; npm start
+open http://localhost:8080/webpack-dev-server/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作画面の例&lt;/h4&gt;
+
+&lt;p&gt;フロントエンドアプリとMochaのSpecを同時に動かしている図。
+Seleniumみたいにギュンギュン動いて楽しい。
+Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/animation.gif&#34; alt=&#34;Animation&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Specは走らなくていいから、
+アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
+&lt;a href=&#34;http://localhost:8081/webpack-dev-server/app&#34;&gt;http://localhost:8081/webpack-dev-server/app&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;あとがき:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;あとがき&lt;/h3&gt;
+
+&lt;p&gt;ChromeとかFirefoxなどの複数のブラウザ上で手軽にフロント動作仕様を自動チェックしたい、
+みたいなときの方法論の一つとして紹介してみた。&lt;/p&gt;
+
+&lt;p&gt;ただ、CLI動作とかCIと連携する場合は、
+Kermaのようなテストランナーを使ったほうが良いかも。
+webpackはKermaとも簡単に連動できるようなので、
+その辺も後々まとめておきたい。&lt;/p&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;は&lt;code&gt;webpack.config.js&lt;/code&gt;のentry項目で設定した連想配列のキー。HTMLはwebpack-dev-serverがメモリ内で自動生成してくれる。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

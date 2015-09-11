@@ -1,0 +1,210 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>フロントエンドの継続的テストをMocha&#43;webpack&#43;ブラウザでやってみる - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>フロントエンドの継続的テストをMocha&#43;webpack&#43;ブラウザでやってみる</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2015-09-11 (Fri)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/%E3%83%95%E3%83%AD%E3%83%B3%E3%83%88%E3%82%A8%E3%83%B3%E3%83%89%E9%96%A2%E9%80%A3">フロントエンド関連</a></li><li><a class="label label-default" href="/tags/webpack">webpack</a></li><li><a class="label label-default" href="/tags/webpack-dev-server">webpack-dev-server</a></li><li><a class="label label-default" href="/tags/mocha">Mocha</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p>webpackの<a href="http://webpack.github.io/docs/testing.html">Testing</a>を眺めてたら、
+ブラウザ上でアプリを動作させながらMochaのSpecを走らせて、
+クライアントサイドのテストをする、
+みたいなことが手軽に出来そうだったので、やってみた。</p>
+
+<p><strong>webpack-dev-server</strong>を利用すれば、
+ソースやテストを修正直後に自動リロードされるので、
+継続的テストみたいな手法もとりやすい。</p>
+
+<p><img src="/images/post/2015/09/test-webpack-browser/index.jpg" alt="ScreenShot" /></p>
+
+<h3 id="動作サンプル:83d5efb00d572fc7f727b6dff95ecdf6">動作サンプル</h3>
+
+<p>ひと通り動くサンプルを作ったので、以下のGitHubに上げておきます。
+nodeやnpmがインストールされていれば、動作すると思われます。</p>
+
+<p>&ldquo;Greetingボタンを押したら、その下に挨拶が追加される&rdquo;<br />
+みたいな動作のサンプルアプリとそのSpecをjQueryでシンプルに組んであります。</p>
+
+<blockquote>
+<p>GitHub: sample-webpack-test<br />
+<a href="https://github.com/namikingsoft/sample-webpack-test">https://github.com/namikingsoft/sample-webpack-test</a></p>
+</blockquote>
+
+<h3 id="ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6">ざっくり解説</h3>
+
+<h4 id="ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6">ファイル構成</h4>
+
+<pre><code>sample-webpack-test
+├── build
+│   ├── app.js // webpackが吐き出したアプリ本体のバンドルJS。
+│   ├── index.html // アプリとSpecを動作させるHTML
+│   └── spec.js  // webpackが吐き出したSpecのバンドルJS。
+├── spec // このディレクトリ以下に置いた*Spec.jsが実行される
+│   └── mainSpec.js 
+├── src
+│   └── main.js // アプリ本体のソース
+└── webpack.config.js // webpackの設定ファイル
+</code></pre>
+
+<p><code>build</code>ディレクトリ内の<code>app.js</code>と<code>spec.js</code>は、
+webpack-dev-server内の動作であれば、
+メモリ内のものが呼び出されるようなので、特に設置する必要はなさそう。</p>
+
+<h4 id="複数のspecファイルに対応する:83d5efb00d572fc7f727b6dff95ecdf6">複数のSpecファイルに対応する</h4>
+
+<p>npmのglobモジュールを利用して、
+複数のSpecファイルをエントリーポイントに含めることができる。
+また、requireでglobを書きたい場合は、<a href="https://github.com/seanchas116/glob-loader">glob-loader</a>を使えば、同じようなことができる。</p>
+
+<pre><code class="language-javascript">// webpack.config.jsのmodule.exports内
+
+entry: {
+  app: &quot;./src/main.js&quot;,
+  spec: glob.sync(&quot;./spec/**/*Spec.js&quot;),
+}
+</code></pre>
+
+<h4 id="修正後に自動的にテストが走るようにする:83d5efb00d572fc7f727b6dff95ecdf6">修正後に自動的にテストが走るようにする</h4>
+
+<p>webpack-dev-serverには、ファイル修正を検知して再読み込みをしてくれる、
+hotモードという機能が付いているので、webpack.config.jsでそれをを有効にする。</p>
+
+<pre><code class="language-javascript">// webpack.config.jsのmodule.exports内
+
+devServer: {
+  // Document Root
+  contentBase: &quot;./build&quot;,
+  // 動作ポート指定
+  port: 8080,
+  // hotモード有効化
+  hot: true,
+  // これがないと、ブラウザで
+  inline: true,
+},
+plugins: [
+  // hotモードに必要なプラグイン
+  new webpack.HotModuleReplacementPlugin(),
+],
+</code></pre>
+
+<h4 id="specファイルをブラウザで動作するように変換する:83d5efb00d572fc7f727b6dff95ecdf6">Specファイルをブラウザで動作するように変換する</h4>
+
+<p>webpackの<a href="http://webpack.github.io/docs/testing.html">Testing</a>のページにもあるが、
+mocha-loaderを噛ますことで、ブラウザでMochaが利用可能になるJSが吐き出せるようになる。</p>
+
+<p>SpecファイルをES6で書きたければ、
+babel-loaderを挟むと、一般ブラウザ用のJSに変換できる。
+CoffeeScript+Chaiとかで書いても気持ちよさそう。</p>
+
+<pre><code class="language-javascript">// webpack.config.jsのmodule.exports内
+
+module: {
+  loaders: [
+    // App用
+    {
+      test: /\.js$/,
+      loaders: ['babel'],
+      exclude: /(node_modules|bower_components)/,
+    },
+    // Spec用
+    {
+      test: /Spec\.js$/,
+      loaders: ['mocha', 'babel'],
+      exclude: /(node_modules|bower_components)/,
+    },
+  ],
+},
+</code></pre>
+
+<h4 id="appとspecを同時に走らせるhtmlを用意:83d5efb00d572fc7f727b6dff95ecdf6">AppとSpecを同時に走らせるHTMLを用意</h4>
+
+<p>アプリの動作画面にSpec結果のレイアウトを入れ込む。<br />
+<code>app.js</code>で必要なUIを書き出すなどの初期処理を行ってから、<code>spec.js</code>を走らせている。</p>
+
+<pre><code class="language-html">&lt;!-- build/index.html --&gt;
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;ja&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;App&lt;/title&gt;
+    &lt;style&gt;
+      /* Spec実行結果を表示するレイアウトCSS */
+      .layout-spec {
+        position: fixed;
+        overflow: scroll;
+        top: 0; bottom: 0; right: 0;
+        width: 45%;
+        background-color: #eee;
+      }
+      .layout-spec pre {
+        background-color: #fff;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- App実行 --&gt;
+    &lt;script src=&quot;app.js&quot;&gt;&lt;/script&gt;
+    &lt;div class=&quot;layout-spec&quot;&gt;
+      &lt;!-- Spec実行 --&gt;
+      &lt;script src=&quot;spec.js&quot;&gt;&lt;/script&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<h3 id="試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6">試しにブラウザで動かしてみる</h3>
+
+<p>GitHub上の<a href="https://github.com/namikingsoft/sample-webpack-test">動作サンプル</a>をcloneして、
+webpack-dev-serverを起動したら、
+お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。</p>
+
+<p><a href="http://localhost:8080/webpack-dev-server/">http://localhost:8080/webpack-dev-server/</a></p>
+
+<h4 id="コマンド例:83d5efb00d572fc7f727b6dff95ecdf6">コマンド例</h4>
+
+<pre><code class="language-bash">git clone https://github.com/namikingsoft/sample-webpack-test
+cd sample-webpack-test
+npm install &amp;&amp; npm start
+open http://localhost:8080/webpack-dev-server/
+</code></pre>
+
+<h4 id="動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6">動作画面の例</h4>
+
+<p>フロントエンドアプリとMochaのSpecを同時に動かしている図。
+Seleniumみたいにギュンギュン動いて楽しい。
+Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。</p>
+
+<p><img src="/images/post/2015/09/test-webpack-browser/animation.gif" alt="Animation" /></p>
+
+<p>Specは走らなくていいから、
+アプリの動作確認だけしたいときは以下のURL<sup class="footnote-ref" id="fnref:83d5efb00d572fc7f727b6dff95ecdf6:1"><a rel="footnote" href="#fn:83d5efb00d572fc7f727b6dff95ecdf6:1">1</a></sup>で可能。
+<a href="http://localhost:8081/webpack-dev-server/app">http://localhost:8081/webpack-dev-server/app</a></p>
+
+<h3 id="あとがき:83d5efb00d572fc7f727b6dff95ecdf6">あとがき</h3>
+
+<p>ChromeとかFirefoxなどの複数のブラウザ上で手軽にフロント動作仕様を自動チェックしたい、
+みたいなときの方法論の一つとして紹介してみた。</p>
+
+<p>ただ、CLI動作とかCIと連携する場合は、
+Kermaのようなテストランナーを使ったほうが良いかも。
+webpackはKermaとも簡単に連動できるようなので、
+その辺も後々まとめておきたい。</p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:83d5efb00d572fc7f727b6dff95ecdf6:1">URLの<code>app</code>は<code>webpack.config.js</code>のentry項目で設定した連想配列のキー。HTMLはwebpack-dev-serverがメモリ内で自動生成してくれる。
+ <a class="footnote-return" href="#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1"><sup>[return]</sup></a></li>
+</ol>
+</div>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2015\/09\/test-webpack-browser\/';
+    var disqus_title = 'フロントエンドの継続的テストをMocha\x2bwebpack\x2bブラウザでやってみる';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2015\/09\/test-webpack-browser\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2015/09/kanban-board/" title="オープンソースのかんばん式管理ツールを３つほど試してみた"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2015-09-04 (Fri)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2015/09/test-webpack-browser/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2015%2f09%2ftest-webpack-browser%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2015-09-11 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/test-webpack-browser/">フロントエンドの継続的テストをMocha&#43;webpack&#43;ブラウザでやってみる</a></dd><dt>2015-09-04 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/kanban-board/">オープンソースのかんばん式管理ツールを３つほど試してみた</a></dd><dt>2015-09-02 (Wed)</dt><dd><a href="http://blog.namiking.net/post/2015/09/install-docker-compose/">docker-composeのインストールとバージョン差異エラー回避方法</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-taiga/">TAIGA on Dockerで本格アジャイル開発管理</a></dd><dt>2015-09-01 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-wekan/">Wekan on Dockerでお手軽かんばん式プロジェクト管理</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/docker">docker(4)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/webpack">webpack(1)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>
