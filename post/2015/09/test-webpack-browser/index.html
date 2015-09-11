@@ -24,6 +24,34 @@ nodeやnpmがインストールされていれば、動作すると思われま�
 <a href="https://github.com/namikingsoft/sample-webpack-test">https://github.com/namikingsoft/sample-webpack-test</a></p>
 </blockquote>
 
+<h3 id="試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6">試しにブラウザで動かしてみる</h3>
+
+<p>GitHub上の<a href="https://github.com/namikingsoft/sample-webpack-test">動作サンプル</a>をcloneして、
+webpack-dev-serverを起動したら、
+お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。</p>
+
+<p><a href="http://localhost:8080/webpack-dev-server/">http://localhost:8080/webpack-dev-server/</a></p>
+
+<h4 id="コマンド例:83d5efb00d572fc7f727b6dff95ecdf6">コマンド例</h4>
+
+<pre><code class="language-bash">git clone https://github.com/namikingsoft/sample-webpack-test
+cd sample-webpack-test
+npm install &amp;&amp; npm start
+open http://localhost:8080/webpack-dev-server/
+</code></pre>
+
+<h4 id="動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6">動作画面の例</h4>
+
+<p>フロントエンドアプリとMochaのSpecを同時に動かしている図。
+Seleniumみたいにギュンギュン動いて楽しい。
+Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。</p>
+
+<p><img src="/images/post/2015/09/test-webpack-browser/animation.gif" alt="Animation" /></p>
+
+<p>Specは走らなくていいから、
+アプリの動作確認だけしたいときは以下のURL<sup class="footnote-ref" id="fnref:83d5efb00d572fc7f727b6dff95ecdf6:1"><a rel="footnote" href="#fn:83d5efb00d572fc7f727b6dff95ecdf6:1">1</a></sup>で可能。
+<a href="http://localhost:8081/webpack-dev-server/app">http://localhost:8081/webpack-dev-server/app</a></p>
+
 <h3 id="ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6">ざっくり解説</h3>
 
 <h4 id="ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6">ファイル構成</h4>
@@ -146,34 +174,6 @@ module: {
   &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
-
-<h3 id="試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6">試しにブラウザで動かしてみる</h3>
-
-<p>GitHub上の<a href="https://github.com/namikingsoft/sample-webpack-test">動作サンプル</a>をcloneして、
-webpack-dev-serverを起動したら、
-お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。</p>
-
-<p><a href="http://localhost:8080/webpack-dev-server/">http://localhost:8080/webpack-dev-server/</a></p>
-
-<h4 id="コマンド例:83d5efb00d572fc7f727b6dff95ecdf6">コマンド例</h4>
-
-<pre><code class="language-bash">git clone https://github.com/namikingsoft/sample-webpack-test
-cd sample-webpack-test
-npm install &amp;&amp; npm start
-open http://localhost:8080/webpack-dev-server/
-</code></pre>
-
-<h4 id="動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6">動作画面の例</h4>
-
-<p>フロントエンドアプリとMochaのSpecを同時に動かしている図。
-Seleniumみたいにギュンギュン動いて楽しい。
-Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。</p>
-
-<p><img src="/images/post/2015/09/test-webpack-browser/animation.gif" alt="Animation" /></p>
-
-<p>Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL<sup class="footnote-ref" id="fnref:83d5efb00d572fc7f727b6dff95ecdf6:1"><a rel="footnote" href="#fn:83d5efb00d572fc7f727b6dff95ecdf6:1">1</a></sup>で可能。
-<a href="http://localhost:8081/webpack-dev-server/app">http://localhost:8081/webpack-dev-server/app</a></p>
 
 <h3 id="あとがき:83d5efb00d572fc7f727b6dff95ecdf6">あとがき</h3>
 

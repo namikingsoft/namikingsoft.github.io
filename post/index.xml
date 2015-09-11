@@ -41,6 +41,34 @@ nodeやnpmがインストールされていれば、動作すると思われま�
 &lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;https://github.com/namikingsoft/sample-webpack-test&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
+&lt;h3 id=&#34;試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
+
+&lt;p&gt;GitHub上の&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;動作サンプル&lt;/a&gt;をcloneして、
+webpack-dev-serverを起動したら、
+お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;http://localhost:8080/webpack-dev-server/&#34;&gt;http://localhost:8080/webpack-dev-server/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h4 id=&#34;コマンド例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;コマンド例&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/sample-webpack-test
+cd sample-webpack-test
+npm install &amp;amp;&amp;amp; npm start
+open http://localhost:8080/webpack-dev-server/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作画面の例&lt;/h4&gt;
+
+&lt;p&gt;フロントエンドアプリとMochaのSpecを同時に動かしている図。
+Seleniumみたいにギュンギュン動いて楽しい。
+Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/animation.gif&#34; alt=&#34;Animation&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Specは走らなくていいから、
+アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
+&lt;a href=&#34;http://localhost:8081/webpack-dev-server/app&#34;&gt;http://localhost:8081/webpack-dev-server/app&lt;/a&gt;&lt;/p&gt;
+
 &lt;h3 id=&#34;ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ざっくり解説&lt;/h3&gt;
 
 &lt;h4 id=&#34;ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ファイル構成&lt;/h4&gt;
@@ -163,34 +191,6 @@ module: {
   &amp;lt;/body&amp;gt;
 &amp;lt;/html&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
-
-&lt;p&gt;GitHub上の&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;動作サンプル&lt;/a&gt;をcloneして、
-webpack-dev-serverを起動したら、
-お使いのブラウザから以下のURLにアクセスすることで動作を確認できる。&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&#34;http://localhost:8080/webpack-dev-server/&#34;&gt;http://localhost:8080/webpack-dev-server/&lt;/a&gt;&lt;/p&gt;
-
-&lt;h4 id=&#34;コマンド例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;コマンド例&lt;/h4&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/sample-webpack-test
-cd sample-webpack-test
-npm install &amp;amp;&amp;amp; npm start
-open http://localhost:8080/webpack-dev-server/
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作画面の例&lt;/h4&gt;
-
-&lt;p&gt;フロントエンドアプリとMochaのSpecを同時に動かしている図。
-Seleniumみたいにギュンギュン動いて楽しい。
-Mochaのテスト中にに割り込んでワザとテストを失敗させたりできる。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/animation.gif&#34; alt=&#34;Animation&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
-&lt;a href=&#34;http://localhost:8081/webpack-dev-server/app&#34;&gt;http://localhost:8081/webpack-dev-server/app&lt;/a&gt;&lt;/p&gt;
 
 &lt;h3 id=&#34;あとがき:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;あとがき&lt;/h3&gt;
 
