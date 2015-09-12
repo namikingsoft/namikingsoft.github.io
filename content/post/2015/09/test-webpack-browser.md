@@ -6,7 +6,7 @@ Tags:
   - webpack-dev-server
   - Mocha
 date: 2015-09-11T08:30:23+09:00
-title: フロントエンドの継続的テストをMocha+webpack+ブラウザでやってみる
+title: webpack-dev-serverで継続的なクライアントサイドテスト
 ---
 
 webpackの[Testing](http://webpack.github.io/docs/testing.html)を眺めてたら、
