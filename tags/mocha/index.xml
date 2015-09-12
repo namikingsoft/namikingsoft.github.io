@@ -10,7 +10,7 @@
     <atom:link href="http://blog.namiking.net/tags/mocha/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>フロントエンドの継続的テストをMocha&#43;webpack&#43;ブラウザでやってみる</title>
+      <title>webpack-dev-serverで継続的なクライアントサイドテスト</title>
       <link>http://blog.namiking.net/post/2015/09/test-webpack-browser/</link>
       <pubDate>Fri, 11 Sep 2015 08:30:23 +0900</pubDate>
       
