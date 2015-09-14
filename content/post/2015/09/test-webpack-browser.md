@@ -64,24 +64,24 @@ Specは走らなくていいから、
 アプリの動作確認だけしたいときは以下のURL[^1]で可能。
 http://localhost:8081/webpack-dev-server/app
 
-[^1]: URLの`app`は`webpack.config.js`のentry項目で設定した連想配列のキー。HTMLはwebpack-dev-serverがメモリ内で自動生成してくれる。
+[^1]: URLの`app`の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(`.js`は省略してます)
 
 
 
 ### ざっくり解説
 
 #### ファイル構成
-```
+```sh
 sample-webpack-test
-├── build
-│   ├── app.js // webpackが吐き出したアプリ本体のバンドルJS。
-│   ├── index.html // アプリとSpecを動作させるHTML
-│   └── spec.js  // webpackが吐き出したSpecのバンドルJS。
-├── spec // このディレクトリ以下に置いた*Spec.jsが実行される
-│   └── mainSpec.js 
-├── src
-│   └── main.js // アプリ本体のソース
-└── webpack.config.js // webpackの設定ファイル
+|-- build
+|   |-- app.js # webpackが吐き出したアプリ本体のバンドルJS
+|   |-- index.html # アプリとSpecを動作させるHTML
+|   `-- spec.js # webpackが吐き出したSpecのバンドルJS
+|-- spec # このディレクトリ以下に置いた*Spec.jsが実行される
+|   `-- mainSpec.js
+|-- src
+|   `-- main.js # アプリ本体のソース
+`-- webpack.config.js # webpackの設定ファイル
 ```
 
 `build`ディレクトリ内の`app.js`と`spec.js`は、
