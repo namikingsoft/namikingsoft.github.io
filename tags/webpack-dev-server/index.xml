@@ -73,16 +73,16 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 
 &lt;h4 id=&#34;ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ファイル構成&lt;/h4&gt;
 
-&lt;pre&gt;&lt;code&gt;sample-webpack-test
-├── build
-│   ├── app.js // webpackが吐き出したアプリ本体のバンドルJS。
-│   ├── index.html // アプリとSpecを動作させるHTML
-│   └── spec.js  // webpackが吐き出したSpecのバンドルJS。
-├── spec // このディレクトリ以下に置いた*Spec.jsが実行される
-│   └── mainSpec.js 
-├── src
-│   └── main.js // アプリ本体のソース
-└── webpack.config.js // webpackの設定ファイル
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;sample-webpack-test
+|-- build
+|   |-- app.js # webpackが吐き出したアプリ本体のバンドルJS
+|   |-- index.html # アプリとSpecを動作させるHTML
+|   `-- spec.js # webpackが吐き出したSpecのバンドルJS
+|-- spec # このディレクトリ以下に置いた*Spec.jsが実行される
+|   `-- mainSpec.js
+|-- src
+|   `-- main.js # アプリ本体のソース
+`-- webpack.config.js # webpackの設定ファイル
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;&lt;code&gt;build&lt;/code&gt;ディレクトリ内の&lt;code&gt;app.js&lt;/code&gt;と&lt;code&gt;spec.js&lt;/code&gt;は、
@@ -206,7 +206,7 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;は&lt;code&gt;webpack.config.js&lt;/code&gt;のentry項目で設定した連想配列のキー。HTMLはwebpack-dev-serverがメモリ内で自動生成してくれる。
+&lt;li id=&#34;fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
  &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
