@@ -6,8 +6,121 @@
     <description>Recent content in Posts on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Fri, 11 Sep 2015 08:30:23 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2015 08:00:00 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Dockerイメージのビルド中にExitedしたコンテナに入る方法</title>
+      <link>http://blog.namiking.net/post/2015/09/docker-exec-exited/</link>
+      <pubDate>Tue, 29 Sep 2015 08:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2015/09/docker-exec-exited/</guid>
+      <description>
+
+&lt;p&gt;長めのansible-playbookをRUNしてる途中でエラーが出た時に役立ったので、まとめておく。&lt;/p&gt;
+
+&lt;h3 id=&#34;どういう時に使う:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;どういう時に使う？&lt;/h3&gt;
+
+&lt;p&gt;例えば、&lt;code&gt;docker build&lt;/code&gt;途中によくわからない理由でエラー落ちした時、
+直前状態のコンテナに入ってデバッグしたい事がある。&lt;/p&gt;
+
+&lt;p&gt;ビルドに失敗した後、&lt;code&gt;docker ps -a&lt;/code&gt;すると、
+&lt;code&gt;Exited&lt;/code&gt;したビルド作業用のコンテナが消されずに残っているので、
+このコンテナの中にシェルで入れれば、エラーの詳細を調べられる。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;コンテナだけでなく、直近のイメージも残っているが、
+Dockerコマンド単位でコミットされるため、
+数珠つなぎのRUNとか、ansibleやchefなどのプロビジョニングツールを併用した時に、
+大幅にロールバックしていることがある。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;ビルド途中にエラーで落ちるdockerfileの例:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;ビルド途中にエラーで落ちるDockerfileの例&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-docker&#34;&gt;FROM busybox
+
+RUN touch /step1
+RUN touch /step2 &amp;amp;&amp;amp; errcmd &amp;amp;&amp;amp; touch /step3
+RUN touch /step4
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;errcmd&lt;/code&gt;という架空のコマンドで、わざとエラーを起こしてみる。&lt;/p&gt;
+
+&lt;h4 id=&#34;docker-build-の途中で落ちる:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;docker build の途中で落ちる&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker build . -t tset
+
+Sending build context to Docker daemon 2.048 kB
+Sending build context to Docker daemon
+Step 0 : FROM busybox
+latest: Pulling from library/busybox
+cfa753dfea5e: Pull complete
+d7057cb02084: Pull complete
+library/busybox:latest: The image you are pulling has been verified. Important: image verification is a tech preview feature and should not be relied on to provide security.
+Digest: sha256:16a2a52884c2a9481ed267c2d46483eac7693b813a63132368ab098a71303f8a
+Status: Downloaded newer image for busybox:latest
+ ---&amp;gt; d7057cb02084
+Step 1 : RUN touch /step1
+ ---&amp;gt; Running in f1ca76c9072d
+ ---&amp;gt; ef649ff08895
+Removing intermediate container f1ca76c9072d
+Step 2 : RUN touch /step2 &amp;amp;&amp;amp; errcmd &amp;amp;&amp;amp; touch /step3
+ ---&amp;gt; Running in d117aa39bacd
+/bin/sh: errcmd: not found
+The command &#39;/bin/sh -c touch /step2 &amp;amp;&amp;amp; errcmd &amp;amp;&amp;amp; touch /step3&#39; returned a non-zero code: 127
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;途中にある&lt;code&gt;---&amp;gt; Running in d117aa39bacd&lt;/code&gt;の次で止まっている。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker ps -q --filter status=exited
+
+d117aa39bacd
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;d117aa39bacd&lt;/code&gt;コンテナが消されずに残っている。&lt;br /&gt;
+これが直近の作業コンテナで&lt;code&gt;touch /step2&lt;/code&gt;までのコマンドを実行されているはず。&lt;/p&gt;
+
+&lt;h4 id=&#34;exitedなコンテナには入れない:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;Exitedなコンテナには入れない？&lt;/h4&gt;
+
+&lt;p&gt;生きているコンテナであれば、&lt;code&gt;docker exec&lt;/code&gt;+シェルでコンテナの中に入れるが、
+Exitedしていると、以下の様なエラーが出る。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker exec -it d117aa39bacd sh
+
+Error response from daemon: Container d117aa39bacd is not running
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;step2ファイルまでは保存されていない。
+できれば、エラー落ちする直前の&lt;code&gt;touch /step2&lt;/code&gt;が実行された状態のコンテナに入りたい。
+容量縮小のために、RUNでやたらコマンドを繋いだりとか、
+RUNでansibleなどのプロビジョニングを行った時とか。
+RUNコマンドで、&lt;code&gt;ansible&lt;/code&gt;などのプロビジョニングツールを実行することもあり、&lt;/p&gt;
+
+&lt;h3 id=&#34;解決手順:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;解決手順&lt;/h3&gt;
+
+&lt;h4 id=&#34;１-exitedコンテナを一旦コミットして-イメージ化する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;１．Exitedコンテナを一旦コミットして、イメージ化する&lt;/h4&gt;
+
+&lt;p&gt;死んでいるコンテナをコミットするという機会があまりなかったので、
+ちょっと戸惑ったが、以下のコマンドでイメージ化できる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker commit -t exited d117aa39bacd
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;２-インタラクティブ-ttyモードで実行する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;２．インタラクティブ+TTYモードで実行する&lt;/h4&gt;
+
+&lt;p&gt;そのまま&lt;code&gt;docker run&lt;/code&gt;しても速攻で死ぬので、&lt;code&gt;-it bash&lt;/code&gt;をつけて実行。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker run --rm -it exited sh
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# ls / | grep step
+step1
+step2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;なんかまどろっこいが、一応エラーコマンド直前の状態のコンテナに入れる。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>webpack-dev-serverで継続的なクライアントサイドテスト</title>
