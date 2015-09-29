@@ -1,4 +1,5 @@
 meta charset=utf-8
+meta name="viewport" content="width=device-width,initial-scale=0.9"
 title {{ .Title }}{{ if ne .Title .Site.Title }} - {{ .Site.Title }}{{ end }}
 link rel=stylesheet href=/css/bundle.css
 script src=/js/bundle.js
