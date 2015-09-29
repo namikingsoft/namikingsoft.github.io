@@ -73,12 +73,6 @@ Exitedしていると、以下の様なエラーが出る。</p>
 Error response from daemon: Container d117aa39bacd is not running
 </code></pre>
 
-<p>step2ファイルまでは保存されていない。
-できれば、エラー落ちする直前の<code>touch /step2</code>が実行された状態のコンテナに入りたい。
-容量縮小のために、RUNでやたらコマンドを繋いだりとか、
-RUNでansibleなどのプロビジョニングを行った時とか。
-RUNコマンドで、<code>ansible</code>などのプロビジョニングツールを実行することもあり、</p>
-
 <h3 id="解決手順:f5fa53b0fb4decf6fe205e1fa30242da">解決手順</h3>
 
 <h4 id="１-exitedコンテナを一旦コミットして-イメージ化する:f5fa53b0fb4decf6fe205e1fa30242da">１．Exitedコンテナを一旦コミットして、イメージ化する</h4>
@@ -101,7 +95,8 @@ step1
 step2
 </code></pre>
 
-<p>なんかまどろっこいが、一応エラーコマンド直前の状態のコンテナに入れる。</p>
+<p>ちょっとまどろっこいが、一応エラーコマンド直前の状態のコンテナに入れた。
+同じRUNコマンドの中でエラーが起きても、<code>touch /step2</code>までは実行されているようだ。</p>
 </div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
 <script type="text/javascript">
     var disqus_shortname = 'namikingsoft';

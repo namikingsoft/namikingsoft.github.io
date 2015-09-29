@@ -90,12 +90,6 @@ Exitedしていると、以下の様なエラーが出る。&lt;/p&gt;
 Error response from daemon: Container d117aa39bacd is not running
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;step2ファイルまでは保存されていない。
-できれば、エラー落ちする直前の&lt;code&gt;touch /step2&lt;/code&gt;が実行された状態のコンテナに入りたい。
-容量縮小のために、RUNでやたらコマンドを繋いだりとか、
-RUNでansibleなどのプロビジョニングを行った時とか。
-RUNコマンドで、&lt;code&gt;ansible&lt;/code&gt;などのプロビジョニングツールを実行することもあり、&lt;/p&gt;
-
 &lt;h3 id=&#34;解決手順:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;解決手順&lt;/h3&gt;
 
 &lt;h4 id=&#34;１-exitedコンテナを一旦コミットして-イメージ化する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;１．Exitedコンテナを一旦コミットして、イメージ化する&lt;/h4&gt;
@@ -118,7 +112,8 @@ step1
 step2
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;なんかまどろっこいが、一応エラーコマンド直前の状態のコンテナに入れる。&lt;/p&gt;
+&lt;p&gt;ちょっとまどろっこいが、一応エラーコマンド直前の状態のコンテナに入れた。
+同じRUNコマンドの中でエラーが起きても、&lt;code&gt;touch /step2&lt;/code&gt;までは実行されているようだ。&lt;/p&gt;
 </description>
     </item>
     
