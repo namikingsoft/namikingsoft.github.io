@@ -4,6 +4,7 @@ Categories:
 Tags:
   - Docker
   - docker-compose
+  - インフラ
 date: 2015-09-02T08:30:23+09:00
 title: docker-composeのインストールとバージョン差異エラー回避方法
 ---
