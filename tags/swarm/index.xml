@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Swarm on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/swarm/</link>
+    <description>Recent content in Swarm on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Sun, 10 Jan 2016 18:00:23 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/swarm/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</title>
+      <link>http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/</link>
+      <pubDate>Sun, 10 Jan 2016 18:00:23 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/</guid>
+      <description>
+
+&lt;p&gt;Docker公式の&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;を参考に、DigitalOceanでSwarmクラスタを構築してみたが、いくつか工夫が必要なポイントがあったので、まとめておく。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/logos.png&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;事前準備:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;事前準備&lt;/h3&gt;
+
+&lt;h4 id=&#34;必要なソフトウェアのインストール:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+
+&lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。Dockerのオーバーレイネットワーク機能を使うので、それを利用できるバージョンを入れる。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;docker (1.9以上)&lt;/li&gt;
+&lt;li&gt;docker-compose (1.5以上)&lt;/li&gt;
+&lt;li&gt;docker-machine&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+
+&lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;気をつけたいポイント４つ:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
+
+&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
+
+&lt;p&gt;例えば、ホストOSにUbuntu14.04を選んでいると、オーバーレイ・ネットワーク上にのコンテナを立ち上げる時にエラーが出る。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ docker-compose up -d -x-networking
+
+Creating network &amp;quot;xxx&amp;quot; with driver &amp;quot;overlay&amp;quot;
+Creating yyy
+ERROR: Cannot start container (container_id):
+  subnet sandbox join failed for &amp;quot;10.0.0.0/24&amp;quot;:
+  vxlan interface creation failed for
+  subnet &amp;quot;10.0.0.0/24&amp;quot;: failed in prefunc:
+  failed to set namespace on link &amp;quot;vxlanf9ac2ad&amp;quot;: invalid argument
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;によると、「A host with a 3.16 kernel version or higher.」とのこと。DigitalOceanのUbuntu14.04はカーネルが古いようなので、14.10とか15.04以上を使う必要がある。&lt;/p&gt;
+
+&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;のサンプルをそのまま使うと、&lt;code&gt;docker-machine create&lt;/code&gt;時に概ね次のようなエラーに遭遇する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ docker-machine create \
+  ...
+  --engine-opt &amp;quot;cluster-advertise=eth1:2376&amp;quot; \
+  ...
+
+Error creating machine: Error running provisioning:
+Unable to verify the Docker daemon is listening: Maximum number of retries (10) exceeded
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;現状、DigitalOceanの&lt;code&gt;eth1&lt;/code&gt;はプライベートネットワークのインタフェースで、デフォルト設定では、プライベートネットワークにIPが割り当てられない。&lt;/p&gt;
+
+&lt;p&gt;なので、公開ネットワークの&lt;code&gt;eth0&lt;/code&gt;を使うか、&lt;code&gt;docker-machine create&lt;/code&gt;時に、全てのノードに&lt;code&gt;--digitalocean-private-networking&lt;/code&gt;をつけて、プライベートネットワークを有効にする。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-machine create
+  ...
+  --engine-opt &amp;quot;cluster-advertise=eth0:2376&amp;quot; \
+  ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-machine create
+  ...
+  --engine-opt &amp;quot;cluster-advertise=eth1:2376&amp;quot; \
+  --digitalocean-private-networking \
+  ...
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmマスターやノードホストに含めてしまおう。&lt;/p&gt;
+
+&lt;p&gt;Swarmクラスタのノードを作成するときに、ConsulのURLを指定する場所があるが、作成時にはConsulキーストアが存在しなくても、Swarmが後々定期的にキーストアを更新してくれるようなので、割りと気にせずにノード構築後にConsulを導入できる。&lt;/p&gt;
+
+&lt;p&gt;ただ、サンプルのように、ConsulをDockerコンテナで導入してしまうと、&lt;code&gt;docker ps&lt;/code&gt;時に、いつもリストに出てきてしまうので、気になる方はDocker上ではなく、ホストに直接インストールしてしまったほうが良い。(バイナリファイル１つだし)&lt;/p&gt;
+
+&lt;p&gt;あと、Consulらしく全ノードに設置して、ヘルスチェックなどが出来ると良さそう。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/structure.svg&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&#34;04-consulはプライベートネットワークに置く:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;の感覚で、DigitalOceanにConsulキーストアを導入すると、グローバルにWebUIが公開されてしまい、精神的によろしくない。&lt;/p&gt;
+
+&lt;p&gt;DigitalOceanには、一応プライベートネットワーク機能が用意されていて、管理画面やdocker-machineの引数から有効にできる。Consulはプライベートネットワーク側(eth1)のIPをバインドするとよい。&lt;/p&gt;
+
+&lt;p&gt;プライベートネットワークにConsulを置くと、WebUIなどはグローバルIPから確認できなくなる。ブラウザからWebUIを確認したくなった場合は、SSHトンネルを利用して、8500ポートをフォワーディングしてやると楽。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;ssh root@(マシンIP) \
+  -i ~/.docker/machine/machines/(マシンID)/id_rsa \
+  -L8500:localhost:8500
+
+# ブラウザから開く
+open http://localhost:8500
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt;&lt;br /&gt;
+プライベートネットワークといっても、
+リージョンごとのネットワークのようなので、
+あまり過信しないほうがよいみたい。&lt;/p&gt;
+
+&lt;p&gt;使う前に知りたかったDigitalOceanまとめ
+&lt;a href=&#34;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&#34;&gt;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;具体的な実行手順:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;具体的な実行手順&lt;/h3&gt;
+
+&lt;p&gt;自動化しやすいように、上のポイント４つを踏まえたシェルの実行手順を以下にまとめる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# マスター作成
+docker-machine create \
+  --driver digitalocean \
+  --digitalocean-access-token ${DIGITALOCEAN_TOKEN} \
+  --digitalocean-image &amp;quot;ubuntu-15-10-x64&amp;quot; \
+  --digitalocean-region &amp;quot;sgp1&amp;quot; \
+  --digitalocean-size &amp;quot;512mb&amp;quot; \
+  --digitalocean-private-networking \
+  --swarm --swarm-master \
+  --swarm-discovery \
+    &amp;quot;consul://localhost:8500&amp;quot; \
+  --engine-opt \
+    &amp;quot;cluster-store=consul://localhost:8500&amp;quot; \
+  --engine-opt &amp;quot;cluster-advertise=eth1:2376&amp;quot; \
+  swarm-master
+
+# マスターにConsulを設置
+docker-machine ssh swarm-master &amp;quot;
+  apt-get install -y at zip &amp;amp;&amp;amp;\
+  cd /tmp &amp;amp;&amp;amp;\
+  curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip &amp;amp;&amp;amp;\
+  unzip consul_0.6.1_linux_amd64.zip &amp;amp;&amp;amp;\
+  mv consul /usr/local/bin &amp;amp;&amp;amp;\
+  curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip &amp;amp;&amp;amp;\
+  unzip consul_0.6.1_web_ui.zip -d consul-webui &amp;amp;&amp;amp;\
+  echo \&amp;quot;
+    consul agent \
+      -server -bootstrap-expect=1 \
+      -node=consul00 \
+      -data-dir=/tmp/consul \
+      --ui-dir=/tmp/consul-webui \
+      -bind=\$(
+        ip addr show eth1 \
+        | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+        | head -n1
+      ) \
+    &amp;gt;&amp;gt; /var/log/consul.log
+  \&amp;quot; | at now
+&amp;quot;
+
+# マスターのプライベートIPを取得
+MASTER_PRIVATE_IP=$(
+  docker-machine ssh $MASTER_NODE_NAME &amp;quot;
+    ip addr show eth1 \
+    | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+    | head -n1
+  &amp;quot;
+)
+
+# ノード作成
+docker-machine create \
+  --driver digitalocean \
+  --digitalocean-access-token ${DIGITALOCEAN_TOKEN} \
+  --digitalocean-image &amp;quot;ubuntu-15-10-x64&amp;quot; \
+  --digitalocean-region &amp;quot;sgp1&amp;quot; \
+  --digitalocean-size &amp;quot;512mb&amp;quot; \
+  --digitalocean-private-networking \
+  --swarm \
+  --swarm-discovery \
+    &amp;quot;consul://localhost:8500&amp;quot; \
+  --engine-opt \
+    &amp;quot;cluster-store=consul://localhost:8500&amp;quot; \
+  --engine-opt &amp;quot;cluster-advertise=eth1:2376&amp;quot; \
+  swarm-node01
+
+# ノードにConsulを設置
+docker-machine ssh swarm-node01 &amp;quot;
+  apt-get install -y at zip &amp;amp;&amp;amp;\
+  cd /tmp &amp;amp;&amp;amp;\
+  curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip &amp;amp;&amp;amp;\
+  unzip consul_0.6.1_linux_amd64.zip &amp;amp;&amp;amp;\
+  mv consul /usr/local/bin &amp;amp;&amp;amp;\
+  echo \&amp;quot;
+    consul agent \
+      -join=$MASTER_PRIVATE_IP \
+      -node=consul01 \
+      -data-dir=/tmp/consul \
+      -bind=\$(
+        ip addr show eth1 \
+        | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+        | head -n1
+      ) \
+    &amp;gt;&amp;gt; /var/log/consul.log
+  \&amp;quot; | at now
+&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;注記いくつか:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;注記いくつか&lt;/h4&gt;
+
+&lt;ul&gt;
+&lt;li&gt;シェル中の&lt;code&gt;${DIGITALOCEAN_TOKEN}&lt;/code&gt;はDigitalOceanの管理画面から取得したアクセストークンに置き換える。&lt;/li&gt;
+&lt;li&gt;Consul起動に&lt;code&gt;at now&lt;/code&gt;コマンドを使っているのは、&lt;code&gt;nohup&lt;/code&gt;や&lt;code&gt;&amp;amp;&lt;/code&gt;を使っても、Consulがフォアグラウンドで走ってしまい、バッチ処理が途中で止まってしまうため。&lt;code&gt;docker-machine ssh&lt;/code&gt;の仕様の問題？&lt;/li&gt;
+&lt;li&gt;Consul実行時にbindに指定しているのは、自身のプライベートIP。&lt;/li&gt;
+&lt;li&gt;途中で、マスターのプライベートIPを取得しているのは、各ノードに設置したConsulクライアントをサーバーにJOINさせるため。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

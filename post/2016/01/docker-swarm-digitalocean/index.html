@@ -1,0 +1,225 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2016-01-10 (Sun)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/docker-swarm">Docker Swarm</a></li><li><a class="label label-default" href="/tags/digitalocean">DigitalOcean</a></li><li><a class="label label-default" href="/tags/docker">Docker</a></li><li><a class="label label-default" href="/tags/swarm">Swarm</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p>Docker公式の<a href="https://docs.docker.com/engine/userguide/networking/get-started-overlay/">Get started with multi-host networking</a>を参考に、DigitalOceanでSwarmクラスタを構築してみたが、いくつか工夫が必要なポイントがあったので、まとめておく。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-digitalocean/logos.png" alt="Docker Swarm + DigitalOcean" /></p>
+
+<h3 id="事前準備:fa799c0a70e6a2da19a2eb6d62e423f4">事前準備</h3>
+
+<h4 id="必要なソフトウェアのインストール:fa799c0a70e6a2da19a2eb6d62e423f4">必要なソフトウェアのインストール</h4>
+
+<p>作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。Dockerのオーバーレイネットワーク機能を使うので、それを利用できるバージョンを入れる。</p>
+
+<ul>
+<li>docker (1.9以上)</li>
+<li>docker-compose (1.5以上)</li>
+<li>docker-machine</li>
+</ul>
+
+<h4 id="digitaloceanの登録とアクセストークンの取得:fa799c0a70e6a2da19a2eb6d62e423f4">DigitalOceanの登録とアクセストークンの取得</h4>
+
+<p>登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。</p>
+
+<p><a href="https://www.digitalocean.com/">https://www.digitalocean.com/</a></p>
+
+<h3 id="気をつけたいポイント４つ:fa799c0a70e6a2da19a2eb6d62e423f4">気をつけたいポイント４つ</h3>
+
+<h4 id="01-ホストosはkernel3-16以上のものを使う:fa799c0a70e6a2da19a2eb6d62e423f4">01. ホストOSはKernel3.16以上のものを使う</h4>
+
+<p>例えば、ホストOSにUbuntu14.04を選んでいると、オーバーレイ・ネットワーク上にのコンテナを立ち上げる時にエラーが出る。</p>
+
+<pre><code class="language-bash">$ docker-compose up -d -x-networking
+
+Creating network &quot;xxx&quot; with driver &quot;overlay&quot;
+Creating yyy
+ERROR: Cannot start container (container_id):
+  subnet sandbox join failed for &quot;10.0.0.0/24&quot;:
+  vxlan interface creation failed for
+  subnet &quot;10.0.0.0/24&quot;: failed in prefunc:
+  failed to set namespace on link &quot;vxlanf9ac2ad&quot;: invalid argument
+</code></pre>
+
+<p><a href="https://docs.docker.com/engine/userguide/networking/get-started-overlay/">Get started with multi-host networking</a>によると、「A host with a 3.16 kernel version or higher.」とのこと。DigitalOceanのUbuntu14.04はカーネルが古いようなので、14.10とか15.04以上を使う必要がある。</p>
+
+<h4 id="02-cluster-advertiseはeth0にするか-privatenetworkを有効にする:fa799c0a70e6a2da19a2eb6d62e423f4">02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする</h4>
+
+<p><a href="https://docs.docker.com/engine/userguide/networking/get-started-overlay/">Get started with multi-host networking</a>のサンプルをそのまま使うと、<code>docker-machine create</code>時に概ね次のようなエラーに遭遇する。</p>
+
+<pre><code>$ docker-machine create \
+  ...
+  --engine-opt &quot;cluster-advertise=eth1:2376&quot; \
+  ...
+
+Error creating machine: Error running provisioning:
+Unable to verify the Docker daemon is listening: Maximum number of retries (10) exceeded
+</code></pre>
+
+<p>現状、DigitalOceanの<code>eth1</code>はプライベートネットワークのインタフェースで、デフォルト設定では、プライベートネットワークにIPが割り当てられない。</p>
+
+<p>なので、公開ネットワークの<code>eth0</code>を使うか、<code>docker-machine create</code>時に、全てのノードに<code>--digitalocean-private-networking</code>をつけて、プライベートネットワークを有効にする。</p>
+
+<pre><code class="language-sh">docker-machine create
+  ...
+  --engine-opt &quot;cluster-advertise=eth0:2376&quot; \
+  ...
+</code></pre>
+
+<pre><code class="language-sh">docker-machine create
+  ...
+  --engine-opt &quot;cluster-advertise=eth1:2376&quot; \
+  --digitalocean-private-networking \
+  ...
+</code></pre>
+
+<h4 id="03-consulはswarmクラスタ上に置いて節約する:fa799c0a70e6a2da19a2eb6d62e423f4">03. ConsulはSwarmクラスタ上に置いて節約する</h4>
+
+<p><a href="https://docs.docker.com/engine/userguide/networking/get-started-overlay/">公式ドキュメント</a>のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmマスターやノードホストに含めてしまおう。</p>
+
+<p>Swarmクラスタのノードを作成するときに、ConsulのURLを指定する場所があるが、作成時にはConsulキーストアが存在しなくても、Swarmが後々定期的にキーストアを更新してくれるようなので、割りと気にせずにノード構築後にConsulを導入できる。</p>
+
+<p>ただ、サンプルのように、ConsulをDockerコンテナで導入してしまうと、<code>docker ps</code>時に、いつもリストに出てきてしまうので、気になる方はDocker上ではなく、ホストに直接インストールしてしまったほうが良い。(バイナリファイル１つだし)</p>
+
+<p>あと、Consulらしく全ノードに設置して、ヘルスチェックなどが出来ると良さそう。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-digitalocean/structure.svg" alt="Docker Swarm + DigitalOcean" /></p>
+
+<h4 id="04-consulはプライベートネットワークに置く:fa799c0a70e6a2da19a2eb6d62e423f4">04. Consulはプライベートネットワークに置く</h4>
+
+<p><a href="https://docs.docker.com/engine/userguide/networking/get-started-overlay/">公式ドキュメント</a>の感覚で、DigitalOceanにConsulキーストアを導入すると、グローバルにWebUIが公開されてしまい、精神的によろしくない。</p>
+
+<p>DigitalOceanには、一応プライベートネットワーク機能が用意されていて、管理画面やdocker-machineの引数から有効にできる。Consulはプライベートネットワーク側(eth1)のIPをバインドするとよい。</p>
+
+<p>プライベートネットワークにConsulを置くと、WebUIなどはグローバルIPから確認できなくなる。ブラウザからWebUIを確認したくなった場合は、SSHトンネルを利用して、8500ポートをフォワーディングしてやると楽。</p>
+
+<pre><code class="language-sh">ssh root@(マシンIP) \
+  -i ~/.docker/machine/machines/(マシンID)/id_rsa \
+  -L8500:localhost:8500
+
+# ブラウザから開く
+open http://localhost:8500
+</code></pre>
+
+<blockquote>
+<p><strong>注意</strong><br />
+プライベートネットワークといっても、
+リージョンごとのネットワークのようなので、
+あまり過信しないほうがよいみたい。</p>
+
+<p>使う前に知りたかったDigitalOceanまとめ
+<a href="http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/">http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/</a></p>
+</blockquote>
+
+<h3 id="具体的な実行手順:fa799c0a70e6a2da19a2eb6d62e423f4">具体的な実行手順</h3>
+
+<p>自動化しやすいように、上のポイント４つを踏まえたシェルの実行手順を以下にまとめる。</p>
+
+<pre><code class="language-sh"># マスター作成
+docker-machine create \
+  --driver digitalocean \
+  --digitalocean-access-token ${DIGITALOCEAN_TOKEN} \
+  --digitalocean-image &quot;ubuntu-15-10-x64&quot; \
+  --digitalocean-region &quot;sgp1&quot; \
+  --digitalocean-size &quot;512mb&quot; \
+  --digitalocean-private-networking \
+  --swarm --swarm-master \
+  --swarm-discovery \
+    &quot;consul://localhost:8500&quot; \
+  --engine-opt \
+    &quot;cluster-store=consul://localhost:8500&quot; \
+  --engine-opt &quot;cluster-advertise=eth1:2376&quot; \
+  swarm-master
+
+# マスターにConsulを設置
+docker-machine ssh swarm-master &quot;
+  apt-get install -y at zip &amp;&amp;\
+  cd /tmp &amp;&amp;\
+  curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip &amp;&amp;\
+  unzip consul_0.6.1_linux_amd64.zip &amp;&amp;\
+  mv consul /usr/local/bin &amp;&amp;\
+  curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip &amp;&amp;\
+  unzip consul_0.6.1_web_ui.zip -d consul-webui &amp;&amp;\
+  echo \&quot;
+    consul agent \
+      -server -bootstrap-expect=1 \
+      -node=consul00 \
+      -data-dir=/tmp/consul \
+      --ui-dir=/tmp/consul-webui \
+      -bind=\$(
+        ip addr show eth1 \
+        | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+        | head -n1
+      ) \
+    &gt;&gt; /var/log/consul.log
+  \&quot; | at now
+&quot;
+
+# マスターのプライベートIPを取得
+MASTER_PRIVATE_IP=$(
+  docker-machine ssh $MASTER_NODE_NAME &quot;
+    ip addr show eth1 \
+    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+    | head -n1
+  &quot;
+)
+
+# ノード作成
+docker-machine create \
+  --driver digitalocean \
+  --digitalocean-access-token ${DIGITALOCEAN_TOKEN} \
+  --digitalocean-image &quot;ubuntu-15-10-x64&quot; \
+  --digitalocean-region &quot;sgp1&quot; \
+  --digitalocean-size &quot;512mb&quot; \
+  --digitalocean-private-networking \
+  --swarm \
+  --swarm-discovery \
+    &quot;consul://localhost:8500&quot; \
+  --engine-opt \
+    &quot;cluster-store=consul://localhost:8500&quot; \
+  --engine-opt &quot;cluster-advertise=eth1:2376&quot; \
+  swarm-node01
+
+# ノードにConsulを設置
+docker-machine ssh swarm-node01 &quot;
+  apt-get install -y at zip &amp;&amp;\
+  cd /tmp &amp;&amp;\
+  curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip &amp;&amp;\
+  unzip consul_0.6.1_linux_amd64.zip &amp;&amp;\
+  mv consul /usr/local/bin &amp;&amp;\
+  echo \&quot;
+    consul agent \
+      -join=$MASTER_PRIVATE_IP \
+      -node=consul01 \
+      -data-dir=/tmp/consul \
+      -bind=\$(
+        ip addr show eth1 \
+        | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+        | head -n1
+      ) \
+    &gt;&gt; /var/log/consul.log
+  \&quot; | at now
+&quot;
+</code></pre>
+
+<h4 id="注記いくつか:fa799c0a70e6a2da19a2eb6d62e423f4">注記いくつか</h4>
+
+<ul>
+<li>シェル中の<code>${DIGITALOCEAN_TOKEN}</code>はDigitalOceanの管理画面から取得したアクセストークンに置き換える。</li>
+<li>Consul起動に<code>at now</code>コマンドを使っているのは、<code>nohup</code>や<code>&amp;</code>を使っても、Consulがフォアグラウンドで走ってしまい、バッチ処理が途中で止まってしまうため。<code>docker-machine ssh</code>の仕様の問題？</li>
+<li>Consul実行時にbindに指定しているのは、自身のプライベートIP。</li>
+<li>途中で、マスターのプライベートIPを取得しているのは、各ノードに設置したConsulクライアントをサーバーにJOINさせるため。</li>
+</ul>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2016\/01\/docker-swarm-digitalocean\/';
+    var disqus_title = 'DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2016\/01\/docker-swarm-digitalocean\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2015/09/docker-exec-exited/" title="Dockerイメージのビルド中にExitedしたコンテナに入る方法"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2015-09-29 (Tue)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-digitalocean%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-01-10 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/">DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</a></dd><dt>2015-09-29 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-exec-exited/">Dockerイメージのビルド中にExitedしたコンテナに入る方法</a></dd><dt>2015-09-11 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/test-webpack-browser/">webpack-dev-serverで継続的なクライアントサイドテスト</a></dd><dt>2015-09-04 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/kanban-board/">オープンソースのかんばん式管理ツールを３つほど試してみた</a></dd><dt>2015-09-02 (Wed)</dt><dd><a href="http://blog.namiking.net/post/2015/09/install-docker-compose/">docker-composeのインストールとバージョン差異エラー回避方法</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(6)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/swarm">swarm(1)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/webpack">webpack(1)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>
