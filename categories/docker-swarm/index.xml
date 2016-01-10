@@ -90,7 +90,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
 
 &lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
 
-&lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmマスターやノードホストに含めてしまおう。&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmクラスタのノードに含めてしまおう。&lt;/p&gt;
 
 &lt;p&gt;Swarmクラスタのノードを作成するときに、ConsulのURLを指定する場所があるが、作成時にはConsulキーストアが存在しなくても、Swarmが後々定期的にキーストアを更新してくれるようなので、割りと気にせずにノード構築後にConsulを導入できる。&lt;/p&gt;
 
@@ -130,7 +130,7 @@ open http://localhost:8500
 
 &lt;p&gt;自動化しやすいように、上のポイント４つを踏まえたシェルの実行手順を以下にまとめる。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# マスター作成
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# マスターノード作成
 docker-machine create \
   --driver digitalocean \
   --digitalocean-access-token ${DIGITALOCEAN_TOKEN} \
@@ -144,10 +144,10 @@ docker-machine create \
   --engine-opt \
     &amp;quot;cluster-store=consul://localhost:8500&amp;quot; \
   --engine-opt &amp;quot;cluster-advertise=eth1:2376&amp;quot; \
-  swarm-master
+  swarm-node0
 
-# マスターにConsulを設置
-docker-machine ssh swarm-master &amp;quot;
+# マスターノードにConsulを設置
+docker-machine ssh swarm-node0 &amp;quot;
   apt-get install -y at zip &amp;amp;&amp;amp;\
   cd /tmp &amp;amp;&amp;amp;\
   curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip &amp;amp;&amp;amp;\
@@ -172,7 +172,7 @@ docker-machine ssh swarm-master &amp;quot;
 
 # マスターのプライベートIPを取得
 MASTER_PRIVATE_IP=$(
-  docker-machine ssh $MASTER_NODE_NAME &amp;quot;
+  docker-machine ssh swarm-node0 &amp;quot;
     ip addr show eth1 \
     | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
     | head -n1
@@ -193,10 +193,10 @@ docker-machine create \
   --engine-opt \
     &amp;quot;cluster-store=consul://localhost:8500&amp;quot; \
   --engine-opt &amp;quot;cluster-advertise=eth1:2376&amp;quot; \
-  swarm-node01
+  swarm-node1
 
 # ノードにConsulを設置
-docker-machine ssh swarm-node01 &amp;quot;
+docker-machine ssh swarm-node1 &amp;quot;
   apt-get install -y at zip &amp;amp;&amp;amp;\
   cd /tmp &amp;amp;&amp;amp;\
   curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip &amp;amp;&amp;amp;\
@@ -225,6 +225,98 @@ docker-machine ssh swarm-node01 &amp;quot;
 &lt;li&gt;Consul実行時にbindに指定しているのは、自身のプライベートIP。&lt;/li&gt;
 &lt;li&gt;途中で、マスターのプライベートIPを取得しているのは、各ノードに設置したConsulクライアントをサーバーにJOINさせるため。&lt;/li&gt;
 &lt;/ul&gt;
+
+&lt;h3 id=&#34;動作確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;動作確認&lt;/h3&gt;
+
+&lt;h4 id=&#34;swarmクラスタ確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ eval $(docker-machine env --swarm swarm-node0)
+$ docker info
+
+Containers: 3
+Images: 2
+Role: primary
+Strategy: spread
+Filters: health, port, dependency, affinity, constraint
+Nodes: 2
+ swarm-node0: x.x.x.x:2376
+  └ Status: Healthy
+  └ Containers: 2
+  └ Reserved CPUs: 0 / 1
+  └ Reserved Memory: 0 B / 513.4 MiB
+  └ Labels: executiondriver=native-0.2, kernelversion=4.2.0-16-generic, operatingsystem=Ubuntu 15.10, provider=digitalocean, storagedriver=aufs
+ swarm-node1: y.y.y.y:2376
+  └ Status: Healthy
+  └ Containers: 1
+  └ Reserved CPUs: 0 / 1
+  └ Reserved Memory: 0 B / 513.4 MiB
+  └ Labels: executiondriver=native-0.2, kernelversion=4.2.0-16-generic, operatingsystem=Ubuntu 15.10, provider=digitalocean, storagedriver=aufs
+CPUs: 2
+Total Memory: 1.003 GiB
+Name: swarm-node0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ノードが２つあることが確認できる。&lt;/p&gt;
+
+&lt;h4 id=&#34;オーバーレイ-ネットワークの確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
+
+&lt;h5 id=&#34;docker-compose-yml:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;docker-compose.yml&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;container1:
+  image: busybox
+  container_name: container1
+  environment:
+    - constraint:node==/node0/
+  command: tail -f /dev/null
+
+container2:
+  image: busybox
+  container_name: container2
+  environment:
+    - constraint:node==/node1/
+  command: tail -f /dev/null
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker-compose --x-networking up -d
+$ docker ps --format &amp;quot;{{.Names}}&amp;quot;
+
+swarm-node0/container1
+swarm-node1/container2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;それぞれのノードにコンテナが作られた。&lt;/p&gt;
+
+&lt;h5 id=&#34;疎通確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;疎通確認&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker exec -it container1 ping container2 -c4
+
+PING container2 (10.0.0.3): 56 data bytes
+64 bytes from 10.0.0.3: seq=0 ttl=64 time=1.470 ms
+64 bytes from 10.0.0.3: seq=1 ttl=64 time=0.691 ms
+64 bytes from 10.0.0.3: seq=2 ttl=64 time=0.620 ms
+64 bytes from 10.0.0.3: seq=3 ttl=64 time=0.699 ms
+
+--- container2 ping statistics ---
+4 packets transmitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 0.620/0.870/1.470 ms
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker exec -it container2 ping container1 -c4
+
+PING container1 (10.0.0.2): 56 data bytes
+64 bytes from 10.0.0.2: seq=0 ttl=64 time=1.379 ms
+64 bytes from 10.0.0.2: seq=1 ttl=64 time=0.854 ms
+64 bytes from 10.0.0.2: seq=2 ttl=64 time=0.847 ms
+64 bytes from 10.0.0.2: seq=3 ttl=64 time=0.861 ms
+
+--- container1 ping statistics ---
+4 packets transmitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 0.847/0.985/1.379 ms
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;オーバーレイ・ネットワークの疎通も問題なさそう。&lt;/p&gt;
 </description>
     </item>
     
