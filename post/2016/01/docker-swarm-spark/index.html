@@ -1,0 +1,211 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>Docker SwarmでApache Sparkクラスタを構築してみる - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>Docker SwarmでApache Sparkクラスタを構築してみる</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2016-01-12 (Tue)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/docker-swarm">Docker Swarm</a></li><li><a class="label label-default" href="/tags/docker">Docker</a></li><li><a class="label label-default" href="/tags/swarm">Swarm</a></li><li><a class="label label-default" href="/tags/spark">Spark</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p><a href="/post/2016/01/docker-swarm-digitalocean/">前回の記事</a>でSwarmクラスタを構築したので、Apache Sparkのクラスタを載せてみる。</p>
+
+<p>本来ならオンプレでクラスタを組んだり、AmazonのEMRを使うのが一般的かもだが、安めのクラウドでもできないかなーという試み。</p>
+
+<p>まずはシンプルに、Standaloneモードから動かしてみたい。</p>
+
+<h3 id="事前準備:27882acbebbf2525e531e2163851a874">事前準備</h3>
+
+<h4 id="マルチホスト同士の通信が可能なswarmクラスタを構築しておく:27882acbebbf2525e531e2163851a874">マルチホスト同士の通信が可能なSwarmクラスタを構築しておく</h4>
+
+<p>Sparkのクラスタ同士は、一方通行な通信ではなく、割りと親密な双方向通信をするため、オーバーレイ・ネットワーク上に構築しないとうまく動作しない。</p>
+
+<p>オーバーレイ・ネットワーク構築するには、Consul, etcd, Zookeeperのようなキーストアを自身で導入する必要があるので、
+<a href="/post/2016/01/docker-swarm-digitalocean/">DigitalOceanでマルチホストなDockerSwarmクラスタを構築</a>を参考に、以下の様なSwarmクラスタを構築しておいた。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-spark/structure-swarm.svg" alt="Swarm Structure" /></p>
+
+<h3 id="sparkクラスタをコンテナで構築する:27882acbebbf2525e531e2163851a874">Sparkクラスタをコンテナで構築する</h3>
+
+<p>docker-composeを用いて、各ノードにSparkクラスタを構築する。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-spark/spark-containers.svg" alt="Spark Containers" /></p>
+
+<h4 id="apache-sparkのdockerイメージ:27882acbebbf2525e531e2163851a874">Apache SparkのDockerイメージ</h4>
+
+<p>Standaloneモードで動くシンプルなものが使いたかったので、SparkのDockerイメージは自前で用意したものを使った。</p>
+
+<blockquote>
+<p>namikingsoft/docker-spark<br />
+<a href="https://github.com/namikingsoft/docker-spark">https://github.com/namikingsoft/docker-spark</a></p>
+</blockquote>
+
+<p>masterなら<code>bin/start-master.sh</code>を実行し、workerなら<code>bin/start-slave.sh ${MASTER_HOSTNAME}:7077</code>を実行するだけのシンプルなもの。</p>
+
+<h4 id="docker-compose-yml:27882acbebbf2525e531e2163851a874">docker-compose.yml</h4>
+
+<pre><code class="language-ruby">master:
+  image: namikingsoft/spark
+  hostname: master
+  container_name: master
+  environment:
+    - constraint:node==/node0/
+  privileged: true
+  command: master
+
+worker:
+  image: namikingsoft/spark
+  environment:
+    - MASTER_HOSTNAME=master
+    - constraint:node!=/node0/
+    - affinity:container!=/worker/
+  privileged: true
+  command: worker
+</code></pre>
+
+<p><code>environment</code>からの<code>constraint</code>や<code>affinity</code>の指定によってコンテナの配置をコントロールできる。コンテナの数をスケールするときもこのルールに沿って配置される。<br />
+<a href="https://docs.docker.com/swarm/scheduler/filter/">&gt;&gt; 指定方法の詳細</a></p>
+
+<p>イメージ各コンテナはDockerのオーバーレイネットワークで繋がるので、
+ポートも特に指定しなくてもよい。WebUIなどは後ほど、Socksプロキシ経由で確認する。</p>
+
+<h4 id="swarm-masterの環境変数を設定:27882acbebbf2525e531e2163851a874">Swarm Masterの環境変数を設定</h4>
+
+<pre><code class="language-sh">eval &quot;$(docker-machine env --swarm swarm-node0)&quot;
+</code></pre>
+
+<h4 id="docker-compose-up:27882acbebbf2525e531e2163851a874">docker-compose up</h4>
+
+<pre><code class="language-sh">docker-compose --x-networking up -d
+</code></pre>
+
+<p><code>--x-networking</code>を引数で指定すれば、各コンテナがDockerのオーバーレイ・ネットワークで繋がる。<code>--x-network-driver overlay</code>を省略しているが、デフォルトで指定されるみたい。</p>
+
+<p><code>docker-compose up</code>直後の状態では、ワーカーコンテナが１つしか立ち上がらないので、以下の様な感じになっている。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-spark/spark-containers-progress.svg" alt="Spark Containers Progress" /></p>
+
+<h4 id="ワーカーをスケールしてみる:27882acbebbf2525e531e2163851a874">ワーカーをスケールしてみる</h4>
+
+<p>docker-composeのscaleコマンドでワーカーノードを指定数分スケールすることができる。</p>
+
+<pre><code class="language-sh">docker-compose scale worker=2
+</code></pre>
+
+<h4 id="コンテナ配置の確認:27882acbebbf2525e531e2163851a874">コンテナ配置の確認</h4>
+
+<pre><code class="language-sh">docker ps --format &quot;{{.Names}}&quot;
+</code></pre>
+
+<pre><code class="language-sh">swarm-node0/master
+swarm-node1/dockerspark_worker_1
+swarm-node2/dockerspark_worker_2
+</code></pre>
+
+<p>各ノードにコンテナが配置されたのがわかる。</p>
+
+<blockquote>
+<p><strong>ちなみに、MasterとWorkerを一緒のノードで動かしたら</strong><br />
+spark-shell起動時に<code>Cannot allocate memory</code>的なエラーを吐いた。
+チューニング次第かもだが、DigitalOcean 2GBだとリソース的には厳しそう。</p>
+</blockquote>
+
+<h3 id="sparkシェルを動かしてみる:27882acbebbf2525e531e2163851a874">Sparkシェルを動かしてみる</h3>
+
+<p>仮にSparkマスターコンテナをドライバーとして、動かしてみる。
+(ワーカーでも動作可能)</p>
+
+<pre><code class="language-sh">docker-exec -it master bash
+spark-shell --master spark://master:7077
+</code></pre>
+
+<pre><code class="language-scala">scala&gt; sc.parallelize(1 to 10000).fold(0)(_+_)
+res0: Int = 50005000
+</code></pre>
+
+<h3 id="spark-uiを確認:27882acbebbf2525e531e2163851a874">Spark UIを確認</h3>
+
+<p>SparkのWebUIから、ワーカーが接続されているか確認したいが、docker-compose.ymlではポートを開けていない。(本来閉じたネットワークで動かすので、ポートを開放するのはあまりよろしくない)</p>
+
+<p>なので、新たにSSHdコンテナを設置して、Socksプロキシ経由でWebUIを確認する。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-spark/spark-sshsocks.svg" alt="Sparkマスター WebUI" /></p>
+
+<h4 id="sshdコンテナを追加:27882acbebbf2525e531e2163851a874">SSHdコンテナを追加</h4>
+
+<p>先ほどのdocker-compose.ymlに追加する。</p>
+
+<pre><code class="language-ruby">master:
+  image: namikingsoft/spark
+  hostname: master
+  container_name: master
+  environment:
+    - constraint:node==/node0/
+  privileged: true
+  command: master
+
+worker:
+  image: namikingsoft/spark
+  hostname: woker
+  environment:
+    - constraint:node!=/node0/
+    - affinity:container!=/worker/
+  privileged: true
+  command: worker
+
+# SSHdコンテナを追加
+sshd:
+  image: fedora/ssh
+  ports:
+    - &quot;2222:22&quot;
+  environment:
+    SSH_USERNAME: user
+    SSH_USERPASS: something
+</code></pre>
+
+<p>以下のコマンドで、SSHdコンテナが起動する。</p>
+
+<pre><code class="language-sh">docker-compose --x-networking up -d
+</code></pre>
+
+<h4 id="ローカルpcでsocksプロキシを起動:27882acbebbf2525e531e2163851a874">ローカルPCでSocksプロキシを起動</h4>
+
+<p>swarm-masterのIPを確認。</p>
+
+<pre><code class="language-sh">docker-machine ls
+</code></pre>
+
+<p>Socksプロキシの起動。</p>
+
+<pre><code class="language-sh">ssh user@(swarm-masterのIP) -p2222 -D1080 -fN
+Password: something
+</code></pre>
+
+<p>Socksプロキシを止めるときは<code>Ctrl-c</code>を押下。</p>
+
+<h4 id="ローカルpcにてsocksプロキシを設定:27882acbebbf2525e531e2163851a874">ローカルPCにてSocksプロキシを設定</h4>
+
+<p>ローカルPCのSocksプロキシ設定を<code>localhost:1080</code>に設定する。
+SSHのSocks周りについては以下のページが参考になった。</p>
+
+<p><a href="http://blog.wktk.co.jp/ja/entry/2014/03/11/ssh-socks-proxy-mac-chrome">ssh経由のSOCKSプロキシを通じてMac上のGoogle Chromeでブラウジング</a><br />
+<a href="https://www.kmc.gr.jp/advent-calendar/ssh/2013/12/14/tsocks.html">ssh -D と tsocks -  京大マイコンクラブ (KMC)</a></p>
+
+<h4 id="ブラウザで確認:27882acbebbf2525e531e2163851a874">ブラウザで確認</h4>
+
+<pre><code class="language-sh">open http://(swarm-masterのIP):8080
+</code></pre>
+
+<p><img src="/images/post/2016/01/docker-swarm-spark/spark-master-ui.png" alt="Sparkマスター WebUI" /></p>
+
+<p>先ほど、スケールした2つのワーカーコンテナがマスターに接続されているのがわかる。
+IPや名前解決はSSH接続先のものを参照してくれて便利。(OSX10.9+Chromeで確認)</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-spark/spark-worker-ui.png" alt="Sparkワーカー WebUI" /></p>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2016\/01\/docker-swarm-spark\/';
+    var disqus_title = 'Docker SwarmでApache Sparkクラスタを構築してみる';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2016\/01\/docker-swarm-spark\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/docker-swarm-digitalocean/" title="DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-10 (Sun)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-spark/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-spark/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-spark/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-spark%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd><dt>2016-01-10 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/">DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</a></dd><dt>2015-09-29 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-exec-exited/">Dockerイメージのビルド中にExitedしたコンテナに入る方法</a></dd><dt>2015-09-11 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/test-webpack-browser/">webpack-dev-serverで継続的なクライアントサイドテスト</a></dd><dt>2015-09-04 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/kanban-board/">オープンソースのかんばん式管理ツールを３つほど試してみた</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(7)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/spark">spark(1)</a></li><li><a href="/tags/swarm">swarm(2)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/webpack">webpack(1)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>
