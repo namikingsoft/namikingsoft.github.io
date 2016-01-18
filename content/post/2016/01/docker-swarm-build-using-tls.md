@@ -167,6 +167,7 @@ wget -qO- https://get.docker.com/ | sh
 openssl genrsa -out ca-key.pem 4096
 openssl req -subj "/CN=ca" -new -x509 -days 365 -key ca-key.pem -out ca.pem
 ```
+CommonName(CN)は任意。
 
 #### クライアントの秘密鍵と証明書を生成
 ```sh
@@ -179,6 +180,7 @@ openssl req -subj '/CN=client' -new -key key.pem -out client.csr
 openssl x509 -req -days 365 -sha256 -in client.csr -out cert.pem \
   -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile-client.cnf
 ```
+CommonName(CN)は任意。
 
 #### swarm-node0(master)の秘密鍵と証明書を生成
 ```sh
