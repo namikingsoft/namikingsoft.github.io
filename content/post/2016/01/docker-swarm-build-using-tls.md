@@ -319,8 +319,8 @@ docker run -d --name swarm-agent-master \
   -v /etc/docker:/etc/docker --net host \
   swarm manage --tlsverify \
     --tlscacert=/etc/docker/ca.pem \
-    --tlscert=/etc/docker/server-cert.pem \
-    --tlskey=/etc/docker/server-key.pem \
+    --tlscert=/etc/docker/node0-cert.pem \
+    --tlskey=/etc/docker/node0-key.pem \
     -H tcp://0.0.0.0:3376 --strategy spread \
     --advertise x.x.x.1:2376 consul://localhost:8500
 
