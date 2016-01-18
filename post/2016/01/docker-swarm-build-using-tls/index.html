@@ -4,7 +4,7 @@
 
 <p>なので、TSL認証を用いたDocker Swarmクラスタを<strong>自力で</strong>構築できるように、手順をまとめておきたい。また、docker-machineの代替として<strong>Terraform</strong>を使い、自動化できるようにしたい。</p>
 
-<p><img src="/images/post/2016/01/docker-swarm-build-using-tls/eyecatch.svg" alt="Docker Swarm using TLS" /></p>
+<p><img src="/images/post/2016/01/docker-swarm-build-using-tls/eyecatch.png" alt="Docker Swarm using TLS" /></p>
 
 <h3 id="作業の流れ:357fa4bd2e644c21db7997b0a9ea5cf8">作業の流れ</h3>
 
@@ -78,6 +78,7 @@
 <ul>
 <li>swarm-node0はマスターノードとして使う</li>
 <li>ホスト名(hostname)は別になんでもよい</li>
+<li>プライベートネットワークを有効にしておく</li>
 <li>eth0はグローバルネットワークに繋がるインタフェース</li>
 <li>eth1はプライベートネットワークに繋がるインタフェース</li>
 </ul>
