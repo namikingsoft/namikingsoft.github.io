@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tls on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/tls/</link>
+    <description>Recent content in Tls on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Mon, 18 Jan 2016 20:00:00 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/tls/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</title>
+      <link>http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/</link>
+      <pubDate>Mon, 18 Jan 2016 20:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/</guid>
+      <description>
+
+&lt;p&gt;TSL認証なSwarmクラスタはdocker-machineで構築すると、勝手に設定してくれて非常に楽だが、ホストのネットワークを事前に弄りたかったり、Terraformなどの他オーケストレーションツールを組み合わせたいときに、ちょっと融通がきかない。&lt;/p&gt;
+
+&lt;p&gt;なので、TSL認証を用いたDocker Swarmクラスタを&lt;strong&gt;自力で&lt;/strong&gt;構築できるように、手順をまとめておきたい。また、docker-machineの代替として&lt;strong&gt;Terraform&lt;/strong&gt;を使い、自動化できるようにしたい。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/eyecatch.svg&#34; alt=&#34;Docker Swarm using TLS&#34; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;作業の流れ:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;作業の流れ&lt;/h3&gt;
+
+&lt;p&gt;概ね以下の様な流れでSwarmクラスタの構築を行う。基本的には、docker-machineで行われていることを模倣している。docker-machine自体ではサービスディスカバリの準備は行わないので、そこら辺の手順も残しておく。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/overview.svg&#34; alt=&#34;Overview&#34; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&#34;付録-swarmクラスタをterraformで構築するサンプル:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;[付録] SwarmクラスタをTerraformで構築するサンプル&lt;/h4&gt;
+
+&lt;p&gt;今回の記事で行う作業をTerraformで自動化したものを、以下のリポジトリに置いておくので、ご参考までに。terraform.tfの&lt;code&gt;count&lt;/code&gt;の値を弄ることで、指定数のノードを自動で作成するので、大量にノードが必要な場合に便利かも。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: namikingsoft/sample-terraform-docker-swarm
+&lt;a href=&#34;https://github.com/namikingsoft/sample-terraform-docker-swarm&#34;&gt;https://github.com/namikingsoft/sample-terraform-docker-swarm&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;事前準備:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;事前準備&lt;/h3&gt;
+
+&lt;h4 id=&#34;必要なソフトウェアのインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+
+&lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;docker (Engine)&lt;/li&gt;
+&lt;li&gt;OpenSSL (Linux系やOSXなら、デフォルトで入っているはず)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+
+&lt;p&gt;この記事の例では、ホストにDigitalOceanを使うが、AWSとかでも可能と思います。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;br /&gt;
+登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
+
+&lt;h3 id=&#34;ノード用のホストを用意する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
+
+&lt;p&gt;今回の例では、DigitalOceanでノードを２台用意して、Swarmクラスタの連携を確認した。&lt;/p&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&#34;left&#34;&gt;Host&lt;/th&gt;
+&lt;th align=&#34;left&#34;&gt;OS&lt;/th&gt;
+&lt;th align=&#34;left&#34;&gt;Mem&lt;/th&gt;
+&lt;th align=&#34;left&#34;&gt;IP (eth0)&lt;/th&gt;
+&lt;th align=&#34;left&#34;&gt;IP (eth1)&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&#34;left&#34;&gt;&lt;strong&gt;swarm-node0&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;ubuntu-15-10-x64&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;512MB&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;x.x.x.1&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;y.y.y.1&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td align=&#34;left&#34;&gt;&lt;strong&gt;swarm-node1&lt;/strong&gt;&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;ubuntu-15-10-x64&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;512MB&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;x.x.x.2&lt;/td&gt;
+&lt;td align=&#34;left&#34;&gt;y.y.y.2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h5 id=&#34;備考:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h5&gt;
+
+&lt;ul&gt;
+&lt;li&gt;swarm-node0はマスターノードとして使う&lt;/li&gt;
+&lt;li&gt;ホスト名(hostname)は別になんでもよい&lt;/li&gt;
+&lt;li&gt;eth0はグローバルネットワークに繋がるインタフェース&lt;/li&gt;
+&lt;li&gt;eth1はプライベートネットワークに繋がるインタフェース&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
+
+&lt;p&gt;Swarmクラスタのサービスディスカバリー(分散KVS)であるConsulを各ノードにインストールする。使わないでもSwarmクラスタは構築できるが、マルチホスト間でオーバーレイ・ネットワークを作れるようになったりと色々利点が多いので。(etcdやZookeeperでも構築可能)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/consul.svg&#34; alt=&#34;Swarm Structure&#34; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&#34;swarm-node0にてconsulをサーバーモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0にてConsulをサーバーモードで動かす&lt;/h4&gt;
+
+&lt;p&gt;SSHでログインして作業を行う。&lt;/p&gt;
+
+&lt;h5 id=&#34;consulインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Consulインストール&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
+apt-get install -y curl zip
+
+# Consulインストール
+cd /tmp
+curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip
+unzip consul_0.6.1_linux_amd64.zip
+mv consul /usr/local/bin
+
+# ConsulのWebUIを設置(任意)
+curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
+unzip consul_0.6.1_web_ui.zip -d consul-webui
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;consul起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Consul起動&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;nohup consul agent \
+  -server -bootstrap-expect=1 \
+  -node=consul0 \
+  -data-dir=/tmp/consul \
+  --ui-dir=/tmp/consul-webui \
+  -bind=$(
+    ip addr show eth1 \
+    | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+    | head -n1
+  ) \
+  &amp;gt;&amp;gt; /var/log/consul.log &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;１台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。&lt;/p&gt;
+
+&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
+
+&lt;p&gt;SSHでログインして作業を行う。インストール方法は同じなので割愛。&lt;/p&gt;
+
+&lt;h5 id=&#34;consul起動-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Consul起動&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;nohup consul agent \
+  -join y.y.y.1 \
+  -node=consul1 \
+  -data-dir=/tmp/consul \
+  --ui-dir=/tmp/consul-webui \
+  -bind=$(
+    ip addr show eth1 \
+    | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+    | head -n1
+  ) \
+  &amp;gt;&amp;gt; /var/log/consul.log &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;swarm-node0のプライベートIPにジョインする。&lt;/p&gt;
+
+&lt;h4 id=&#34;メンバー確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;メンバー確認&lt;/h4&gt;
+
+&lt;p&gt;各ノードのConsulが連携できているかを確認する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ consul members
+
+Node     Address            Status  Type    Build  Protocol  DC
+consul0  y.y.y.1:8301   alive   server  0.6.1  2         dc1
+consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;各ノードにdockerをインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードにDockerをインストール&lt;/h3&gt;
+
+&lt;p&gt;各ノードのSSHにて、以下のコマンドを実行する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;wget -qO- https://get.docker.com/ | sh
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;デーモン起動時の引数設定などは後ほど行う。&lt;/p&gt;
+
+&lt;h3 id=&#34;tls認証用の鍵を生成する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS認証用の鍵を生成する&lt;/h3&gt;
+
+&lt;p&gt;クライアント側(ローカルPC)で生成する。後ほど各ノードに必要なファイルを転送する。&lt;/p&gt;
+
+&lt;h4 id=&#34;caの証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;CAの証明書を生成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;openssl genrsa -out ca-key.pem 4096
+openssl req -subj &amp;quot;/CN=ca&amp;quot; -new -x509 -days 365 -key ca-key.pem -out ca.pem
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;クライアントの秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;クライアントの秘密鍵と証明書を生成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
+echo &amp;quot;extendedKeyUsage = clientAuth&amp;quot; &amp;gt;&amp;gt; extfile-client.cnf
+
+# client cert
+openssl genrsa -out key.pem 4096
+openssl req -subj &#39;/CN=client&#39; -new -key key.pem -out client.csr
+openssl x509 -req -days 365 -sha256 -in client.csr -out cert.pem \
+  -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile-client.cnf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;swarm-node0-master-の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0(master)の秘密鍵と証明書を生成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
+echo &amp;quot;subjectAltName = IP:x.x.x.1&amp;quot; &amp;gt; extfile.cnf
+echo &amp;quot;extendedKeyUsage = clientAuth,serverAuth&amp;quot; &amp;gt;&amp;gt; extfile.cnf
+
+# server cert
+openssl genrsa -out node0-key.pem 4096
+openssl req -subj &amp;quot;/CN=node0&amp;quot; -new -key node0-key.pem -out node0.csr
+openssl x509 -req -days 365 -sha256 -in node0.csr -out node0-cert.pem \
+  -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile.cnf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Swarm Managerを動かすノードなので、clientAuthも設定しておく。subjectAltNameにグローバルIPを設定するので、CommonName(CN)は割と何でもよいが、ドメイン名があれば、それを設定するとよい。&lt;/p&gt;
+
+&lt;h4 id=&#34;swarm-node1の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1の秘密鍵と証明書を生成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
+echo &amp;quot;subjectAltName = IP:x.x.x.2&amp;quot; &amp;gt; extfile.cnf
+
+# server cert
+openssl genrsa -out node1-key.pem 4096
+openssl req -subj &amp;quot;/CN=node1&amp;quot; -new -key node1-key.pem -out node1.csr
+openssl x509 -req -days 365 -sha256 -in node1.csr -out node1-cert.pem \
+  -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile.cnf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
+
+&lt;h4 id=&#34;tls認証鍵を各ノードへアップロード:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS認証鍵を各ノードへアップロード&lt;/h4&gt;
+
+&lt;p&gt;SFTPやSCPなどを使って、各ノードの&lt;code&gt;/etc/docker&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;あたりにアップロードする。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;swarm-node0
+
+&lt;ul&gt;
+&lt;li&gt;ca.pem&lt;/li&gt;
+&lt;li&gt;node0-cert.pem&lt;/li&gt;
+&lt;li&gt;node0-key.pem&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;swarm-node1
+
+&lt;ul&gt;
+&lt;li&gt;ca.pem&lt;/li&gt;
+&lt;li&gt;node1-cert.pem&lt;/li&gt;
+&lt;li&gt;node1-key.pem&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;各ノードのdockerの設定を変更する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードのDockerの設定を変更する&lt;/h3&gt;
+
+&lt;p&gt;各ノードにSSHでログインして、設定を行う。&lt;/p&gt;
+
+&lt;h4 id=&#34;dockerデーモン起動時の引数設定:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
+
+&lt;h5 id=&#34;swarm-node0:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
+
+# 変更前
+ExecStart=/usr/bin/docker daemon -H fd://
+# 変更後
+ExecStart=/usr/bin/docker daemon \
+  --tlsverify \
+  --tlscacert=/etc/docker/ca.pem \
+  --tlscert=/etc/docker/node0-cert.pem \
+  --tlskey=/etc/docker/node0-key.pem \
+  -H=0.0.0.0:2376a\
+  --cluster-store=consul://localhost:8500 \
+  --cluster-advertise=eth0:2376 \
+  -H fd://
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;swarm-node1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
+
+# 変更前
+ExecStart=/usr/bin/docker daemon -H fd://
+# 変更後
+ExecStart=/usr/bin/docker daemon \
+  --tlsverify \
+  --tlscacert=/etc/docker/ca.pem \
+  --tlscert=/etc/docker/node1-cert.pem \
+  --tlskey=/etc/docker/node1-key.pem \
+  -H=0.0.0.0:2376 \
+  --cluster-store=consul://localhost:8500 \
+  --cluster-advertise=eth0:2376 \
+  -H fd://
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;備考-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h5&gt;
+
+&lt;ul&gt;
+&lt;li&gt;変更後は見やすさのため複数行で書いているが、&lt;code&gt;\&lt;/code&gt;を消して1行ぶっ続けで記述する。&lt;/li&gt;
+&lt;li&gt;この設定はUbuntu15.10の場合なので、他のOSの場合は&lt;code&gt;/etc/default/docker&lt;/code&gt;の&lt;code&gt;DOCKER_OPTS&lt;/code&gt;に引数を付け加えたりなど、やり方が違ってくると思うので、各々調節する。&lt;/li&gt;
+&lt;li&gt;cluster-storeとcluster-advertiseの指定は、オーバーレイ・ネットワーク機能のためなので、使わない場合は特に指定しなくても、Swarmクラスタの動作は可能。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&#34;docker再起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Docker再起動&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;service docker restart
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;tls接続確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS接続確認&lt;/h4&gt;
+
+&lt;p&gt;ローカルPCから、TLS(TCP)でホストのDockerを利用できるか確認してみる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# swarm-node0
+docker --tlsverify \
+  --tlscacert=ca.pem --tlscert=cert.pem --tlskey=key.pem \
+  -H=x.x.x.1:2376 \
+  version
+
+# swarm-node1
+docker --tlsverify \
+  --tlscacert=ca.pem --tlscert=cert.pem --tlskey=key.pem \
+  -H=x.x.x.2:2376 \
+  version
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ClientとServerのDockerバージョンが表示されれば、正しく設定できている。&lt;/p&gt;
+
+&lt;p&gt;また、以下の様な環境変数を設定することで、いちいちTLS認証鍵やIP指定をしなくても、普通にdockerコマンドが扱えるようになる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_TLS_VERIFY=&amp;quot;1&amp;quot;
+export DOCKER_HOST=&amp;quot;tcp://(dockerホストのIP):2376&amp;quot;
+export DOCKER_CERT_PATH=&amp;quot;/path/to/クライアント認証鍵があるディレクトリ&amp;quot;
+
+docker version
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;DOCKER_CERT_PATH&lt;/code&gt;については、&lt;code&gt;~/.docker/&lt;/code&gt;にクライアント認証鍵(ca.pem, cert.pem, key.pem)を設置すれば、省略可能。&lt;/p&gt;
+
+&lt;h3 id=&#34;各ノードでswarmコンテナを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
+
+&lt;p&gt;各ノードにSSHでログインして、Swarmコンテナを起動させる。&lt;/p&gt;
+
+&lt;h4 id=&#34;swarm-node0-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
+docker run -d --name swarm-agent-master \
+  -v /etc/docker:/etc/docker --net host \
+  swarm manage --tlsverify \
+    --tlscacert=/etc/docker/ca.pem \
+    --tlscert=/etc/docker/server-cert.pem \
+    --tlskey=/etc/docker/server-key.pem \
+    -H tcp://0.0.0.0:3376 --strategy spread \
+    --advertise x.x.x.1:2376 consul://localhost:8500
+
+# Swarm Agent
+docker run -d --name swarm-agent --net host \
+  swarm join --advertise x.x.x.1:2376 consul://localhost:8500
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;swarm-node1-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
+docker run -d --name swarm-agent --net host \
+  swarm join --advertise x.x.x.2:2376 consul://localhost:8500
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;備考-2:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h4&gt;
+
+&lt;ul&gt;
+&lt;li&gt;ネットワークのホストと共有する必要があるので、&lt;code&gt;--net host&lt;/code&gt;を指定している。&lt;/li&gt;
+&lt;li&gt;Swarm Managerで&lt;code&gt;/etc/docker&lt;/code&gt;を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、&lt;code&gt;/etc/docker/key.json&lt;/code&gt;の共有のため。DockerユニークIDの識別に必要とのこと。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;動作確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;動作確認&lt;/h3&gt;
+
+&lt;p&gt;クライアント側(ローカルPC)から、Swarmクラスタへの接続を試みる。&lt;/p&gt;
+
+&lt;h4 id=&#34;swarm-masterにtls接続:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Swarm MasterにTLS接続&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_TLS_VERIFY=&amp;quot;1&amp;quot;
+export DOCKER_HOST=&amp;quot;tcp://x.x.x.1:3376&amp;quot;
+export DOCKER_CERT_PATH=&amp;quot;/path/to/クライアント認証鍵があるディレクトリ&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker info
+
+Containers: 3
+Images: 2
+Role: primary
+Strategy: spread
+Filters: health, port, dependency, affinity, constraint
+Nodes: 2
+ swarm-node0: x.x.x.1:2376
+  └ Status: Healthy
+  └ Containers: 2
+  └ Reserved CPUs: 0 / 1
+  └ Reserved Memory: 0 B / 513.4 MiB
+  └ Labels: executiondriver=native-0.2, kernelversion=4.2.0-16-generic, operatingsystem=Ubuntu 15.10, storagedriver=aufs
+ swarm-node1: x.x.x.2:2376
+  └ Status: Healthy
+  └ Containers: 1
+  └ Reserved CPUs: 0 / 1
+  └ Reserved Memory: 0 B / 513.4 MiB
+  └ Labels: executiondriver=native-0.2, kernelversion=4.2.0-16-generic, operatingsystem=Ubuntu 15.10, storagedriver=aufs
+CPUs: 2
+Total Memory: 1.003 GiB
+Name: swarm-node0
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;上のように、ノードが2つ接続されていることが確認できれば、Swarmクラスタの構築がうまく行えている。&lt;code&gt;DOCKER_HOST&lt;/code&gt;のポート指定を&lt;code&gt;2376&lt;/code&gt;ではなく、&lt;code&gt;3376&lt;/code&gt;にすることで、dockerコマンドでSwarm関連の操作を行うことができる。&lt;/p&gt;
+
+&lt;h4 id=&#34;swarmクラスタにコンテナを配置してみる:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Swarmクラスタにコンテナを配置してみる&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker run -d --name container1 nginx
+$ docker run -d --name container2 nginx
+$ docker ps --format &amp;quot;{{.Names}}&amp;quot;
+
+swarm-node1/container1
+swarm-node2/container2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Swarm Masterのストラテジーが&lt;code&gt;spread&lt;/code&gt;なので、各ノードにコンテナが分散配置される。&lt;/p&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;TLS認証鍵の置き場所は任意。Dockerデーモン起動時の引数で指定する。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

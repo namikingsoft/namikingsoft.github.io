@@ -1,0 +1,433 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで) - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2016-01-18 (Mon)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/docker-swarm">Docker Swarm</a></li><li><a class="label label-default" href="/tags/docker">Docker</a></li><li><a class="label label-default" href="/tags/swarm">Swarm</a></li><li><a class="label label-default" href="/tags/tls">TLS</a></li><li><a class="label label-default" href="/tags/terraform">Terraform</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p>TSL認証なSwarmクラスタはdocker-machineで構築すると、勝手に設定してくれて非常に楽だが、ホストのネットワークを事前に弄りたかったり、Terraformなどの他オーケストレーションツールを組み合わせたいときに、ちょっと融通がきかない。</p>
+
+<p>なので、TSL認証を用いたDocker Swarmクラスタを<strong>自力で</strong>構築できるように、手順をまとめておきたい。また、docker-machineの代替として<strong>Terraform</strong>を使い、自動化できるようにしたい。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-build-using-tls/eyecatch.svg" alt="Docker Swarm using TLS" /></p>
+
+<h3 id="作業の流れ:357fa4bd2e644c21db7997b0a9ea5cf8">作業の流れ</h3>
+
+<p>概ね以下の様な流れでSwarmクラスタの構築を行う。基本的には、docker-machineで行われていることを模倣している。docker-machine自体ではサービスディスカバリの準備は行わないので、そこら辺の手順も残しておく。</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-build-using-tls/overview.svg" alt="Overview" /></p>
+
+<h4 id="付録-swarmクラスタをterraformで構築するサンプル:357fa4bd2e644c21db7997b0a9ea5cf8">[付録] SwarmクラスタをTerraformで構築するサンプル</h4>
+
+<p>今回の記事で行う作業をTerraformで自動化したものを、以下のリポジトリに置いておくので、ご参考までに。terraform.tfの<code>count</code>の値を弄ることで、指定数のノードを自動で作成するので、大量にノードが必要な場合に便利かも。</p>
+
+<blockquote>
+<p>GitHub: namikingsoft/sample-terraform-docker-swarm
+<a href="https://github.com/namikingsoft/sample-terraform-docker-swarm">https://github.com/namikingsoft/sample-terraform-docker-swarm</a></p>
+</blockquote>
+
+<h3 id="事前準備:357fa4bd2e644c21db7997b0a9ea5cf8">事前準備</h3>
+
+<h4 id="必要なソフトウェアのインストール:357fa4bd2e644c21db7997b0a9ea5cf8">必要なソフトウェアのインストール</h4>
+
+<p>作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。</p>
+
+<ul>
+<li>docker (Engine)</li>
+<li>OpenSSL (Linux系やOSXなら、デフォルトで入っているはず)</li>
+</ul>
+
+<h4 id="digitaloceanの登録とアクセストークンの取得:357fa4bd2e644c21db7997b0a9ea5cf8">DigitalOceanの登録とアクセストークンの取得</h4>
+
+<p>この記事の例では、ホストにDigitalOceanを使うが、AWSとかでも可能と思います。</p>
+
+<p><a href="https://www.digitalocean.com/">https://www.digitalocean.com/</a><br />
+登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。</p>
+
+<h3 id="ノード用のホストを用意する:357fa4bd2e644c21db7997b0a9ea5cf8">ノード用のホストを用意する</h3>
+
+<p>今回の例では、DigitalOceanでノードを２台用意して、Swarmクラスタの連携を確認した。</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">Host</th>
+<th align="left">OS</th>
+<th align="left">Mem</th>
+<th align="left">IP (eth0)</th>
+<th align="left">IP (eth1)</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left"><strong>swarm-node0</strong></td>
+<td align="left">ubuntu-15-10-x64</td>
+<td align="left">512MB</td>
+<td align="left">x.x.x.1</td>
+<td align="left">y.y.y.1</td>
+</tr>
+
+<tr>
+<td align="left"><strong>swarm-node1</strong></td>
+<td align="left">ubuntu-15-10-x64</td>
+<td align="left">512MB</td>
+<td align="left">x.x.x.2</td>
+<td align="left">y.y.y.2</td>
+</tr>
+</tbody>
+</table>
+
+<h5 id="備考:357fa4bd2e644c21db7997b0a9ea5cf8">備考</h5>
+
+<ul>
+<li>swarm-node0はマスターノードとして使う</li>
+<li>ホスト名(hostname)は別になんでもよい</li>
+<li>eth0はグローバルネットワークに繋がるインタフェース</li>
+<li>eth1はプライベートネットワークに繋がるインタフェース</li>
+</ul>
+
+<h3 id="各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8">各ノードでConsulを動かす</h3>
+
+<p>Swarmクラスタのサービスディスカバリー(分散KVS)であるConsulを各ノードにインストールする。使わないでもSwarmクラスタは構築できるが、マルチホスト間でオーバーレイ・ネットワークを作れるようになったりと色々利点が多いので。(etcdやZookeeperでも構築可能)</p>
+
+<p><img src="/images/post/2016/01/docker-swarm-build-using-tls/consul.svg" alt="Swarm Structure" /></p>
+
+<h4 id="swarm-node0にてconsulをサーバーモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node0にてConsulをサーバーモードで動かす</h4>
+
+<p>SSHでログインして作業を行う。</p>
+
+<h5 id="consulインストール:357fa4bd2e644c21db7997b0a9ea5cf8">Consulインストール</h5>
+
+<pre><code class="language-sh"># 必要なパッケージのインストール
+apt-get install -y curl zip
+
+# Consulインストール
+cd /tmp
+curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_linux_amd64.zip
+unzip consul_0.6.1_linux_amd64.zip
+mv consul /usr/local/bin
+
+# ConsulのWebUIを設置(任意)
+curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
+unzip consul_0.6.1_web_ui.zip -d consul-webui
+</code></pre>
+
+<h5 id="consul起動:357fa4bd2e644c21db7997b0a9ea5cf8">Consul起動</h5>
+
+<pre><code class="language-sh">nohup consul agent \
+  -server -bootstrap-expect=1 \
+  -node=consul0 \
+  -data-dir=/tmp/consul \
+  --ui-dir=/tmp/consul-webui \
+  -bind=$(
+    ip addr show eth1 \
+    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+    | head -n1
+  ) \
+  &gt;&gt; /var/log/consul.log &amp;
+</code></pre>
+
+<p>１台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。</p>
+
+<h4 id="swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1にてConsulをクライアントモードで動かす</h4>
+
+<p>SSHでログインして作業を行う。インストール方法は同じなので割愛。</p>
+
+<h5 id="consul起動-1:357fa4bd2e644c21db7997b0a9ea5cf8">Consul起動</h5>
+
+<pre><code class="language-sh">nohup consul agent \
+  -join y.y.y.1 \
+  -node=consul1 \
+  -data-dir=/tmp/consul \
+  --ui-dir=/tmp/consul-webui \
+  -bind=$(
+    ip addr show eth1 \
+    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+    | head -n1
+  ) \
+  &gt;&gt; /var/log/consul.log &amp;
+</code></pre>
+
+<p>swarm-node0のプライベートIPにジョインする。</p>
+
+<h4 id="メンバー確認:357fa4bd2e644c21db7997b0a9ea5cf8">メンバー確認</h4>
+
+<p>各ノードのConsulが連携できているかを確認する。</p>
+
+<pre><code class="language-sh">$ consul members
+
+Node     Address            Status  Type    Build  Protocol  DC
+consul0  y.y.y.1:8301   alive   server  0.6.1  2         dc1
+consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
+</code></pre>
+
+<h3 id="各ノードにdockerをインストール:357fa4bd2e644c21db7997b0a9ea5cf8">各ノードにDockerをインストール</h3>
+
+<p>各ノードのSSHにて、以下のコマンドを実行する。</p>
+
+<pre><code class="language-sh">wget -qO- https://get.docker.com/ | sh
+</code></pre>
+
+<p>デーモン起動時の引数設定などは後ほど行う。</p>
+
+<h3 id="tls認証用の鍵を生成する:357fa4bd2e644c21db7997b0a9ea5cf8">TLS認証用の鍵を生成する</h3>
+
+<p>クライアント側(ローカルPC)で生成する。後ほど各ノードに必要なファイルを転送する。</p>
+
+<h4 id="caの証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8">CAの証明書を生成</h4>
+
+<pre><code class="language-sh">openssl genrsa -out ca-key.pem 4096
+openssl req -subj &quot;/CN=ca&quot; -new -x509 -days 365 -key ca-key.pem -out ca.pem
+</code></pre>
+
+<h4 id="クライアントの秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8">クライアントの秘密鍵と証明書を生成</h4>
+
+<pre><code class="language-sh"># extfile
+echo &quot;extendedKeyUsage = clientAuth&quot; &gt;&gt; extfile-client.cnf
+
+# client cert
+openssl genrsa -out key.pem 4096
+openssl req -subj '/CN=client' -new -key key.pem -out client.csr
+openssl x509 -req -days 365 -sha256 -in client.csr -out cert.pem \
+  -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile-client.cnf
+</code></pre>
+
+<h4 id="swarm-node0-master-の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node0(master)の秘密鍵と証明書を生成</h4>
+
+<pre><code class="language-sh"># extfile
+echo &quot;subjectAltName = IP:x.x.x.1&quot; &gt; extfile.cnf
+echo &quot;extendedKeyUsage = clientAuth,serverAuth&quot; &gt;&gt; extfile.cnf
+
+# server cert
+openssl genrsa -out node0-key.pem 4096
+openssl req -subj &quot;/CN=node0&quot; -new -key node0-key.pem -out node0.csr
+openssl x509 -req -days 365 -sha256 -in node0.csr -out node0-cert.pem \
+  -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile.cnf
+</code></pre>
+
+<p>Swarm Managerを動かすノードなので、clientAuthも設定しておく。subjectAltNameにグローバルIPを設定するので、CommonName(CN)は割と何でもよいが、ドメイン名があれば、それを設定するとよい。</p>
+
+<h4 id="swarm-node1の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1の秘密鍵と証明書を生成</h4>
+
+<pre><code class="language-sh"># extfile
+echo &quot;subjectAltName = IP:x.x.x.2&quot; &gt; extfile.cnf
+
+# server cert
+openssl genrsa -out node1-key.pem 4096
+openssl req -subj &quot;/CN=node1&quot; -new -key node1-key.pem -out node1.csr
+openssl x509 -req -days 365 -sha256 -in node1.csr -out node1-cert.pem \
+  -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile.cnf
+</code></pre>
+
+<p>CommonName(CN)は任意。</p>
+
+<h4 id="tls認証鍵を各ノードへアップロード:357fa4bd2e644c21db7997b0a9ea5cf8">TLS認証鍵を各ノードへアップロード</h4>
+
+<p>SFTPやSCPなどを使って、各ノードの<code>/etc/docker</code><sup class="footnote-ref" id="fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1"><a rel="footnote" href="#fn:357fa4bd2e644c21db7997b0a9ea5cf8:1">1</a></sup>あたりにアップロードする。</p>
+
+<ul>
+<li>swarm-node0
+
+<ul>
+<li>ca.pem</li>
+<li>node0-cert.pem</li>
+<li>node0-key.pem</li>
+</ul></li>
+<li>swarm-node1
+
+<ul>
+<li>ca.pem</li>
+<li>node1-cert.pem</li>
+<li>node1-key.pem</li>
+</ul></li>
+</ul>
+
+<h3 id="各ノードのdockerの設定を変更する:357fa4bd2e644c21db7997b0a9ea5cf8">各ノードのDockerの設定を変更する</h3>
+
+<p>各ノードにSSHでログインして、設定を行う。</p>
+
+<h4 id="dockerデーモン起動時の引数設定:357fa4bd2e644c21db7997b0a9ea5cf8">Dockerデーモン起動時の引数設定</h4>
+
+<h5 id="swarm-node0:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node0</h5>
+
+<pre><code class="language-sh">vi /lib/systemd/system/docker.service
+
+# 変更前
+ExecStart=/usr/bin/docker daemon -H fd://
+# 変更後
+ExecStart=/usr/bin/docker daemon \
+  --tlsverify \
+  --tlscacert=/etc/docker/ca.pem \
+  --tlscert=/etc/docker/node0-cert.pem \
+  --tlskey=/etc/docker/node0-key.pem \
+  -H=0.0.0.0:2376a\
+  --cluster-store=consul://localhost:8500 \
+  --cluster-advertise=eth0:2376 \
+  -H fd://
+</code></pre>
+
+<h5 id="swarm-node1:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1</h5>
+
+<pre><code class="language-sh">vi /lib/systemd/system/docker.service
+
+# 変更前
+ExecStart=/usr/bin/docker daemon -H fd://
+# 変更後
+ExecStart=/usr/bin/docker daemon \
+  --tlsverify \
+  --tlscacert=/etc/docker/ca.pem \
+  --tlscert=/etc/docker/node1-cert.pem \
+  --tlskey=/etc/docker/node1-key.pem \
+  -H=0.0.0.0:2376 \
+  --cluster-store=consul://localhost:8500 \
+  --cluster-advertise=eth0:2376 \
+  -H fd://
+</code></pre>
+
+<h5 id="備考-1:357fa4bd2e644c21db7997b0a9ea5cf8">備考</h5>
+
+<ul>
+<li>変更後は見やすさのため複数行で書いているが、<code>\</code>を消して1行ぶっ続けで記述する。</li>
+<li>この設定はUbuntu15.10の場合なので、他のOSの場合は<code>/etc/default/docker</code>の<code>DOCKER_OPTS</code>に引数を付け加えたりなど、やり方が違ってくると思うので、各々調節する。</li>
+<li>cluster-storeとcluster-advertiseの指定は、オーバーレイ・ネットワーク機能のためなので、使わない場合は特に指定しなくても、Swarmクラスタの動作は可能。</li>
+</ul>
+
+<h4 id="docker再起動:357fa4bd2e644c21db7997b0a9ea5cf8">Docker再起動</h4>
+
+<pre><code class="language-sh">service docker restart
+</code></pre>
+
+<h4 id="tls接続確認:357fa4bd2e644c21db7997b0a9ea5cf8">TLS接続確認</h4>
+
+<p>ローカルPCから、TLS(TCP)でホストのDockerを利用できるか確認してみる。</p>
+
+<pre><code class="language-sh"># swarm-node0
+docker --tlsverify \
+  --tlscacert=ca.pem --tlscert=cert.pem --tlskey=key.pem \
+  -H=x.x.x.1:2376 \
+  version
+
+# swarm-node1
+docker --tlsverify \
+  --tlscacert=ca.pem --tlscert=cert.pem --tlskey=key.pem \
+  -H=x.x.x.2:2376 \
+  version
+</code></pre>
+
+<p>ClientとServerのDockerバージョンが表示されれば、正しく設定できている。</p>
+
+<p>また、以下の様な環境変数を設定することで、いちいちTLS認証鍵やIP指定をしなくても、普通にdockerコマンドが扱えるようになる。</p>
+
+<pre><code class="language-sh">export DOCKER_TLS_VERIFY=&quot;1&quot;
+export DOCKER_HOST=&quot;tcp://(dockerホストのIP):2376&quot;
+export DOCKER_CERT_PATH=&quot;/path/to/クライアント認証鍵があるディレクトリ&quot;
+
+docker version
+</code></pre>
+
+<p><code>DOCKER_CERT_PATH</code>については、<code>~/.docker/</code>にクライアント認証鍵(ca.pem, cert.pem, key.pem)を設置すれば、省略可能。</p>
+
+<h3 id="各ノードでswarmコンテナを動かす:357fa4bd2e644c21db7997b0a9ea5cf8">各ノードでSwarmコンテナを動かす</h3>
+
+<p>各ノードにSSHでログインして、Swarmコンテナを起動させる。</p>
+
+<h4 id="swarm-node0-1:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node0</h4>
+
+<pre><code class="language-sh"># Swarm Manager
+docker run -d --name swarm-agent-master \
+  -v /etc/docker:/etc/docker --net host \
+  swarm manage --tlsverify \
+    --tlscacert=/etc/docker/ca.pem \
+    --tlscert=/etc/docker/server-cert.pem \
+    --tlskey=/etc/docker/server-key.pem \
+    -H tcp://0.0.0.0:3376 --strategy spread \
+    --advertise x.x.x.1:2376 consul://localhost:8500
+
+# Swarm Agent
+docker run -d --name swarm-agent --net host \
+  swarm join --advertise x.x.x.1:2376 consul://localhost:8500
+</code></pre>
+
+<h4 id="swarm-node1-1:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1</h4>
+
+<pre><code class="language-sh"># Swarm Agent
+docker run -d --name swarm-agent --net host \
+  swarm join --advertise x.x.x.2:2376 consul://localhost:8500
+</code></pre>
+
+<h4 id="備考-2:357fa4bd2e644c21db7997b0a9ea5cf8">備考</h4>
+
+<ul>
+<li>ネットワークのホストと共有する必要があるので、<code>--net host</code>を指定している。</li>
+<li>Swarm Managerで<code>/etc/docker</code>を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、<code>/etc/docker/key.json</code>の共有のため。DockerユニークIDの識別に必要とのこと。</li>
+</ul>
+
+<h3 id="動作確認:357fa4bd2e644c21db7997b0a9ea5cf8">動作確認</h3>
+
+<p>クライアント側(ローカルPC)から、Swarmクラスタへの接続を試みる。</p>
+
+<h4 id="swarm-masterにtls接続:357fa4bd2e644c21db7997b0a9ea5cf8">Swarm MasterにTLS接続</h4>
+
+<pre><code class="language-sh">export DOCKER_TLS_VERIFY=&quot;1&quot;
+export DOCKER_HOST=&quot;tcp://x.x.x.1:3376&quot;
+export DOCKER_CERT_PATH=&quot;/path/to/クライアント認証鍵があるディレクトリ&quot;
+</code></pre>
+
+<pre><code class="language-sh">$ docker info
+
+Containers: 3
+Images: 2
+Role: primary
+Strategy: spread
+Filters: health, port, dependency, affinity, constraint
+Nodes: 2
+ swarm-node0: x.x.x.1:2376
+  └ Status: Healthy
+  └ Containers: 2
+  └ Reserved CPUs: 0 / 1
+  └ Reserved Memory: 0 B / 513.4 MiB
+  └ Labels: executiondriver=native-0.2, kernelversion=4.2.0-16-generic, operatingsystem=Ubuntu 15.10, storagedriver=aufs
+ swarm-node1: x.x.x.2:2376
+  └ Status: Healthy
+  └ Containers: 1
+  └ Reserved CPUs: 0 / 1
+  └ Reserved Memory: 0 B / 513.4 MiB
+  └ Labels: executiondriver=native-0.2, kernelversion=4.2.0-16-generic, operatingsystem=Ubuntu 15.10, storagedriver=aufs
+CPUs: 2
+Total Memory: 1.003 GiB
+Name: swarm-node0
+</code></pre>
+
+<p>上のように、ノードが2つ接続されていることが確認できれば、Swarmクラスタの構築がうまく行えている。<code>DOCKER_HOST</code>のポート指定を<code>2376</code>ではなく、<code>3376</code>にすることで、dockerコマンドでSwarm関連の操作を行うことができる。</p>
+
+<h4 id="swarmクラスタにコンテナを配置してみる:357fa4bd2e644c21db7997b0a9ea5cf8">Swarmクラスタにコンテナを配置してみる</h4>
+
+<pre><code class="language-sh">$ docker run -d --name container1 nginx
+$ docker run -d --name container2 nginx
+$ docker ps --format &quot;{{.Names}}&quot;
+
+swarm-node1/container1
+swarm-node2/container2
+</code></pre>
+
+<p>Swarm Masterのストラテジーが<code>spread</code>なので、各ノードにコンテナが分散配置される。</p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:357fa4bd2e644c21db7997b0a9ea5cf8:1">TLS認証鍵の置き場所は任意。Dockerデーモン起動時の引数で指定する。
+ <a class="footnote-return" href="#fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1"><sup>[return]</sup></a></li>
+</ol>
+</div>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2016\/01\/docker-swarm-build-using-tls\/';
+    var disqus_title = 'TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2016\/01\/docker-swarm-build-using-tls\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/docker-swarm-spark/" title="Docker SwarmでApache Sparkクラスタを構築してみる"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-12 (Tue)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-build-using-tls%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd><dt>2016-01-10 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/">DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</a></dd><dt>2015-09-29 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-exec-exited/">Dockerイメージのビルド中にExitedしたコンテナに入る方法</a></dd><dt>2015-09-11 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/test-webpack-browser/">webpack-dev-serverで継続的なクライアントサイドテスト</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(8)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/spark">spark(1)</a></li><li><a href="/tags/swarm">swarm(3)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/webpack">webpack(1)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>
