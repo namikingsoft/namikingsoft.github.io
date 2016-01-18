@@ -194,6 +194,8 @@ consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
 openssl req -subj &amp;quot;/CN=ca&amp;quot; -new -x509 -days 365 -key ca-key.pem -out ca.pem
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
+
 &lt;h4 id=&#34;クライアントの秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;クライアントの秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
@@ -205,6 +207,8 @@ openssl req -subj &#39;/CN=client&#39; -new -key key.pem -out client.csr
 openssl x509 -req -days 365 -sha256 -in client.csr -out cert.pem \
   -CA ca.pem -CAkey ca-key.pem -CAcreateserial -extfile extfile-client.cnf
 &lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
 &lt;h4 id=&#34;swarm-node0-master-の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0(master)の秘密鍵と証明書を生成&lt;/h4&gt;
 
