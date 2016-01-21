@@ -1,11 +1,11 @@
 ---
 Categories:
-  - Spark on docker swarm
+  - Docker Swarm
 Tags:
   - docker
-  - swarm
-  - Spark
-  - Zeppelin
+  - Swarm
+  - VPN
+  - SoftEther
 date: 2016-01-21T18:30:23+09:00
 title: クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる
 ---
@@ -82,7 +82,7 @@ https://www.digitalocean.com/
 
 
 
-### Softether VPN Serverを動かす
+### SoftEther VPN Serverを動かす
 
 swarm-node0にSSHなどでログインして、作業を行う。
 
@@ -93,7 +93,7 @@ Linux版については、[SoftEther VPNのサイト](https://ja.softether.org/)
 # 必要なパッケージのインストール
 apt-get install -y curl gcc make
 
-# Softether VPN ソースのダウンロード
+# SoftEther VPN ソースのダウンロード
 cd /usr/local/src
 curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.10.19-tree/Linux/SoftEther_VPN_Server/64bit_-_Intel_x64_or_AMD64/softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 tar xzf softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
@@ -176,7 +176,7 @@ https://ja.softether.org/4-docs/1-manual/6/6.4
 
 
 
-### Softether VPN Clientを動かす
+### SoftEther VPN Clientを動かす
 
 全てのノードにSSHなどでログインして、作業を行う。  
 Serverと同じく、[SoftEther VPNのサイト](https://ja.softether.org/)からソースコードをダウンロードして、コンパイルする。
@@ -186,7 +186,7 @@ Serverと同じく、[SoftEther VPNのサイト](https://ja.softether.org/)か�
 # 必要なパッケージのインストール
 apt-get install -y curl gcc make
 
-# Softether VPN ソースのダウンロード
+# SoftEther VPN ソースのダウンロード
 cd /usr/local/src
 curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.10.19-tree/Linux/SoftEther_VPN_Client/64bit_-_Intel_x64_or_AMD64/softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 tar xzf softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
@@ -269,12 +269,12 @@ dhclient vpn_$NICNAME
 swarm-node0だけは、DHCPでIPを振らずに固定IPを設定する。
 
 #### VPN接続確認
-Softether VPNのClientのセッティングが完了すると、以下の様な成果が出る。
+SoftEther VPNのClientのセッティングが完了すると、以下の様な成果が出る。
 
 * 各ノードに`vpn_vlan0`というインタフェースができる。
   * vpn_vlan0を通して、pingなどの疎通ができるようになる。
 * 各ノードに192.168.30.0/24のネットワークのIPが割り当てられる。
-  * 192.168.30.0/24はSoftether VPNのデフォルト設定。
+  * 192.168.30.0/24はSoftEther VPNのデフォルト設定。
   * DHCPで割り当てると、192.168.30.10〜が振られる。
 
 これから設置するConsulやDockerは、このネットワークにのせるように設定する。
@@ -438,7 +438,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 ### 動作確認
 
 #### ローカルPCのOS設定にて、VPN接続を行う
-Macであれば、[Softether VPNのドキュメント](http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5)を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。
+Macであれば、[SoftEther VPNのドキュメント](http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5)を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。
 
 * サーバーアドレス: (swarm-node0のグローバルIP)
 * ユーザーID: user
