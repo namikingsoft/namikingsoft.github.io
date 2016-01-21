@@ -110,7 +110,7 @@
 
 &lt;p&gt;SSHでログインして作業を行う。&lt;/p&gt;
 
-&lt;h5 id=&#34;consulインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Consulインストール&lt;/h5&gt;
+&lt;h5 id=&#34;インストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;インストール&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl zip
@@ -126,43 +126,87 @@ curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
 unzip consul_0.6.1_web_ui.zip -d consul-webui
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;consul起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Consul起動&lt;/h5&gt;
+&lt;h5 id=&#34;サービス登録:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;サービス登録&lt;/h5&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;nohup consul agent \
-  -server -bootstrap-expect=1 \
-  -node=consul0 \
-  -data-dir=/tmp/consul \
-  --ui-dir=/tmp/consul-webui \
-  -bind=$(
-    ip addr show eth1 \
-    | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
-    | head -n1
-  ) \
-  &amp;gt;&amp;gt; /var/log/consul.log &amp;amp;
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# service
+cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/consul.service
+[Unit]
+Description=consul agent
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOS
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;設定:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;設定&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 自分自身のプライベートIPを取得
+export MY_PRIVATE_IP=$(
+  ip addr show eth1 \
+  | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+  | head -n1
+)
+
+# 設定ファイルに書き出す
+cat &amp;lt;&amp;lt; EOS &amp;gt; /etc/consul.d/config.json
+{
+  &amp;quot;server&amp;quot;: true,
+  &amp;quot;bootstrap&amp;quot;: true,
+  &amp;quot;bind_addr&amp;quot;: &amp;quot;$MY_PRIVATE_IP&amp;quot;,
+  &amp;quot;node_name&amp;quot;: &amp;quot;consul0&amp;quot;,
+  &amp;quot;datacenter&amp;quot;: &amp;quot;dc0&amp;quot;,
+  &amp;quot;ui_dir&amp;quot;: &amp;quot;/var/local/consul/webui&amp;quot;,
+  &amp;quot;data_dir&amp;quot;: &amp;quot;/var/local/consul/data&amp;quot;,
+  &amp;quot;log_level&amp;quot;: &amp;quot;INFO&amp;quot;,
+  &amp;quot;enable_syslog&amp;quot;: true
+}
+EOS
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;１台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
+&lt;h5 id=&#34;自動起動設定-起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;自動起動設定＆起動&lt;/h5&gt;
 
-&lt;p&gt;SSHでログインして作業を行う。インストール方法は同じなので割愛。&lt;/p&gt;
-
-&lt;h5 id=&#34;consul起動-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Consul起動&lt;/h5&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;nohup consul agent \
-  -join y.y.y.1 \
-  -node=consul1 \
-  -data-dir=/tmp/consul \
-  --ui-dir=/tmp/consul-webui \
-  -bind=$(
-    ip addr show eth1 \
-    | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
-    | head -n1
-  ) \
-  &amp;gt;&amp;gt; /var/log/consul.log &amp;amp;
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;systemctl enable consul
+systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;swarm-node0のプライベートIPにジョインする。&lt;/p&gt;
+&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
+
+&lt;p&gt;SSHでログインして作業を行う。設定以外は同じなので割愛。&lt;/p&gt;
+
+&lt;h5 id=&#34;設定-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;設定&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 自分自身のプライベートIPを取得
+export MY_PRIVATE_IP=$(
+  ip addr show eth1 \
+  | grep -o -e &#39;[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+&#39; \
+  | head -n1
+)
+
+# 設定ファイルに書き出す
+cat &amp;lt;&amp;lt; eos &amp;gt; /etc/consul.d/config.json
+{
+  &amp;quot;server&amp;quot;: false,
+  &amp;quot;start_join&amp;quot;: [&amp;quot;y.y.y.1&amp;quot;],
+  &amp;quot;bind_addr&amp;quot;: &amp;quot;$MY_PRIVATE_IP&amp;quot;,
+  &amp;quot;datacenter&amp;quot;: &amp;quot;dc0&amp;quot;,
+  &amp;quot;ui_dir&amp;quot;: &amp;quot;/var/local/consul/webui&amp;quot;,
+  &amp;quot;data_dir&amp;quot;: &amp;quot;/var/local/consul/data&amp;quot;,
+  &amp;quot;log_level&amp;quot;: &amp;quot;INFO&amp;quot;,
+  &amp;quot;enable_syslog&amp;quot;: true
+}
+EOS
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;swarm-node0のプライベートIPにジョインする。&lt;br /&gt;
+設定が終わったら、自動起動設定と起動を行っておく。&lt;/p&gt;
 
 &lt;h4 id=&#34;メンバー確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;メンバー確認&lt;/h4&gt;
 
@@ -173,6 +217,14 @@ unzip consul_0.6.1_web_ui.zip -d consul-webui
 Node     Address            Status  Type    Build  Protocol  DC
 consul0  y.y.y.1:8301   alive   server  0.6.1  2         dc1
 consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;WebUIで確認する場合、ローカルPCと各ノードの間に8500ポートのSSHトンネルを開ければ、ブラウザで閲覧できる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;ssh root@x.x.x.1 -L8500:localhost:8500
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;h3 id=&#34;各ノードにdockerをインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードにDockerをインストール&lt;/h3&gt;
@@ -278,7 +330,7 @@ ExecStart=/usr/bin/docker daemon \
   --tlscacert=/etc/docker/ca.pem \
   --tlscert=/etc/docker/node0-cert.pem \
   --tlskey=/etc/docker/node0-key.pem \
-  -H=0.0.0.0:2376a\
+  -H=0.0.0.0:2376 \
   --cluster-store=consul://localhost:8500 \
   --cluster-advertise=eth0:2376 \
   -H fd://
@@ -352,31 +404,31 @@ docker version
 &lt;h4 id=&#34;swarm-node0-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
-docker run -d --name swarm-agent-master \
-  -v /etc/docker:/etc/docker --net host \
+docker run -d --name=swarm-agent-master \
+  -v /etc/docker:/etc/docker --net=host --restart=always \
   swarm manage --tlsverify \
     --tlscacert=/etc/docker/ca.pem \
     --tlscert=/etc/docker/node0-cert.pem \
     --tlskey=/etc/docker/node0-key.pem \
-    -H tcp://0.0.0.0:3376 --strategy spread \
-    --advertise x.x.x.1:2376 consul://localhost:8500
+    -H=tcp://0.0.0.0:3376 --strategy=spread \
+    --advertise=x.x.x.1:2376 consul://localhost:8500
 
 # Swarm Agent
-docker run -d --name swarm-agent --net host \
-  swarm join --advertise x.x.x.1:2376 consul://localhost:8500
+docker run -d --name=swarm-agent --net=host --restart=always \
+  swarm join --advertise=x.x.x.1:2376 consul://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;h4 id=&#34;swarm-node1-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
-docker run -d --name swarm-agent --net host \
-  swarm join --advertise x.x.x.2:2376 consul://localhost:8500
+docker run -d --name swarm-agent --net=host --restart=always \
+  swarm join --advertise=x.x.x.2:2376 consul://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;h4 id=&#34;備考-2:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h4&gt;
 
 &lt;ul&gt;
-&lt;li&gt;ネットワークのホストと共有する必要があるので、&lt;code&gt;--net host&lt;/code&gt;を指定している。&lt;/li&gt;
+&lt;li&gt;ネットワークのホストと共有する必要があるので、&lt;code&gt;--net=host&lt;/code&gt;を指定している。&lt;/li&gt;
 &lt;li&gt;Swarm Managerで&lt;code&gt;/etc/docker&lt;/code&gt;を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、&lt;code&gt;/etc/docker/key.json&lt;/code&gt;の共有のため。DockerユニークIDの識別に必要とのこと。&lt;/li&gt;
 &lt;/ul&gt;
 

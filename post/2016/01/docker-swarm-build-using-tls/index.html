@@ -93,7 +93,7 @@
 
 <p>SSHでログインして作業を行う。</p>
 
-<h5 id="consulインストール:357fa4bd2e644c21db7997b0a9ea5cf8">Consulインストール</h5>
+<h5 id="インストール:357fa4bd2e644c21db7997b0a9ea5cf8">インストール</h5>
 
 <pre><code class="language-sh"># 必要なパッケージのインストール
 apt-get install -y curl zip
@@ -109,43 +109,87 @@ curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
 unzip consul_0.6.1_web_ui.zip -d consul-webui
 </code></pre>
 
-<h5 id="consul起動:357fa4bd2e644c21db7997b0a9ea5cf8">Consul起動</h5>
+<h5 id="サービス登録:357fa4bd2e644c21db7997b0a9ea5cf8">サービス登録</h5>
 
-<pre><code class="language-sh">nohup consul agent \
-  -server -bootstrap-expect=1 \
-  -node=consul0 \
-  -data-dir=/tmp/consul \
-  --ui-dir=/tmp/consul-webui \
-  -bind=$(
-    ip addr show eth1 \
-    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
-    | head -n1
-  ) \
-  &gt;&gt; /var/log/consul.log &amp;
+<pre><code class="language-sh"># service
+cat &lt;&lt; EOS &gt; /lib/systemd/system/consul.service
+[Unit]
+Description=consul agent
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOS
+</code></pre>
+
+<h5 id="設定:357fa4bd2e644c21db7997b0a9ea5cf8">設定</h5>
+
+<pre><code class="language-sh"># 自分自身のプライベートIPを取得
+export MY_PRIVATE_IP=$(
+  ip addr show eth1 \
+  | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+  | head -n1
+)
+
+# 設定ファイルに書き出す
+cat &lt;&lt; EOS &gt; /etc/consul.d/config.json
+{
+  &quot;server&quot;: true,
+  &quot;bootstrap&quot;: true,
+  &quot;bind_addr&quot;: &quot;$MY_PRIVATE_IP&quot;,
+  &quot;node_name&quot;: &quot;consul0&quot;,
+  &quot;datacenter&quot;: &quot;dc0&quot;,
+  &quot;ui_dir&quot;: &quot;/var/local/consul/webui&quot;,
+  &quot;data_dir&quot;: &quot;/var/local/consul/data&quot;,
+  &quot;log_level&quot;: &quot;INFO&quot;,
+  &quot;enable_syslog&quot;: true
+}
+EOS
 </code></pre>
 
 <p>１台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。</p>
 
-<h4 id="swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1にてConsulをクライアントモードで動かす</h4>
+<h5 id="自動起動設定-起動:357fa4bd2e644c21db7997b0a9ea5cf8">自動起動設定＆起動</h5>
 
-<p>SSHでログインして作業を行う。インストール方法は同じなので割愛。</p>
-
-<h5 id="consul起動-1:357fa4bd2e644c21db7997b0a9ea5cf8">Consul起動</h5>
-
-<pre><code class="language-sh">nohup consul agent \
-  -join y.y.y.1 \
-  -node=consul1 \
-  -data-dir=/tmp/consul \
-  --ui-dir=/tmp/consul-webui \
-  -bind=$(
-    ip addr show eth1 \
-    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
-    | head -n1
-  ) \
-  &gt;&gt; /var/log/consul.log &amp;
+<pre><code class="language-sh">systemctl enable consul
+systemctl start consul
 </code></pre>
 
-<p>swarm-node0のプライベートIPにジョインする。</p>
+<h4 id="swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1にてConsulをクライアントモードで動かす</h4>
+
+<p>SSHでログインして作業を行う。設定以外は同じなので割愛。</p>
+
+<h5 id="設定-1:357fa4bd2e644c21db7997b0a9ea5cf8">設定</h5>
+
+<pre><code class="language-sh"># 自分自身のプライベートIPを取得
+export MY_PRIVATE_IP=$(
+  ip addr show eth1 \
+  | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+  | head -n1
+)
+
+# 設定ファイルに書き出す
+cat &lt;&lt; eos &gt; /etc/consul.d/config.json
+{
+  &quot;server&quot;: false,
+  &quot;start_join&quot;: [&quot;y.y.y.1&quot;],
+  &quot;bind_addr&quot;: &quot;$MY_PRIVATE_IP&quot;,
+  &quot;datacenter&quot;: &quot;dc0&quot;,
+  &quot;ui_dir&quot;: &quot;/var/local/consul/webui&quot;,
+  &quot;data_dir&quot;: &quot;/var/local/consul/data&quot;,
+  &quot;log_level&quot;: &quot;INFO&quot;,
+  &quot;enable_syslog&quot;: true
+}
+EOS
+</code></pre>
+
+<p>swarm-node0のプライベートIPにジョインする。<br />
+設定が終わったら、自動起動設定と起動を行っておく。</p>
 
 <h4 id="メンバー確認:357fa4bd2e644c21db7997b0a9ea5cf8">メンバー確認</h4>
 
@@ -156,6 +200,14 @@ unzip consul_0.6.1_web_ui.zip -d consul-webui
 Node     Address            Status  Type    Build  Protocol  DC
 consul0  y.y.y.1:8301   alive   server  0.6.1  2         dc1
 consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
+</code></pre>
+
+<p>WebUIで確認する場合、ローカルPCと各ノードの間に8500ポートのSSHトンネルを開ければ、ブラウザで閲覧できる。</p>
+
+<pre><code class="language-sh">ssh root@x.x.x.1 -L8500:localhost:8500
+</code></pre>
+
+<pre><code class="language-sh">open http://localhost:8500
 </code></pre>
 
 <h3 id="各ノードにdockerをインストール:357fa4bd2e644c21db7997b0a9ea5cf8">各ノードにDockerをインストール</h3>
@@ -261,7 +313,7 @@ ExecStart=/usr/bin/docker daemon \
   --tlscacert=/etc/docker/ca.pem \
   --tlscert=/etc/docker/node0-cert.pem \
   --tlskey=/etc/docker/node0-key.pem \
-  -H=0.0.0.0:2376a\
+  -H=0.0.0.0:2376 \
   --cluster-store=consul://localhost:8500 \
   --cluster-advertise=eth0:2376 \
   -H fd://
@@ -335,31 +387,31 @@ docker version
 <h4 id="swarm-node0-1:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node0</h4>
 
 <pre><code class="language-sh"># Swarm Manager
-docker run -d --name swarm-agent-master \
-  -v /etc/docker:/etc/docker --net host \
+docker run -d --name=swarm-agent-master \
+  -v /etc/docker:/etc/docker --net=host --restart=always \
   swarm manage --tlsverify \
     --tlscacert=/etc/docker/ca.pem \
     --tlscert=/etc/docker/node0-cert.pem \
     --tlskey=/etc/docker/node0-key.pem \
-    -H tcp://0.0.0.0:3376 --strategy spread \
-    --advertise x.x.x.1:2376 consul://localhost:8500
+    -H=tcp://0.0.0.0:3376 --strategy=spread \
+    --advertise=x.x.x.1:2376 consul://localhost:8500
 
 # Swarm Agent
-docker run -d --name swarm-agent --net host \
-  swarm join --advertise x.x.x.1:2376 consul://localhost:8500
+docker run -d --name=swarm-agent --net=host --restart=always \
+  swarm join --advertise=x.x.x.1:2376 consul://localhost:8500
 </code></pre>
 
 <h4 id="swarm-node1-1:357fa4bd2e644c21db7997b0a9ea5cf8">swarm-node1</h4>
 
 <pre><code class="language-sh"># Swarm Agent
-docker run -d --name swarm-agent --net host \
-  swarm join --advertise x.x.x.2:2376 consul://localhost:8500
+docker run -d --name swarm-agent --net=host --restart=always \
+  swarm join --advertise=x.x.x.2:2376 consul://localhost:8500
 </code></pre>
 
 <h4 id="備考-2:357fa4bd2e644c21db7997b0a9ea5cf8">備考</h4>
 
 <ul>
-<li>ネットワークのホストと共有する必要があるので、<code>--net host</code>を指定している。</li>
+<li>ネットワークのホストと共有する必要があるので、<code>--net=host</code>を指定している。</li>
 <li>Swarm Managerで<code>/etc/docker</code>を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、<code>/etc/docker/key.json</code>の共有のため。DockerユニークIDの識別に必要とのこと。</li>
 </ul>
 
@@ -435,4 +487,4 @@ swarm-node2/container2
     })();
 </script>
 <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/docker-swarm-spark/" title="Docker SwarmでApache Sparkクラスタを構築してみる"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-12 (Tue)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-build-using-tls%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd><dt>2016-01-10 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/">DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</a></dd><dt>2015-09-29 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-exec-exited/">Dockerイメージのビルド中にExitedしたコンテナに入る方法</a></dd><dt>2015-09-11 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2015/09/test-webpack-browser/">webpack-dev-serverで継続的なクライアントサイドテスト</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(8)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/spark">spark(1)</a></li><li><a href="/tags/swarm">swarm(3)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/webpack">webpack(1)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"><a href="/post/2016/01/docker-swarm-over-vpn/" title="クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる"><i class="fa fa-arrow-circle-o-left"></i><p class="hidden-xs">2016-01-21 (Thu)</p></a></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/docker-swarm-spark/" title="Docker SwarmでApache Sparkクラスタを構築してみる"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-12 (Tue)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-build-using-tls%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-01-21 (Thu)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd><dt>2016-01-10 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-digitalocean/">DigitalOceanでマルチホストなDockerSwarmクラスタを構築するときのポイント</a></dd><dt>2015-09-29 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2015/09/docker-exec-exited/">Dockerイメージのビルド中にExitedしたコンテナに入る方法</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/webpack">webpack(1)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li></ul></div></div></div></div></body></html>
