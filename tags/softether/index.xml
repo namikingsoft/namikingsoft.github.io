@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Spark On Docker Swarm on Namiking.net</title>
-    <link>http://blog.namiking.net/categories/spark-on-docker-swarm/</link>
-    <description>Recent content in Spark On Docker Swarm on Namiking.net</description>
+    <title>Softether on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/softether/</link>
+    <description>Recent content in Softether on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
     <lastBuildDate>Thu, 21 Jan 2016 18:30:23 +0900</lastBuildDate>
-    <atom:link href="http://blog.namiking.net/categories/spark-on-docker-swarm/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://blog.namiking.net/tags/softether/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</title>
@@ -114,7 +114,7 @@
 &lt;li&gt;プライベートネットワークは無効にしておく&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;softether-vpn-serverを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;Softether VPN Serverを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-serverを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
 
 &lt;p&gt;swarm-node0にSSHなどでログインして、作業を行う。&lt;/p&gt;
 
@@ -125,7 +125,7 @@
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
 
-# Softether VPN ソースのダウンロード
+# SoftEther VPN ソースのダウンロード
 cd /usr/local/src
 curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.10.19-tree/Linux/SoftEther_VPN_Server/64bit_-_Intel_x64_or_AMD64/softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 tar xzf softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
@@ -206,7 +206,7 @@ vpncmd localhost /SERVER /CMD \
 &lt;p&gt;VPN設定のリファレンスは以下を参照。&lt;br /&gt;
 &lt;a href=&#34;https://ja.softether.org/4-docs/1-manual/6/6.4&#34;&gt;https://ja.softether.org/4-docs/1-manual/6/6.4&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;softether-vpn-clientを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;Softether VPN Clientを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-clientを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
 
 &lt;p&gt;全てのノードにSSHなどでログインして、作業を行う。&lt;br /&gt;
 Serverと同じく、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。&lt;/p&gt;
@@ -216,7 +216,7 @@ Serverと同じく、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
 
-# Softether VPN ソースのダウンロード
+# SoftEther VPN ソースのダウンロード
 cd /usr/local/src
 curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.10.19-tree/Linux/SoftEther_VPN_Client/64bit_-_Intel_x64_or_AMD64/softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 tar xzf softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
@@ -301,7 +301,7 @@ dhclient vpn_$NICNAME
 
 &lt;h4 id=&#34;vpn接続確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPN接続確認&lt;/h4&gt;
 
-&lt;p&gt;Softether VPNのClientのセッティングが完了すると、以下の様な成果が出る。&lt;/p&gt;
+&lt;p&gt;SoftEther VPNのClientのセッティングが完了すると、以下の様な成果が出る。&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;各ノードに&lt;code&gt;vpn_vlan0&lt;/code&gt;というインタフェースができる。
@@ -312,7 +312,7 @@ dhclient vpn_$NICNAME
 &lt;li&gt;各ノードに192.168.30.0/24のネットワークのIPが割り当てられる。
 
 &lt;ul&gt;
-&lt;li&gt;192.168.30.0/24はSoftether VPNのデフォルト設定。&lt;/li&gt;
+&lt;li&gt;192.168.30.0/24はSoftEther VPNのデフォルト設定。&lt;/li&gt;
 &lt;li&gt;DHCPで割り当てると、192.168.30.10〜が振られる。&lt;/li&gt;
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
@@ -480,7 +480,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
 
-&lt;p&gt;Macであれば、&lt;a href=&#34;http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5&#34;&gt;Softether VPNのドキュメント&lt;/a&gt;を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。&lt;/p&gt;
+&lt;p&gt;Macであれば、&lt;a href=&#34;http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5&#34;&gt;SoftEther VPNのドキュメント&lt;/a&gt;を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;サーバーアドレス: (swarm-node0のグローバルIP)&lt;/li&gt;
