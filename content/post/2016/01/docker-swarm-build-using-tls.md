@@ -81,7 +81,7 @@ Swarmクラスタのサービスディスカバリー(分散KVS)であるConsul�
 #### swarm-node0にてConsulをサーバーモードで動かす
 SSHでログインして作業を行う。
 
-##### Consulインストール
+##### インストール
 ```sh
 # 必要なパッケージのインストール
 apt-get install -y curl zip
@@ -97,40 +97,84 @@ curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
 unzip consul_0.6.1_web_ui.zip -d consul-webui
 ```
 
-##### Consul起動
+##### サービス登録
 ```sh
-nohup consul agent \
-  -server -bootstrap-expect=1 \
-  -node=consul0 \
-  -data-dir=/tmp/consul \
-  --ui-dir=/tmp/consul-webui \
-  -bind=$(
-    ip addr show eth1 \
-    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
-    | head -n1
-  ) \
-  >> /var/log/consul.log &
+# service
+cat << EOS > /lib/systemd/system/consul.service
+[Unit]
+Description=consul agent
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOS
+```
+
+##### 設定
+```sh
+# 自分自身のプライベートIPを取得
+export MY_PRIVATE_IP=$(
+  ip addr show eth1 \
+  | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+  | head -n1
+)
+
+# 設定ファイルに書き出す
+cat << EOS > /etc/consul.d/config.json
+{
+  "server": true,
+  "bootstrap": true,
+  "bind_addr": "$MY_PRIVATE_IP",
+  "node_name": "consul0",
+  "datacenter": "dc0",
+  "ui_dir": "/var/local/consul/webui",
+  "data_dir": "/var/local/consul/data",
+  "log_level": "INFO",
+  "enable_syslog": true
+}
+EOS
 ```
 １台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。
 
-#### swarm-node1にてConsulをクライアントモードで動かす
-SSHでログインして作業を行う。インストール方法は同じなので割愛。
-
-##### Consul起動
+##### 自動起動設定＆起動
 ```sh
-nohup consul agent \
-  -join y.y.y.1 \
-  -node=consul1 \
-  -data-dir=/tmp/consul \
-  --ui-dir=/tmp/consul-webui \
-  -bind=$(
-    ip addr show eth1 \
-    | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
-    | head -n1
-  ) \
-  >> /var/log/consul.log &
+systemctl enable consul
+systemctl start consul
 ```
-swarm-node0のプライベートIPにジョインする。
+
+#### swarm-node1にてConsulをクライアントモードで動かす
+SSHでログインして作業を行う。設定以外は同じなので割愛。
+
+##### 設定
+```sh
+# 自分自身のプライベートIPを取得
+export MY_PRIVATE_IP=$(
+  ip addr show eth1 \
+  | grep -o -e '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' \
+  | head -n1
+)
+
+# 設定ファイルに書き出す
+cat << eos > /etc/consul.d/config.json
+{
+  "server": false,
+  "start_join": ["y.y.y.1"],
+  "bind_addr": "$MY_PRIVATE_IP",
+  "datacenter": "dc0",
+  "ui_dir": "/var/local/consul/webui",
+  "data_dir": "/var/local/consul/data",
+  "log_level": "INFO",
+  "enable_syslog": true
+}
+EOS
+```
+swarm-node0のプライベートIPにジョインする。  
+設定が終わったら、自動起動設定と起動を行っておく。
 
 #### メンバー確認
 各ノードのConsulが連携できているかを確認する。
@@ -141,6 +185,15 @@ $ consul members
 Node     Address            Status  Type    Build  Protocol  DC
 consul0  y.y.y.1:8301   alive   server  0.6.1  2         dc1
 consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
+```
+
+WebUIで確認する場合、ローカルPCと各ノードの間に8500ポートのSSHトンネルを開ければ、ブラウザで閲覧できる。
+
+```sh
+ssh root@x.x.x.1 -L8500:localhost:8500
+```
+```sh
+open http://localhost:8500
 ```
 
 
@@ -243,7 +296,7 @@ ExecStart=/usr/bin/docker daemon \
   --tlscacert=/etc/docker/ca.pem \
   --tlscert=/etc/docker/node0-cert.pem \
   --tlskey=/etc/docker/node0-key.pem \
-  -H=0.0.0.0:2376a\
+  -H=0.0.0.0:2376 \
   --cluster-store=consul://localhost:8500 \
   --cluster-advertise=eth0:2376 \
   -H fd://
@@ -315,29 +368,29 @@ docker version
 #### swarm-node0
 ```sh
 # Swarm Manager
-docker run -d --name swarm-agent-master \
-  -v /etc/docker:/etc/docker --net host \
+docker run -d --name=swarm-agent-master \
+  -v /etc/docker:/etc/docker --net=host --restart=always \
   swarm manage --tlsverify \
     --tlscacert=/etc/docker/ca.pem \
     --tlscert=/etc/docker/node0-cert.pem \
     --tlskey=/etc/docker/node0-key.pem \
-    -H tcp://0.0.0.0:3376 --strategy spread \
-    --advertise x.x.x.1:2376 consul://localhost:8500
+    -H=tcp://0.0.0.0:3376 --strategy=spread \
+    --advertise=x.x.x.1:2376 consul://localhost:8500
 
 # Swarm Agent
-docker run -d --name swarm-agent --net host \
-  swarm join --advertise x.x.x.1:2376 consul://localhost:8500
+docker run -d --name=swarm-agent --net=host --restart=always \
+  swarm join --advertise=x.x.x.1:2376 consul://localhost:8500
 ```
 
 #### swarm-node1
 ```sh
 # Swarm Agent
-docker run -d --name swarm-agent --net host \
-  swarm join --advertise x.x.x.2:2376 consul://localhost:8500
+docker run -d --name swarm-agent --net=host --restart=always \
+  swarm join --advertise=x.x.x.2:2376 consul://localhost:8500
 ```
 
 #### 備考
-* ネットワークのホストと共有する必要があるので、`--net host`を指定している。
+* ネットワークのホストと共有する必要があるので、`--net=host`を指定している。
 * Swarm Managerで`/etc/docker`を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、`/etc/docker/key.json`の共有のため。DockerユニークIDの識別に必要とのこと。
 
 
