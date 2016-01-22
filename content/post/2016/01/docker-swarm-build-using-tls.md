@@ -28,10 +28,8 @@ TSL認証なSwarmクラスタはdocker-machineで構築すると、勝手に設�
 
 今回の記事で行う作業をTerraformで自動化したものを、以下のリポジトリに置いておくので、ご参考までに。terraform.tfの`count`の値を弄ることで、指定数のノードを自動で作成するので、大量にノードが必要な場合に便利かも。
 
-
-
-> GitHub: namikingsoft/sample-terraform-docker-swarm
-> https://github.com/namikingsoft/sample-terraform-docker-swarm
+> Build docker swarm cluster over TLS  using Terraform
+> https://github.com/namikingsoft/sample-terraform-docker-swarm-over-tls
 
 
 ### 事前準備
