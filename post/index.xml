@@ -25,7 +25,7 @@
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local.svg&#34; alt=&#34;Zeppelin on Local&#34; /&gt;&lt;/p&gt;
 
-&lt;p&gt;やはり、Spark関連は基本的に同じネットワーク内で動かすのが前提の仕様なため、Swarmクラスタと同じネットワーク内に入れる必要があるが、&lt;/p&gt;
+&lt;p&gt;Spark関連は基本的に同じネットワーク内で動かすのが前提の仕様なため、Swarmクラスタと同じネットワーク内に入れる必要があるが、Zeppelinは、&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;割りとメモリ食い(推奨4GBほど)のため、Sparkクラスタと同じホストでは、動かしたくない。かといって、専用のホストを用意するできるブルジョアではない。&lt;/li&gt;
