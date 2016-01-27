@@ -33,15 +33,16 @@ Spark関連は基本的に同じネットワーク内で動かすのが前提の
 
 ### この記事でやること
 
-上のApache Sparkの例は置いといて、今回は取り急ぎクラウドとローカルを跨いだSwarmクラスタを構築して、Dockerオーバーレイネットワークの疎通確認を行いたい。
+上のApache Sparkの例は置いといて、今回は取り急ぎクラウドとローカルを跨いだSwarmクラスタを構築して、Dockerオーバーレイネットワークの疎通確認を行いたい。検証のため、以下の図の様な構成を準備して、オーバーレイネットワークの疎通を確認する。
+
+![Zeppelin on Local Ideal](/images/post/2016/01/docker-swarm-over-vpn/docker-swarm-over-vpn.svg)
 
 ##### 要点
 * ローカル環境とクラウドのDockerをVPNを用いて、オーバーレイネットワークで繋ぎたい。
 * VPN接続には、SoftEther VPN[^2]を使ってみる。
-* 検証のため、以下の様な構成を準備して、オーバーレイネットワークの疎通を確認する。
-
-![Zeppelin on Local Ideal](/images/post/2016/01/docker-swarm-over-vpn/docker-swarm-over-vpn.svg)
-
+* ローカル側とクラウド側１台ずつ、Swarm Masterをレプリケーションした。
+  * クラウドのみでも、Swarmクラスタとして機能させたかったため。
+  * ローカルの作業用PCは、いちいちVPNに接続しなくても、Swarmクラスタを操作できるようにするため。
 
 [^2]: TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、[Ubuntu15.10で上手く動作しなかった](http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15)ので、見送り
 
@@ -69,16 +70,17 @@ https://www.digitalocean.com/
 
 今回の例では、DigitalOceanでノードを２台とローカルでVirtualbox１台を用意する。
 
-| Type | Host | OS | Mem |
-|:----|:----|:----|:----|
-| DigitalOcean | **swarm-node0** | ubuntu-15-10-x64 | 512MB |
-| DigitalOcean | **swarm-node1** | ubuntu-15-10-x64 | 512MB |
-| Vitualbox(local) | **swarm-local** | ubuntu-15-10-x64 | - |
+| Type | Host | OS | Mem | VPNのIP |
+|:----|:----|:----|:----|:----|
+| DigitalOcean | **swarm-node0** | ubuntu-15-10-x64 | 512MB | 192.168.30.2 (手動) |
+| DigitalOcean | **swarm-node1** | ubuntu-15-10-x64 | 512MB | 192.168.30.x (自動) |
+| Vitualbox(local) | **swarm-local** | ubuntu-15-10-x64 | - | 192.168.30.y (自動) |
 
 ##### 備考
 * swarm-node0はマスターノードとして使う
 * ホスト名(hostname)は別になんでもよい
 * プライベートネットワークは無効にしておく
+* VPNのIPについては、VPN接続後に割り当てる。
 
 
 
@@ -412,26 +414,41 @@ service docker restart
 ### 各ノードでSwarmコンテナを動かす
 各ノードにSSHでログインして、Swarmコンテナを起動させる。
 
-#### swarm-node0
+#### swarm-node0, swarm-local
 ```sh
 # Swarm Manager
 docker run -d --name=swarm-agent-master \
   -v=/etc/docker:/etc/docker --net=host --restart=always \
-  swarm manage -H=0.0.0.0:3375 \
-    --strategy=spread --advertise=192.168.30.2:2375 consul://localhost:8500
+  swarm manage -H=0.0.0.0:3375 --replication \
+    --strategy=spread --advertise=192.168.30.2:3375 consul://localhost:8500
 
 # Swarm Agent
 docker run -d --name=swarm-agent --net=host --restart=always \
   swarm join --advertise=192.168.30.2:2375 consul://localhost:8500
 ```
+Swarm Managerについては、双方レプリケーションするために`--replication`引数をつける。
 
-#### swarm-node1, swarm-local
+#### swarm-node1
 ```sh
 # Swarm Agent
 docker run -d --name=swarm-agent --net=host --restart=always \
   swarm join --advertise=192.168.30.x:2375 consul://localhost:8500
 ```
-`192.168.30.x`のところには、各ノードのVPNのIPを入れる。
+`192.168.30.x`のところには、swarm-node1がVPNのDHCPに割り当てられたのIPを入れる。
+
+#### swarm-local
+```sh
+# Swarm Manager
+docker run -d --name=swarm-agent-master \
+  -v=/etc/docker:/etc/docker --net=host --restart=always \
+  swarm manage -H=0.0.0.0:3375 --replication \
+    --strategy=spread --advertise=192.168.30.y:3375 consul://localhost:8500
+
+# Swarm Agent
+docker run -d --name=swarm-agent --net=host --restart=always \
+  swarm join --advertise=192.168.30.y:2375 consul://localhost:8500
+```
+`192.168.30.y`のところには、swarm-localがVPNのDHCPに割り当てられたIPを入れる。
 
 
 
