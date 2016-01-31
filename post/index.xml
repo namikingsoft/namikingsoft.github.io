@@ -6,8 +6,541 @@
     <description>Recent content in Posts on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Fri, 22 Jan 2016 02:30:00 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 31 Jan 2016 23:15:00 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Sparkで機械学習： 回帰モデルで値を予測する</title>
+      <link>http://blog.namiking.net/post/2016/01/spark-mllib-regression/</link>
+      <pubDate>Sun, 31 Jan 2016 23:15:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2016/01/spark-mllib-regression/</guid>
+      <description>
+
+&lt;p&gt;Apache Spark上にて、簡単なCSVのサンプルデータを取り込み、線形回帰や決定木回帰を利用して、穴が空いた項目を予測するサンプルプログラムを書いてみる。&lt;/p&gt;
+
+&lt;h3 id=&#34;サンプルデータ-身体情報から結婚時期を予測する:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータ (身体情報から結婚時期を予測する)&lt;/h3&gt;
+
+&lt;p&gt;実データではありません。入門用にシンプルで法則性のあるデータを探したのですが、なかなか見つからなかったので、自分で訓練用のデータを作ってみた。&lt;/p&gt;
+
+&lt;p&gt;題材としては、性別や血液型、身長、体重から、結婚適齢期を予測するみたいなことをやってみる。例えば、以下の様なデータを学習用データとして取り込み、&lt;/p&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&#34;center&#34;&gt;結婚した歳&lt;/th&gt;
+&lt;th align=&#34;center&#34;&gt;血液型&lt;/th&gt;
+&lt;th align=&#34;center&#34;&gt;性別&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;身長(cm)&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;体重(kg)&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;32歳&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;O&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;女&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;152&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;60&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;42歳&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;A&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;男&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;180&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;80&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;26歳&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;O&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;男&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;155&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;55&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;20歳&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;B&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;女&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;166&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;55&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;&amp;hellip;&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;&amp;hellip;&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;&amp;hellip;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&amp;hellip;&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;&amp;hellip;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;以下の「？」になっているところの値を予測する、みたいなことをやってみる。&lt;/p&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&#34;center&#34;&gt;結婚する歳&lt;/th&gt;
+&lt;th align=&#34;center&#34;&gt;血液型&lt;/th&gt;
+&lt;th align=&#34;center&#34;&gt;性別&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;身長(cm)&lt;/th&gt;
+&lt;th align=&#34;right&#34;&gt;体重(kg)&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;？&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;O&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;女&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;152&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;60&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td align=&#34;center&#34;&gt;？&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;A&lt;/td&gt;
+&lt;td align=&#34;center&#34;&gt;男&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;180&lt;/td&gt;
+&lt;td align=&#34;right&#34;&gt;80&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;サンプルデータ： 身体情報から結婚時期を予測する&lt;br /&gt;
+&lt;a href=&#34;http://blog.namiking.net/files/post/2016/01/spark-mllib-regression/training.csv&#34;&gt;CSV形式のダウンロード&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;データの傾向:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;データの傾向&lt;/h4&gt;
+
+&lt;p&gt;ただ無差別にデータを作っても、予測が合ってるかどうかの判断がつかないため、&lt;br /&gt;
+以下の様な&lt;strong&gt;事実無根&lt;/strong&gt;な法則で値をでっちあげてみた。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;B型は早婚&lt;/li&gt;
+&lt;li&gt;O型は晩婚&lt;/li&gt;
+&lt;li&gt;AB型はとても早婚&lt;/li&gt;
+&lt;li&gt;女性は早婚&lt;/li&gt;
+&lt;li&gt;肥満とモヤシは晩婚&lt;/li&gt;
+&lt;li&gt;男性の高身長はとても晩婚&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;コーディング前の準備:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;コーディング前の準備&lt;/h3&gt;
+
+&lt;h4 id=&#34;apache-zeppelinのインストール:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;Apache Zeppelinのインストール&lt;/h4&gt;
+
+&lt;p&gt;Spark(ScalaやPython)の記述やその他細かいシェルスクリプトなどの操作をWeb上でインタラクティブに行えるノートブック系OSS&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;。この記事では、Sparkの操作は基本的にこのソフトを用いてコーディングを行っている。Sparkも一緒に含まれているので、これをローカルにインストールするだけで概ね動くはず。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Apache Zeppelin (incubating)&lt;br /&gt;
+&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;https://zeppelin.incubator.apache.org/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&#34;サンプルデータの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータの取り込み&lt;/h3&gt;
+
+&lt;p&gt;ここからは、Zeppelin上での作業となる。事前にZeppelinを起動して、適当な新しいノートブックを作成しておく。&lt;/p&gt;
+
+&lt;h4 id=&#34;サンプルデータのダウンロード:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータのダウンロード&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;%sh
+curl -Lo /tmp/training.csv \
+  &amp;quot;http://blog.namiking.net/files/post/2016/01/spark-mllib-regression/training.csv&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;先ほどのCSV形式のサンプルデータを一時保存領域にダウンロードするシェルスクリプトを記述する。&lt;/p&gt;
+
+&lt;h4 id=&#34;１レコード毎のcaseクラスを作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;１レコード毎のCaseクラスを作成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;case class Profile(
+  marriedAge: Option[Double],
+  blood: String,
+  sex: String,
+  height: Double,
+  weight: Double
+)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;CSVデータなどをDataFrame形式に変換する際に必要になる。
+&lt;code&gt;marriedAge&lt;/code&gt;をOption型にしているのは、テストデータを取り込む際に入れる値が無いため。&lt;/p&gt;
+
+&lt;h4 id=&#34;csvをパースして-dataframe形式に変換:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;CSVをパースして、DataFrame形式に変換&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;var csvRDD = sc.textFile(&amp;quot;/tmp/training.csv&amp;quot;)
+var csvHeadRDD = sc.parallelize(Array(csvRDD.first))
+var training = csvRDD
+  .subtract(csvHeadRDD) // ヘッダ除去
+  .map { line =&amp;gt;
+    val cols = line.split(&#39;,&#39;)
+    Profile(
+      marriedAge = Some(cols(0).toDouble),
+      blood = cols(1),
+      sex = cols(2),
+      height = cols(3).toDouble,
+      weight = cols(4).toDouble
+    )
+  }.toDF
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;RDDだと、&lt;code&gt;tail&lt;/code&gt;や&lt;code&gt;slice&lt;/code&gt;関数みたいなものがなくて、ヘッダ除去程度でもちょっとまどろっこしい。分散処理を考えるとしかたないのだろうか。&lt;/p&gt;
+
+&lt;h4 id=&#34;おまけ-spark-csvモジュールを使ったサンプルデータの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;[おまけ] spark-csvモジュールを使ったサンプルデータの取り込み&lt;/h4&gt;
+
+&lt;p&gt;先ほどの手順で、サンプルデータの取り込みは完了だが、もう１パターン、CSVのパースやDataFrame変換を手伝ってくれるspark-csvモジュールを使ったCSV取り込みを書いておく。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Zeppelinはパラグラフごとに実行するしないを制御できるので、別パターンのコードや使わなくなったコードも、そのまま残しておいても支障はない。後になって再利用できたりするので、残しておくと便利かも。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h5 id=&#34;依存モジュールロード:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;依存モジュールロード&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;%dep
+z.reset()
+z.load(&amp;quot;com.databricks:spark-csv_2.11:1.3.0&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;%dep&lt;/code&gt;(Dependency)については、Sparkが起動する前に行わないと、以下の様なエラーが出る。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Must be used before SparkInterpreter (%spark) initialized
+Hint: put this paragraph before any Spark code and restart Zeppelin/Interpreter
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;既に起動してしまっている場合は、Zeppelinを再起動するか、InterpreterページのSpark欄の&lt;code&gt;restart&lt;/code&gt;ボタンを押下する。&lt;/p&gt;
+
+&lt;h5 id=&#34;spark-csvを使ったcsvの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;spark-csvを使ったCSVの取り込み&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.sql.types.{
+  StructType,
+  StructField,
+  StringType,
+  DoubleType
+}
+val customSchema = StructType(Seq(
+  StructField(&amp;quot;marriedAge&amp;quot;, DoubleType, true),
+  StructField(&amp;quot;blood&amp;quot;, StringType, true),
+  StructField(&amp;quot;sex&amp;quot;, StringType, true),
+  StructField(&amp;quot;height&amp;quot;, DoubleType, true),
+  StructField(&amp;quot;weight&amp;quot;, DoubleType, true)
+))
+val training = sqlContext.read
+  .format(&amp;quot;com.databricks.spark.csv&amp;quot;)
+  .option(&amp;quot;header&amp;quot;, &amp;quot;true&amp;quot;)
+  .schema(customSchema)
+  .load(&amp;quot;/tmp/training.csv&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;CSVのパースやヘッダ除去(項目名に利用)まで自動で行ってくれる。型指定まで自動で行うオプション(inferSchema)もあるが、Double型がInteger型になってしまったので、今回は手動で指定した。&lt;/p&gt;
+
+&lt;h3 id=&#34;サンプルデータの前処理:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータの前処理&lt;/h3&gt;
+
+&lt;p&gt;Sparkの機械学習ライブラリでは、各分析アルゴリズムにデータを引き渡す前処理として、特徴データ(血液型、性別、身長、体重)を、まとめてベクトル形式に変換する必要がある。&lt;/p&gt;
+
+&lt;p&gt;そういった前処理を楽にするために、前処理や回帰モデル設定、訓練データ取り込みを一貫して行えるspark.mlのPipelineを利用してみる。Pipelineについては、&lt;a href=&#34;https://spark.apache.org/docs/1.6.0/ml-guide.html&#34;&gt;公式のドキュメント&lt;/a&gt;が詳しい。別サイトに&lt;a href=&#34;http://mogile.web.fc2.com/spark/ml-guide.html&#34;&gt;日本語訳&lt;/a&gt;もあった。&lt;/p&gt;
+
+&lt;h4 id=&#34;文字列インデクサ:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;文字列インデクサ&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.StringIndexer
+
+val bloodIndexer = new StringIndexer()
+  .setInputCol(&amp;quot;blood&amp;quot;)
+  .setOutputCol(&amp;quot;bloodIndex&amp;quot;)
+val sexIndexer = new StringIndexer()
+  .setInputCol(&amp;quot;sex&amp;quot;)
+  .setOutputCol(&amp;quot;sexIndex&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;StringIndexerはパイプラインをつなぐための部品の一つ。&lt;code&gt;A&lt;/code&gt;,&lt;code&gt;B&lt;/code&gt;,&lt;code&gt;O&lt;/code&gt;,&lt;code&gt;AB&lt;/code&gt;といった文字列のカテゴリデータを&lt;code&gt;0.0&lt;/code&gt;,&lt;code&gt;1.0&lt;/code&gt;,&lt;code&gt;2.0&lt;/code&gt;,&lt;code&gt;3.0&lt;/code&gt;みたいに実数のインデックスに変換してくれる。&lt;/p&gt;
+
+&lt;h4 id=&#34;複数項目のベクトル化:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;複数項目のベクトル化&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.VectorAssembler
+
+val assembler = new VectorAssembler()
+  .setInputCols(Array(
+    &amp;quot;bloodIndex&amp;quot;,
+    &amp;quot;sexIndex&amp;quot;,
+    &amp;quot;height&amp;quot;,
+    &amp;quot;weight&amp;quot;
+  ))
+  .setOutputCol(&amp;quot;features&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;VectorAssemblerはパイプラインをつなぐための部品の一つ。複数項目の実数データを一つの特徴ベクトルデータに変換してくれる。&lt;/p&gt;
+
+&lt;h4 id=&#34;ベクトル標準化:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;ベクトル標準化&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.StandardScaler
+
+val scaler = new StandardScaler()
+  .setInputCol(assembler.getOutputCol)
+  .setOutputCol(&amp;quot;scaledFeatures&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;StandardScalerはパイプラインをつなぐための部品の一つ。基準が違うデータを取り込むと予測が不安定になるため、特徴ベクトルデータを標準化する。&lt;/p&gt;
+
+&lt;p&gt;これで前処理のためのパイプライン部品は揃った。&lt;/p&gt;
+
+&lt;h3 id=&#34;線形回帰モデルの作成して-予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰モデルの作成して、予測値を得る&lt;/h3&gt;
+
+&lt;p&gt;まずは線形回帰を用いて、値の予測を行うためのモデルを作成する。&lt;/p&gt;
+
+&lt;h4 id=&#34;線形回帰:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.regression.LinearRegression
+
+val regression = new LinearRegression()
+  .setLabelCol(&amp;quot;marriedAge&amp;quot;)
+  .setFeaturesCol(scaler.getOutputCol)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;パイプライン部品の一つ。&lt;code&gt;setLabelCol&lt;/code&gt;には、予想したい項目を指定する。&lt;/p&gt;
+
+&lt;h4 id=&#34;パイプライン作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;パイプライン作成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.Pipeline
+
+val pipeline = new Pipeline()
+  .setStages(Array(
+    bloodIndexer,
+    sexIndexer,
+    assembler,
+    scaler,
+    regression
+  ))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;今までのパイプライン部品を繋げて、パイプラインを作成する。&lt;/p&gt;
+
+&lt;h4 id=&#34;クロス検証でチューニング設定をして-モデルを作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;クロス検証でチューニング設定をして、モデルを作成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.evaluation.RegressionEvaluator
+import org.apache.spark.ml.tuning.{
+  ParamGridBuilder,
+  CrossValidator
+}
+
+val paramGrid = new ParamGridBuilder()
+  .addGrid(regression.regParam, Array(0.1, 0.5, 0.01))
+  .addGrid(regression.maxIter, Array(10, 100, 1000))
+  .build()
+
+val evaluator = new RegressionEvaluator()
+  .setLabelCol(regression.getLabelCol)
+  .setPredictionCol(regression.getPredictionCol)
+
+val cross = new CrossValidator()
+  .setEstimator(pipeline)
+  .setEvaluator(evaluator)
+  .setEstimatorParamMaps(paramGrid)
+  .setNumFolds(3)
+
+val model = cross.fit(training)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;モデルの精度を検証するために、クロス検証の設定をする。以下のような、めんどくさいチューニング処理を自動で行ってくれる便利な機能。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;paramGrid&lt;/code&gt;で設定した配列のチューニング値で、全組み合わせのモデルを作成する。&lt;/li&gt;
+&lt;li&gt;サンプルデータを訓練データと検証データに分けて、一番精度の高いモデルを選択する。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;最終的には&lt;code&gt;model&lt;/code&gt;変数に最適なモデルが束縛される。&lt;/p&gt;
+
+&lt;h5 id=&#34;ちなみに-クロス検証を行わない場合は:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;ちなみに、クロス検証を行わない場合は&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;val model = pipeline.fit(training)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;パイプラインに直接学習データを突っ込む。&lt;/p&gt;
+
+&lt;h4 id=&#34;テストデータ作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;テストデータ作成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;var test = sc.parallelize(Seq(
+  // A型標準体型男
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;男&amp;quot;, 170, 65),
+  // B型標準体型男
+  Profile(None, &amp;quot;B&amp;quot;, &amp;quot;男&amp;quot;, 170, 65),
+  // O型標準体型男
+  Profile(None, &amp;quot;O&amp;quot;, &amp;quot;男&amp;quot;, 170, 65),
+  // AB型標準体型男
+  Profile(None, &amp;quot;AB&amp;quot;, &amp;quot;男&amp;quot;, 170, 65),
+  // A型標準体型女
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;女&amp;quot;, 160, 50),
+  // B型標準体型女
+  Profile(None, &amp;quot;B&amp;quot;, &amp;quot;女&amp;quot;, 160, 50),
+  // O型標準体型女
+  Profile(None, &amp;quot;O&amp;quot;, &amp;quot;女&amp;quot;, 160, 50),
+  // AB型標準体型女
+  Profile(None, &amp;quot;AB&amp;quot;, &amp;quot;女&amp;quot;, 160, 50),
+  // A型もやし男
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;男&amp;quot;, 170, 35),
+  // A型でぶ男
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;男&amp;quot;, 170, 100),
+  // A型もやし女
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;女&amp;quot;, 170, 35),
+  // A型でぶ女
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;女&amp;quot;, 170, 100),
+  // A型高身長男
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;男&amp;quot;, 190, 80),
+  // A型小人(男)
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;男&amp;quot;, 17, 6),
+  // A型巨人(男)
+  Profile(None, &amp;quot;A&amp;quot;, &amp;quot;男&amp;quot;, 17000, 6500)
+)).toDF
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;学習データの特徴データから大幅に外れるデータの予測も下の方に入れてみた。&lt;/p&gt;
+
+&lt;h4 id=&#34;モデルから予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;モデルから予測値を得る&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;model.transform(test)
+  .select(&amp;quot;blood&amp;quot;, &amp;quot;sex&amp;quot;, &amp;quot;height&amp;quot;, &amp;quot;weight&amp;quot;, &amp;quot;prediction&amp;quot;).show
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;+-----+---+-------+------+------------------+
+|blood|sex| height|weight|        prediction|
++-----+---+-------+------+------------------+
+|    A|  男|  170.0|  65.0| 32.79763046781005|
+|    B|  男|  170.0|  65.0|32.810260236687924|
+|    O|  男|  170.0|  65.0|   32.803945352249|
+|   AB|  男|  170.0|  65.0| 32.79131558337113|
+|    A|  女|  160.0|  50.0|  28.7197777975515|
+|    B|  女|  160.0|  50.0|28.732407566429345|
+|    O|  女|  160.0|  50.0|28.726092681990423|
+|   AB|  女|  160.0|  50.0| 28.71346291311255|
+|    A|  男|  170.0|  35.0|36.194018649003766|
+|    A|  男|  170.0| 100.0|28.835177589750728|
+|    A|  女|  170.0|  35.0| 36.18913457728998|
+|    A|  女|  170.0| 100.0| 28.83029351803694|
+|    A|  男|  190.0|  80.0|  42.6417617554965|
+|    A|  男|   17.0|   6.0|-48.82159525304273|
+|    A|  男|17000.0|6500.0|  9017.13917142714|
++-----+---+-------+------+------------------+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;結果考察:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;結果考察&lt;/h5&gt;
+
+&lt;ul&gt;
+&lt;li&gt;男性/女性の結婚時期の違いは、うまいこと現れた。&lt;/li&gt;
+&lt;li&gt;血液型による違いが、ほとんど現れなかった。&lt;/li&gt;
+&lt;li&gt;肥満/標準/もやしの違いは、よくわからない。&lt;/li&gt;
+&lt;li&gt;男性高身長のルールはうまく反映されている。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;ちなみに、南くんの恋人は生まれる50年前に結婚しており、巨神兵は結婚までに100世紀かかるらしい。突拍子もない結果に見えるが、&lt;code&gt;身長が高いほど結婚が遅い&lt;/code&gt;というルールを線形的に捉えてくれているようにも見える。&lt;/p&gt;
+
+&lt;h3 id=&#34;決定木回帰モデルを作成して-予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;決定木回帰モデルを作成して、予測値を得る&lt;/h3&gt;
+
+&lt;p&gt;決定木はクラス分類が得意な手法なので、今回のような細かいルールの設定でも、うまく予測してくれるかもしれない。&lt;/p&gt;
+
+&lt;p&gt;解析手法を変わるとはいえ、インタフェースが変わるわけではないので、
+大幅にコードを変える必要はなく、試行錯誤が楽。&lt;/p&gt;
+
+&lt;h4 id=&#34;クロス検証からモデルの作成まで:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;クロス検証からモデルの作成まで&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.regression.DecisionTreeRegressor
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.evaluation.RegressionEvaluator
+import org.apache.spark.ml.tuning.{
+  ParamGridBuilder,
+  CrossValidator
+}
+
+val regression = new DecisionTreeRegressor()
+  .setLabelCol(&amp;quot;marriedAge&amp;quot;)
+  .setFeaturesCol(scaler.getOutputCol)
+
+val pipeline = new Pipeline()
+  .setStages(Array(
+    bloodIndexer,
+    sexIndexer,
+    assembler,
+    scaler,
+    regression
+  ))
+
+val paramGrid = new ParamGridBuilder()
+  .addGrid(regression.maxBins, Array(2, 3, 4))
+  .addGrid(regression.maxDepth, Array(10, 20, 30))
+  .build()
+
+val evaluator = new RegressionEvaluator()
+  .setLabelCol(regression.getLabelCol)
+  .setPredictionCol(regression.getPredictionCol)
+
+val cross = new CrossValidator()
+  .setEstimator(pipeline)
+  .setEvaluator(evaluator)
+  .setEstimatorParamMaps(paramGrid)
+  .setNumFolds(3)
+
+val model = cross.fit(training)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Regressorクラスの種類、paramGridで設定する項目が変わるぐらいで、その他は線形回帰のコードと変わらない。&lt;/p&gt;
+
+&lt;h5 id=&#34;評価実行:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;評価実行&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;model.transform(test)
+  .select(&amp;quot;blood&amp;quot;, &amp;quot;sex&amp;quot;, &amp;quot;height&amp;quot;, &amp;quot;weight&amp;quot;, &amp;quot;prediction&amp;quot;).show
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;+-----+---+-------+------+------------------+
+|blood|sex| height|weight|        prediction|
++-----+---+-------+------+------------------+
+|    A|  男|  170.0|  65.0|41.666666666666664|
+|    B|  男|  170.0|  65.0|22.857142857142858|
+|    O|  男|  170.0|  65.0|              47.0|
+|   AB|  男|  170.0|  65.0|19.666666666666668|
+|    A|  女|  160.0|  50.0|              34.0|
+|    B|  女|  160.0|  50.0|              20.0|
+|    O|  女|  160.0|  50.0|              29.5|
+|   AB|  女|  160.0|  50.0|              19.0|
+|    A|  男|  170.0|  35.0|              35.0|
+|    A|  男|  170.0| 100.0|41.666666666666664|
+|    A|  女|  170.0|  35.0|              35.0|
+|    A|  女|  170.0| 100.0|              41.0|
+|    A|  男|  190.0|  80.0|              44.0|
+|    A|  男|   17.0|   6.0|29.333333333333332|
+|    A|  男|17000.0|6500.0|              44.0|
++-----+---+-------+------+------------------+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;結果考察-1:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;結果考察&lt;/h5&gt;
+
+&lt;ul&gt;
+&lt;li&gt;どのルールも学習データの値に近い形で、うまいこと予測された。&lt;/li&gt;
+&lt;li&gt;ただ、下２つの人外データに関しても、学習データに近い値が出てしまっているので、学習データの特徴値から大きくハズレるレコードの予測値は大味になってしまう？&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;まとめ:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;まとめ&lt;/h3&gt;
+
+&lt;p&gt;今回は、CSV形式のサンプルデータを線形回帰と決定木回帰を用いて、値の予測を行った。&lt;/p&gt;
+
+&lt;h5 id=&#34;線形回帰-1:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰&lt;/h5&gt;
+
+&lt;p&gt;細かいルールまでは予測しきれなかったが、学習データにない特徴を持つデータでも、うまく特徴を捉えようと、努力していた感があった。&lt;/p&gt;
+
+&lt;h5 id=&#34;決定木回帰:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;決定木回帰&lt;/h5&gt;
+
+&lt;p&gt;細かいルールに基づいた値をうまく予測してくれていたが、学習データにない特徴を持つデータに関しては、諦めていた感があった。&lt;/p&gt;
+
+&lt;p&gt;分析手法によって、予測結果の傾向が変わることを確認できた。今後、ランダムフォレスト回帰、勾配ブースト木回帰、生存回帰など色々な手法も試してみたい。&lt;/p&gt;
+&lt;div class=&#34;footnotes&#34;&gt;
+
+&lt;hr /&gt;
+
+&lt;ol&gt;
+&lt;li id=&#34;fn:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;類似のOSSに、Jupyter(iPython Notebook)やspark-notebookがある。データの加工やモデルのチューニングで試行錯誤することが多いので、こういうソフトはかなり重宝する。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</description>
+    </item>
     
     <item>
       <title>クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</title>
