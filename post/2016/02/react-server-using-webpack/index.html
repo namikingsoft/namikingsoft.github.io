@@ -1,0 +1,483 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript) - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2016-02-13 (Sat)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/%E3%82%B5%E3%83%BC%E3%83%90%E3%83%BC%E3%82%B5%E3%82%A4%E3%83%89react">サーバーサイドReact</a></li><li><a class="label label-default" href="/tags/react">React</a></li><li><a class="label label-default" href="/tags/express">Express</a></li><li><a class="label label-default" href="/tags/webpack">Webpack</a></li><li><a class="label label-default" href="/tags/ecmascript">ECMAScript</a></li><li><a class="label label-default" href="/tags/typescript">TypeScript</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p>サーバーサイドのReactに触れたことがなかったので、React+Express+webpackで試してみた。今回試行した手順をチュートリアル的にまとめておく。まずは、シンプルにできそうなECMAScript6で試して、後半にTypeScriptで組んだソースも、おまけ的に載せておきます。</p>
+
+<h3 id="この記事の方針:5d27ec92afc6a1472e1a3eed36d540c0">この記事の方針</h3>
+
+<ul>
+<li>クライアント -&gt; サーバーサイド -&gt; 結びつける。の順に実装を行う</li>
+<li>なるべくシンプルにするために、実用構成というよりは、最小構成で動かす。
+
+<ul>
+<li>コンポーネントのプリレンダやState遷移の確認までを行う。</li>
+<li>サーバーAPIとの通信や画面遷移は、今回扱わない。</li>
+</ul></li>
+</ul>
+
+<h4 id="実装するサンプルアプリの内容:5d27ec92afc6a1472e1a3eed36d540c0">実装するサンプルアプリの内容</h4>
+
+<p>チュートリアルでよくありそうな、シンプルなカウンターアプリを動かす。
+<img src="/images/post/2016/02/react-server-using-webpack/sample.png" alt="Sample" /></p>
+
+<h4 id="事前に必要なソフトウェア:5d27ec92afc6a1472e1a3eed36d540c0">事前に必要なソフトウェア</h4>
+
+<ul>
+<li>node.js (v5.6.0)</li>
+<li>npm (v3.6.0)</li>
+</ul>
+
+<p>現時点の安定版を使ってみたが、そこまで新しくなくても問題ない。</p>
+
+<h4 id="memo-利用したnpmパッケージのバージョン:5d27ec92afc6a1472e1a3eed36d540c0">[Memo] 利用したnpmパッケージのバージョン</h4>
+
+<pre><code class="language-json">&quot;dependencies&quot;: {
+  &quot;express&quot;: &quot;^4.13.4&quot;,
+  &quot;react&quot;: &quot;^0.14.7&quot;,
+  &quot;react-dom&quot;: &quot;^0.14.7&quot;
+},
+&quot;devDependencies&quot;: {
+  &quot;babel-cli&quot;: &quot;^6.5.1&quot;,
+  &quot;babel-loader&quot;: &quot;^6.2.2&quot;,
+  &quot;babel-preset-es2015&quot;: &quot;^6.5.0&quot;,
+  &quot;babel-preset-react&quot;: &quot;^6.5.0&quot;,
+  &quot;dtsm&quot;: &quot;^0.13.0&quot;,
+  &quot;ts-loader&quot;: &quot;^0.8.1&quot;,
+  &quot;typescript&quot;: &quot;^1.7.5&quot;,
+  &quot;webpack&quot;: &quot;^1.12.13&quot;
+}
+</code></pre>
+
+<p>バージョンが新しくなったりすると、この記事の書き方と変わってくる可能性があるので、注意。</p>
+
+<h2 id="ecmascript6-版-チュートリアル:5d27ec92afc6a1472e1a3eed36d540c0">ECMAScript6 版 (チュートリアル)</h2>
+
+<p>Reactドキュメントの<a href="https://facebook.github.io/react/docs/getting-started.html">Getting Started</a>でも、Babelを利用しているようなので、まずは、Babelを使って、ECMAScript6で記述できるようにしてみる。なお、サンプルソースの完成版を以下のリポジトリに置いといたので、参考にされたい。</p>
+
+<ul>
+<li>ECMAScript6版サンプルソースの完成版<br />
+<a href="https://github.com/namikingsoft/sample-react-server/tree/typescript">https://github.com/namikingsoft/sample-react-server/tree/typescript</a></li>
+</ul>
+
+<h3 id="まずはクライアント側で動かしてみる:5d27ec92afc6a1472e1a3eed36d540c0">まずはクライアント側で動かしてみる</h3>
+
+<p>ファイル構成は以下の様な感じになるように、作業をすすめる。</p>
+
+<pre><code class="language-axapta">react-server
+|-- .babelrc            # Babel設定
+|-- package.json        # npm設定
+|-- public
+|   |-- client.js       # webpackによって吐き出されたフロント用のJS
+|   `-- test.html       # クライアント確認用
+|-- src
+|   |-- client.js       # クライアントJSエントリーポイント
+|   `-- components
+|       `-- Counter.js  # カウンター用Reactコンポネント
+`-- webpack.config.js   # webpack設定
+</code></pre>
+
+<h4 id="npm-init:5d27ec92afc6a1472e1a3eed36d540c0">npm init</h4>
+
+<pre><code class="language-sh">mkdir react-server
+cd react-server
+
+npm init
+</code></pre>
+
+<p>適当なディレクトリを作り、package.jsonのテンプレートを作っておく。<code>npm init</code>の選択肢も全て空Enterで問題ない。</p>
+
+<h4 id="必要なnpmパッケージをインストール:5d27ec92afc6a1472e1a3eed36d540c0">必要なnpmパッケージをインストール</h4>
+
+<pre><code class="language-sh">npm install --save react react-dom
+npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-react
+</code></pre>
+
+<p>モダンブラウザによっては、<code>babel-preset-es2015</code>はいらないかもだが、一応。</p>
+
+<h4 id="webpack-config-js:5d27ec92afc6a1472e1a3eed36d540c0">webpack.config.js</h4>
+
+<pre><code class="language-sh">var webpack = require('webpack');
+
+module.exports = {
+  entry: {
+    client: &quot;./src/client.js&quot;,
+  },
+  output: {
+    filename: '[name].js',
+    path: &quot;./public&quot;,
+  },
+  module: {
+    loaders: [
+      {
+        test: /\.jsx?$/,
+        loaders: ['babel'],
+        exclude: /node_modules/,
+      },
+    ],
+  },
+  resolve: {
+    extensions: ['', '.js', '.jsx'],
+    modulesDirectories: ['node_modules'],
+  },
+};
+</code></pre>
+
+<p>なるべくシンプルにするため、livereloadなどは入れていない。</p>
+
+<h4 id="babelrc:5d27ec92afc6a1472e1a3eed36d540c0">.babelrc</h4>
+
+<pre><code class="language-sh">{
+  &quot;presets&quot;: [&quot;es2015&quot;, &quot;react&quot;],
+}
+</code></pre>
+
+<p>Babelの設定ファイル。<code>React -&gt; ES6 -&gt; ES5</code>のような感じで、どのブラウザでも割りかし動作するように変換する。</p>
+
+<h4 id="public-test-html:5d27ec92afc6a1472e1a3eed36d540c0">public/test.html</h4>
+
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;App&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+    &lt;script src=&quot;app.js&quot;&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>クライアントJSの動作確認用HTML。<code>app.js</code>が実行された後に、<code>&lt;div id=&quot;app&quot;&gt;&lt;/div&gt;</code>の中身がCounterコンポーネントに置き換わる。</p>
+
+<h4 id="src-client-js:5d27ec92afc6a1472e1a3eed36d540c0">src/client.js</h4>
+
+<pre><code class="language-javascript">import React from 'react'
+import ReactDOM from 'react-dom'
+import Counter from './components/Counter'
+
+ReactDOM.render(
+  &lt;Counter /&gt;,
+  document.getElementById('app')
+)
+</code></pre>
+
+<p>Counterコンポーネントを<code>&lt;div id=&quot;app&quot; /&gt;</code>に表示する。</p>
+
+<h4 id="src-components-counter-js:5d27ec92afc6a1472e1a3eed36d540c0">src/components/Counter.js</h4>
+
+<pre><code class="language-javascript">import React, {Component} from 'react'
+
+export default class Counter extends Component {
+
+  constructor() {
+    super()
+    this.state = {
+      count: 0
+    }
+  }
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;p&gt;Count: {this.state.count}&lt;/p&gt;
+        &lt;button onClick={e =&gt; this.increment()}&gt;Increment&lt;/button&gt;
+      &lt;/div&gt;
+    )
+  }
+
+  increment() {
+    this.setState({
+      count: this.state.count + 1
+    })
+  }
+}
+</code></pre>
+
+<p>Incrementボタンを押したら、内部Stateが変化して、コンポーネントを再描写される。</p>
+
+<h4 id="webpack実行:5d27ec92afc6a1472e1a3eed36d540c0">webpack実行</h4>
+
+<pre><code class="language-sh">./node_modules/.bin/webpack
+</code></pre>
+
+<p>これで、<code>public/client.js</code>にブラウザで動作するJSが生成される。</p>
+
+<p>webpackコマンドについては、<code>npm run build</code>コマンドで実行できるように、package.jsonのscriptsに登録しておくと良いかも。</p>
+
+<pre><code class="language-json">&quot;scripts&quot;: {
+  &quot;build&quot;: &quot;webpack&quot;
+}
+</code></pre>
+
+<pre><code class="language-sh">npm run build
+</code></pre>
+
+<h4 id="動作確認:5d27ec92afc6a1472e1a3eed36d540c0">動作確認</h4>
+
+<p>Incrementボタンを押して、Stateの変動やコンポーネントの再描写が確認できる。
+<img src="/images/post/2016/02/react-server-using-webpack/client-result.png" alt="Client Result" /></p>
+
+<h3 id="サーバーサイドからコンポーネントを描写する:5d27ec92afc6a1472e1a3eed36d540c0">サーバーサイドからコンポーネントを描写する</h3>
+
+<p>ファイル構成としては以下。<code>src/server.js</code>が追加されただけ。</p>
+
+<pre><code class="language-axapta">react-server
+|-- package.json
+|-- public
+|   |-- client.js
+|   `-- test.html
+|-- src
+|   |-- client.js
+|   |-- components
+|   |   `-- Counter.js
+|   `-- server.js     # 追加: ExpressでCounterコンポーネントをレンダリング
+`-- webpack.config.js
+</code></pre>
+
+<h4 id="必要なnpmパッケージをインストール-1:5d27ec92afc6a1472e1a3eed36d540c0">必要なnpmパッケージをインストール</h4>
+
+<pre><code class="language-sh">npm install --save express
+npm install --save-dev babel-cli
+</code></pre>
+
+<p>軽量Webフレームワークの<code>express</code>と、node.jsの実行をbabelに通すための<code>babel-cli</code>をインストールする。</p>
+
+<h4 id="src-server-js:5d27ec92afc6a1472e1a3eed36d540c0">src/server.js</h4>
+
+<pre><code class="language-javascript">import express from 'express'
+import React from 'react'
+import ReactDOMServer from 'react-dom/server'
+import Counter from './components/Counter'
+
+// init express
+const app = express()
+
+// add top page routing
+app.get('/', (req, res) =&gt; {
+  res.send(
+    ReactDOMServer.renderToString(
+      &lt;Counter /&gt;
+    )
+  )
+})
+
+// start listen
+app.listen(3000, () =&gt; {
+  console.log('Example app listening on port 3000!');
+})
+</code></pre>
+
+<p><code>ReactDOMServer.renderToString()</code>を使って、コンポーネントをプリレンダリングできる。<br />
+(HTMLの側端は端折ってます)</p>
+
+<h4 id="サーバー起動:5d27ec92afc6a1472e1a3eed36d540c0">サーバー起動</h4>
+
+<pre><code class="language-sh">node_modules/.bin/babel-node src/server.js
+</code></pre>
+
+<p><code>babel-node</code>はbabel-cliでインストールされるコマンドで、実行対象のJSを自動的にBabel変換した上でnodeコマンドを実行してくれる便利なラッパー。</p>
+
+<p>ビルドと同じく、<code>npm start</code>コマンドで実行できるように、package.jsonのscriptsに登録しておくと良い。</p>
+
+<pre><code class="language-json">&quot;scripts&quot;: {
+  ...
+  &quot;start&quot;: &quot;babel-node src/server.js&quot;
+}
+</code></pre>
+
+<pre><code class="language-sh">npm start
+</code></pre>
+
+<h4 id="動作確認-1:5d27ec92afc6a1472e1a3eed36d540c0">動作確認</h4>
+
+<pre><code class="language-sh">open http://localhost:3000
+</code></pre>
+
+<p>クライアントのみの実行と、全く同じ画面が表示される。ブラウザのソース表示やcurlなどからも、コンポーネントの中身がプリレンダリングされたHTMLを確認できた。</p>
+
+<p>しかし。</p>
+
+<p><img src="/images/post/2016/02/react-server-using-webpack/server-result.png" alt="Client Result" /></p>
+
+<p>ちょっとは動くことを期待したが、サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないし、しかたない。</p>
+
+<h3 id="サーバーサイドとクライアントの処理をつなげる:5d27ec92afc6a1472e1a3eed36d540c0">サーバーサイドとクライアントの処理をつなげる</h3>
+
+<p>Fluxフレームワークで有名なReduxのドキュメントの<a href="https://github.com/rackt/redux/blob/master/docs/recipes/ServerRendering.md">Server Rendering</a>を見るに、サーバーサイドでプリレンダした要素に、再度クライアントからレンダリングをかけている様な処理になっていたので、試してみる。</p>
+
+<h4 id="src-server-js-の修正:5d27ec92afc6a1472e1a3eed36d540c0">src/server.js の修正</h4>
+
+<pre><code class="language-diff">import express from 'express'
+import React from 'react'
+import ReactDOMServer from 'react-dom/server'
+import Counter from './components/Counter'
+
+// init express
+const app = express()
+
++ // add static path
++ app.use(express.static('public'))
+
+// add top page routing
+app.get('/', (req, res) =&gt; {
+  res.send(
+    ReactDOMServer.renderToString(
+-      &lt;Counter /&gt;
++      &lt;div&gt;
++        &lt;div id=&quot;app&quot;&gt;
++          &lt;Counter /&gt;
++        &lt;/div&gt;
++        &lt;script src=&quot;client.js&quot; /&gt;
++      &lt;/div&gt;
+    )
+  )
+})
+
+// start listen
+app.listen(3000, () =&gt; {
+  console.log('Example app listening on port 3000!');
+})
+</code></pre>
+
+<p><code>app.use(express.static('public'))</code>で、publicディレクトリ以下のファイルを静的ファイルとして、読み込み可能として、プリレンダする内容をクライアント側の時に試した<code>test.html</code>と同じような記述に変更する。</p>
+
+<h4 id="再度-動作確認:5d27ec92afc6a1472e1a3eed36d540c0">再度、動作確認</h4>
+
+<pre><code class="language-sh">npm start
+open http://localhost:3000
+</code></pre>
+
+<p>今度は、Incrementボタン押下で、正常動作を確認できるはず。</p>
+
+<h2 id="typescript-版-要約:5d27ec92afc6a1472e1a3eed36d540c0">TypeScript 版 (要約)</h2>
+
+<p>最近では、型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は<code>ts-loader</code>を挟むぐらいで概ね対応できるが、サーバーサイドは<code>babel-node</code>に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。</p>
+
+<ul>
+<li><p>Typescript版サンプルソースの完成版<br />
+<a href="https://github.com/namikingsoft/sample-react-server/tree/typescript">https://github.com/namikingsoft/sample-react-server/tree/typescript</a></p></li>
+
+<li><p>ECMAScript6版との差分<br />
+<a href="https://github.com/namikingsoft/sample-react-server/compare/typescript">https://github.com/namikingsoft/sample-react-server/compare/typescript</a></p></li>
+</ul>
+
+<h3 id="要約:5d27ec92afc6a1472e1a3eed36d540c0">要約</h3>
+
+<p>TypeScript版については、上のようにチュートリアル形式にはせず、要約解説にしたい。詳しくは上の<a href="https://github.com/namikingsoft/sample-react-server/compare/typescript">ECMAScript6版との差分</a>を見ていただいたほうが、早いかもしれない。</p>
+
+<h4 id="型定義ファイルマネージャにはdtsmを使った:5d27ec92afc6a1472e1a3eed36d540c0">型定義ファイルマネージャにはdtsmを使った。</h4>
+
+<p>npmとほぼ同じインタフェースなので使いやすい。以下コマンド例。</p>
+
+<pre><code class="language-sh">npm install --save-dev dtsm
+export PATH=./node_modules/.bin:$PATH
+
+dtsm init
+dtsm install --save react.d.ts
+dtsm install --save react-dom.d.ts
+dtsm install --save express.d.ts
+</code></pre>
+
+<h4 id="サーバーサイドのコンパイルはtscを直接使った:5d27ec92afc6a1472e1a3eed36d540c0">サーバーサイドのコンパイルはtscを直接使った。</h4>
+
+<p><code>babel-node</code>のようなラッパーコマンドがあることを期待したが、観測内ではなさそうなので、通常通り、<code>dist</code>ディレクトリあたりに、コンパイル済みのJSを展開して、<code>node dist/server.js</code>みたいにする作戦にした。</p>
+
+<p>tsconfig.jsonは以下のとおり。</p>
+
+<pre><code class="language-json">{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;es5&quot;,
+    &quot;jsx&quot;: &quot;react&quot;,
+    &quot;module&quot;: &quot;commonjs&quot;,
+    &quot;moduleResolution&quot;: &quot;node&quot;,
+    &quot;experimentalDecorators&quot;: true,
+    &quot;outDir&quot;: &quot;dist&quot;
+  },
+  &quot;files&quot;: [
+    &quot;typings/bundle.d.ts&quot;,
+    &quot;src/server.tsx&quot;
+  ]
+}
+</code></pre>
+
+<p>なお、tsconfig.jsonはクライアント側のコンパイルにも使いまわしたいので、React変換なども有効にしてある。<code>experimentalDecorators</code>はいらないかもだが、ReduxなどのFluxフレームワークで、割りとデコレータ(@connectなど)が使われていたりするので、一応有効にしてある。</p>
+
+<p>コンパイルについては、package.jsonのscriptsを以下のように修正して、<code>npm run build</code>でやると良い。</p>
+
+<pre><code class="language-diff">&quot;scripts&quot;: {
+  ...
+- &quot;build&quot;: &quot;webpack&quot;,
++ &quot;build&quot;: &quot;webpack &amp;&amp; tsc -p .&quot;,
+  ...
+},
+</code></pre>
+
+<pre><code class="language-sh">npm run build
+</code></pre>
+
+<h4 id="クライアントのコンパイルにはwebpackのts-loaderを使った:5d27ec92afc6a1472e1a3eed36d540c0">クライアントのコンパイルにはwebpackのts-loaderを使った。</h4>
+
+<p>webpack.config.jsの修正差分は以下の様な感じになる。なお、TypeScript自体が、<code>React -&gt; ES6 -&gt; ES5</code>変換機能を備えているので、無理にBabelに通さなくてもよい。</p>
+
+<pre><code class="language-diff">var webpack = require('webpack');
+
+module.exports = {
+  entry: {
+-   client: &quot;./src/client.js&quot;,
++   client: &quot;./src/client.tsx&quot;,
+  },
+  output: {
+    filename: '[name].js',
+    path: &quot;./public&quot;,
+  },
+  module: {
+    loaders: [
+      {
+        test: /\.jsx?$/,
+        loaders: ['babel'],
+        exclude: /node_modules/,
+      },
++     {
++       test: /\.tsx?$/,
++       loaders: ['ts'],
++       exclude: /node_modules/,
++     },
+    ],
+  },
+  resolve: {
+-   extensions: ['', '.js', '.jsx'],
++   extensions: ['', '.js', '.jsx', 'ts', '.tsx'],
+    modulesDirectories: ['node_modules'],
+  },
+};
+</code></pre>
+
+<h2 id="あとがき:5d27ec92afc6a1472e1a3eed36d540c0">あとがき</h2>
+
+<p>なるべくシンプルな構成で、サーバーサイドReactを試してみた。</p>
+
+<p>今回はサーバーサイドにExpressを使ってみたが、Railsなどでも、<code>react-rails</code>のようなgemを利用して、クライアントとの連携ができるはず。</p>
+
+<p>ReduxやReactRouterなどを利用した、もうちょっと実践的なやり方については、以下のReduxドキュメントやQiita記事が詳しそうだったので、載せておきます。</p>
+
+<blockquote>
+<p>Redux: Server Rendering<br />
+<a href="https://github.com/rackt/redux/blob/master/docs/recipes/ServerRendering.md">https://github.com/rackt/redux/blob/master/docs/recipes/ServerRendering.md</a></p>
+
+<p>Qiita: React + Expressでのサーバーサイドレンダリング方法のまとめ<br />
+<a href="http://qiita.com/hmarui66/items/4f75e624c4f70d596873">http://qiita.com/hmarui66/items/4f75e624c4f70d596873</a></p>
+</blockquote>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2016\/02\/react-server-using-webpack\/';
+    var disqus_title = 'サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2016\/02\/react-server-using-webpack\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/spark-mllib-regression/" title="Sparkで機械学習： 回帰モデルで値を予測する"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-31 (Sun)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/02/react-server-using-webpack/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/02/react-server-using-webpack/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/02/react-server-using-webpack/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f02%2freact-server-using-webpack%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%B7%E3%83%BC%E3%83%88">スキルシート(1)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>
