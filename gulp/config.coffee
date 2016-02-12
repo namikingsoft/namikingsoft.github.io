@@ -22,7 +22,7 @@ css =
   src: [
     path.bower + '/font-awesome/css/font-awesome.min.css'
     path.bower + '/bootstrap/dist/css/bootstrap.min.css'
-    path.bower + '/highlightjs/styles/default.css'
+    path.bower + '/highlightjs/styles/foundation.css'
     path.src + '/css/index.styl'
   ]
   dest: path.dest + '/css/'
