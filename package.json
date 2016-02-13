@@ -4,8 +4,8 @@
   "description": "",
   "scripts": {
     "postinstall": "bower install",
-    "clone": "gulp deploy:clone",
     "build": "gulp build && hugo",
+    "clone": "gulp deploy:clone",
     "deploy": "npm run build && gulp deploy",
     "start": "parallelshell 'gulp watch' 'hugo server --watch --buildDrafts'",
     "test": "echo Dummy Test && exit 0"
