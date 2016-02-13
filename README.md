@@ -1,4 +1,4 @@
-Namiking.net [![Build Status][circleci-badge][circleci-url]
+Namiking.net [![Build Status][circleci-badge]][circleci-url]
 ==============================
 Powered by [HUGO](http://gohugo.io/).
 
