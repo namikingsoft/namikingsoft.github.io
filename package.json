@@ -6,7 +6,8 @@
     "postinstall": "bower install && gulp deploy:clone",
     "build": "gulp build && hugo",
     "deploy": "npm run build && gulp deploy",
-    "start": "parallelshell 'gulp watch' 'hugo server --watch --buildDrafts'"
+    "start": "parallelshell 'gulp watch' 'hugo server --watch --buildDrafts'",
+    "test": "echo Dummy Test && exit 0"
   },
   "devDependencies": {
     "bower": "^1.4.1",
