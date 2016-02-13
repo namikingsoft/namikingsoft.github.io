@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "postinstall": "bower install && gulp deploy:clone",
+    "postinstall": "bower install",
+    "clone": "gulp deploy:clone",
     "build": "gulp build && hugo",
     "deploy": "npm run build && gulp deploy",
     "start": "parallelshell 'gulp watch' 'hugo server --watch --buildDrafts'",
