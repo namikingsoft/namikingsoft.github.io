@@ -1,8 +1,6 @@
 ---
 Categories:
   - 自己紹介
-Tags:
-  - スキルシート
 date: 2015-08-27T08:00:22+09:00
 title: ABOUT
 
@@ -14,7 +12,7 @@ title: ABOUT
 
 <h4>プロフィール</h4>
 <p>
-<img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=50&r=g">
+<img class="avator" src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=50&r=g" />
 <strong>namikingsoft</strong>
 </p>
 <p>
