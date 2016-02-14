@@ -3521,7 +3521,7 @@ Password: restya
 
 &lt;h4&gt;プロフィール&lt;/h4&gt;
 &lt;p&gt;
-&lt;img src=&#34;https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=50&amp;r=g&#34;&gt;
+&lt;img class=&#34;avator&#34; src=&#34;https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=50&amp;r=g&#34; /&gt;
 &lt;strong&gt;namikingsoft&lt;/strong&gt;
 &lt;/p&gt;
 &lt;p&gt;
