@@ -138,7 +138,7 @@ module.exports = {
 };
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;なるべくシンプルにするため、livereloadなどは入れていない。&lt;/p&gt;
+&lt;p&gt;なるべくシンプルにするため、HotLoaderなど記述は入れていない。&lt;/p&gt;
 
 &lt;h4 id=&#34;babelrc:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;.babelrc&lt;/h4&gt;
 
@@ -246,7 +246,7 @@ export default class Counter extends Component {
 |   |-- client.js
 |   |-- components
 |   |   `-- Counter.js
-|   `-- server.js     # 追加: ExpressでCounterコンポーネントをレンダリング
+|   `-- server.js     # 追加: ExpressでCounterコンポーネントをプリレンダリング
 `-- webpack.config.js
 &lt;/code&gt;&lt;/pre&gt;
 
@@ -315,7 +315,7 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/server-result.png&#34; alt=&#34;Client Result&#34; /&gt;&lt;/p&gt;
 
-&lt;p&gt;ちょっとは動くことを期待したが、サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないし、しかたない。&lt;/p&gt;
+&lt;p&gt;サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないため、と思われる。&lt;/p&gt;
 
 &lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
 
@@ -367,7 +367,7 @@ open http://localhost:3000
 
 &lt;h2 id=&#34;typescript-版-要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
 
-&lt;p&gt;最近では、型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は&lt;code&gt;ts-loader&lt;/code&gt;を挟むぐらいで概ね対応できるが、サーバーサイドは&lt;code&gt;babel-node&lt;/code&gt;に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。&lt;/p&gt;
+&lt;p&gt;型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は&lt;code&gt;ts-loader&lt;/code&gt;を挟むぐらいで概ね対応できるが、サーバーサイドは&lt;code&gt;babel-node&lt;/code&gt;に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;p&gt;Typescript版サンプルソースの完成版&lt;br /&gt;

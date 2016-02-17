@@ -121,7 +121,7 @@ module.exports = {
 };
 </code></pre>
 
-<p>なるべくシンプルにするため、livereloadなどは入れていない。</p>
+<p>なるべくシンプルにするため、HotLoaderなど記述は入れていない。</p>
 
 <h4 id="babelrc:5d27ec92afc6a1472e1a3eed36d540c0">.babelrc</h4>
 
@@ -229,7 +229,7 @@ export default class Counter extends Component {
 |   |-- client.js
 |   |-- components
 |   |   `-- Counter.js
-|   `-- server.js     # 追加: ExpressでCounterコンポーネントをレンダリング
+|   `-- server.js     # 追加: ExpressでCounterコンポーネントをプリレンダリング
 `-- webpack.config.js
 </code></pre>
 
@@ -298,7 +298,7 @@ app.listen(3000, () =&gt; {
 
 <p><img src="/images/post/2016/02/react-server-using-webpack/server-result.png" alt="Client Result" /></p>
 
-<p>ちょっとは動くことを期待したが、サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないし、しかたない。</p>
+<p>サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないため、と思われる。</p>
 
 <h3 id="サーバーサイドとクライアントの処理をつなげる:5d27ec92afc6a1472e1a3eed36d540c0">サーバーサイドとクライアントの処理をつなげる</h3>
 
@@ -350,7 +350,7 @@ open http://localhost:3000
 
 <h2 id="typescript-版-要約:5d27ec92afc6a1472e1a3eed36d540c0">TypeScript 版 (要約)</h2>
 
-<p>最近では、型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は<code>ts-loader</code>を挟むぐらいで概ね対応できるが、サーバーサイドは<code>babel-node</code>に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。</p>
+<p>型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は<code>ts-loader</code>を挟むぐらいで概ね対応できるが、サーバーサイドは<code>babel-node</code>に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。</p>
 
 <ul>
 <li><p>Typescript版サンプルソースの完成版<br />
