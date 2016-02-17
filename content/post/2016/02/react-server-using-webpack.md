@@ -126,7 +126,7 @@ module.exports = {
   },
 };
 ```
-なるべくシンプルにするため、livereloadなどは入れていない。
+なるべくシンプルにするため、HotLoaderなど記述は入れていない。
 
 
 #### .babelrc
@@ -233,7 +233,7 @@ react-server
 |   |-- client.js
 |   |-- components
 |   |   `-- Counter.js
-|   `-- server.js     # 追加: ExpressでCounterコンポーネントをレンダリング
+|   `-- server.js     # 追加: ExpressでCounterコンポーネントをプリレンダリング
 `-- webpack.config.js
 ```
 
@@ -300,7 +300,7 @@ open http://localhost:3000
 
 ![Client Result](/images/post/2016/02/react-server-using-webpack/server-result.png)
 
-ちょっとは動くことを期待したが、サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないし、しかたない。
+サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないため、と思われる。
 
 
 ### サーバーサイドとクライアントの処理をつなげる
@@ -354,7 +354,7 @@ open http://localhost:3000
 
 TypeScript 版 (要約)
 ------------------------------
-最近では、型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は`ts-loader`を挟むぐらいで概ね対応できるが、サーバーサイドは`babel-node`に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。
+型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は`ts-loader`を挟むぐらいで概ね対応できるが、サーバーサイドは`babel-node`に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。
 
 * Typescript版サンプルソースの完成版  
   https://github.com/namikingsoft/sample-react-server/tree/typescript
