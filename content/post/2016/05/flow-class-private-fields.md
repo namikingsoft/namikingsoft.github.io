@@ -1,0 +1,133 @@
+---
+Categories:
+  - 静的型付け言語
+Tags:
+  - JavaScript
+  - ECMAScript
+  - flow
+  - flowtype
+  - DDD
+date: 2016-05-12T08:00:00+09:00
+title: 静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ
+---
+
+[flow](http://flowtype.org/)はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。
+
+
+### なんでPrivateフィールドが必要？
+
+インスタンス生成後に、外部からフィールド値を変更させたくない。**イミュータブル(不変)**なオブジェクトにしたいため。
+
+* **ドメイン駆動設計**(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。
+* 同じインスタンスの複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、**予期せぬ不具合が起こる**可能性がある。
+* だからといって、オブジェクトのDeepCopyはしたくない。
+* オブジェクトを参照で保持して、**負荷軽減＆メモリ効率向上**に期待。(アプリ構造にもよる)
+
+インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。
+
+
+### 方法としてはフィールドES6のWeakMapが使える
+
+flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。
+
+> ES6 class での private プロパティの定義  
+> http://qiita.com/k_ui/items/889ec276fc04b1448674
+
+Symbolアクセスを使う方法は、`Object.getOwnPropertySymbols`を使えば、外部から値を変更することが可能なため、今回は避けた。
+
+WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。
+
+### flowでPrivateフィールドを定義してみる
+
+```typescript
+// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+class Sample {
+  static privates: WeakMap<Sample, Param> = new WeakMap();
+
+  constructor(param: Param) {
+    Sample.privates.set(this, param);
+  }
+
+  getField1(): number {
+    return Sample.privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return Sample.privates.get(this).field2;
+  }
+}
+```
+
+コンストラクタ引数にObjectを渡して、StaticなWeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
+
+```typescript
+const sample = new Sample({
+  field1: 1234,
+  field2: "Text",
+});
+```
+
+ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、
+
+```typescript
+let param = {
+  field1: 1234,
+  field2: "Text",
+};
+const sample = new Sample(param);
+
+// non-immutable
+param.field1 = 2345;
+
+```
+
+コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。
+
+```typescript
+constructor(param: Param) {
+  // ES7の`object-rest-spread`を使うと楽
+  Sample.privates.set(this, { ...param });
+}
+```
+
+
+### [おまけ] Privateなメソッドも定義できる？
+
+同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。
+
+```diff
+class Sample {
+  static privates: WeakMap<Sample, Param> = new WeakMap();
+
+  constructor(param: Param) {
+    Sample.privates.set(this, param);
+  }
+
+  getField1(): number {
+    return Sample.privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return Sample.privates.get(this).field2;
+  }
++
++  getPowField1(num: number) {
++    return powField1(this, num);
++  }
+}
+
++// Private method
++function powField1(instance: Sample, num: number) {
++  return Math.pow(Sample.privates.get(instance).field1, num)
++}
+```
+
+ただ、ESLintを併用していると、`no-use-before-define`に引っかかったりする。
+
+ちとまどろっこしいね。
