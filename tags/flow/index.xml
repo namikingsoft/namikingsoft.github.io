@@ -6,8 +6,135 @@
     <description>Recent content in Flow on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Thu, 12 May 2016 07:00:00 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 12 May 2016 08:00:00 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/tags/flow/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ</title>
+      <link>http://blog.namiking.net/post/2016/05/flow-class-private-fields/</link>
+      <pubDate>Thu, 12 May 2016 08:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2016/05/flow-class-private-fields/</guid>
+      <description>
+
+&lt;p&gt;&lt;a href=&#34;http://flowtype.org/&#34;&gt;flow&lt;/a&gt;はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。&lt;/p&gt;
+
+&lt;h3 id=&#34;なんでprivateフィールドが必要&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
+
+&lt;p&gt;インスタンス生成後に、外部からフィールド値を変更させたくない。&lt;strong&gt;イミュータブル(不変)&lt;/strong&gt;なオブジェクトにしたいため。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;ドメイン駆動設計&lt;/strong&gt;(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。&lt;/li&gt;
+&lt;li&gt;同じインスタンスの複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、&lt;strong&gt;予期せぬ不具合が起こる&lt;/strong&gt;可能性がある。&lt;/li&gt;
+&lt;li&gt;だからといって、オブジェクトのDeepCopyはしたくない。&lt;/li&gt;
+&lt;li&gt;オブジェクトを参照で保持して、&lt;strong&gt;負荷軽減＆メモリ効率向上&lt;/strong&gt;に期待。(アプリ構造にもよる)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。&lt;/p&gt;
+
+&lt;h3 id=&#34;方法としてはフィールドes6のweakmapが使える&#34;&gt;方法としてはフィールドES6のWeakMapが使える&lt;/h3&gt;
+
+&lt;p&gt;flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;ES6 class での private プロパティの定義&lt;br /&gt;
+&lt;a href=&#34;http://qiita.com/k_ui/items/889ec276fc04b1448674&#34;&gt;http://qiita.com/k_ui/items/889ec276fc04b1448674&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Symbolアクセスを使う方法は、&lt;code&gt;Object.getOwnPropertySymbols&lt;/code&gt;を使えば、外部から値を変更することが可能なため、今回は避けた。&lt;/p&gt;
+
+&lt;p&gt;WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。&lt;/p&gt;
+
+&lt;h3 id=&#34;flowでprivateフィールドを定義してみる&#34;&gt;flowでPrivateフィールドを定義してみる&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+class Sample {
+  static privates: WeakMap&amp;lt;Sample, Param&amp;gt; = new WeakMap();
+
+  constructor(param: Param) {
+    Sample.privates.set(this, param);
+  }
+
+  getField1(): number {
+    return Sample.privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return Sample.privates.get(this).field2;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;コンストラクタ引数にObjectを渡して、StaticなWeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const sample = new Sample({
+  field1: 1234,
+  field2: &amp;quot;Text&amp;quot;,
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;let param = {
+  field1: 1234,
+  field2: &amp;quot;Text&amp;quot;,
+};
+const sample = new Sample(param);
+
+// non-immutable
+param.field1 = 2345;
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;constructor(param: Param) {
+  // ES7の`object-rest-spread`を使うと楽
+  Sample.privates.set(this, { ...param });
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
+
+&lt;p&gt;同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;class Sample {
+  static privates: WeakMap&amp;lt;Sample, Param&amp;gt; = new WeakMap();
+
+  constructor(param: Param) {
+    Sample.privates.set(this, param);
+  }
+
+  getField1(): number {
+    return Sample.privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return Sample.privates.get(this).field2;
+  }
++
++  getPowField1(num: number) {
++    return powField1(this, num);
++  }
+}
+
++// Private method
++function powField1(instance: Sample, num: number) {
++  return Math.pow(Sample.privates.get(instance).field1, num)
++}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ただ、ESLintを併用していると、&lt;code&gt;no-use-before-define&lt;/code&gt;に引っかかったりする。&lt;/p&gt;
+
+&lt;p&gt;ちとまどろっこしいね。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</title>

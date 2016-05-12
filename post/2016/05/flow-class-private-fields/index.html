@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2016-05-12 (Thu)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/%E9%9D%99%E7%9A%84%E5%9E%8B%E4%BB%98%E3%81%91%E8%A8%80%E8%AA%9E">静的型付け言語</a></li><li><a class="label label-default" href="/tags/javascript">JavaScript</a></li><li><a class="label label-default" href="/tags/ecmascript">ECMAScript</a></li><li><a class="label label-default" href="/tags/flow">flow</a></li><li><a class="label label-default" href="/tags/flowtype">flowtype</a></li><li><a class="label label-default" href="/tags/ddd">DDD</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p><a href="http://flowtype.org/">flow</a>はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。</p>
+
+<h3 id="なんでprivateフィールドが必要">なんでPrivateフィールドが必要？</h3>
+
+<p>インスタンス生成後に、外部からフィールド値を変更させたくない。<strong>イミュータブル(不変)</strong>なオブジェクトにしたいため。</p>
+
+<ul>
+<li><strong>ドメイン駆動設計</strong>(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。</li>
+<li>同じインスタンスの複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、<strong>予期せぬ不具合が起こる</strong>可能性がある。</li>
+<li>だからといって、オブジェクトのDeepCopyはしたくない。</li>
+<li>オブジェクトを参照で保持して、<strong>負荷軽減＆メモリ効率向上</strong>に期待。(アプリ構造にもよる)</li>
+</ul>
+
+<p>インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。</p>
+
+<h3 id="方法としてはフィールドes6のweakmapが使える">方法としてはフィールドES6のWeakMapが使える</h3>
+
+<p>flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。</p>
+
+<blockquote>
+<p>ES6 class での private プロパティの定義<br />
+<a href="http://qiita.com/k_ui/items/889ec276fc04b1448674">http://qiita.com/k_ui/items/889ec276fc04b1448674</a></p>
+</blockquote>
+
+<p>Symbolアクセスを使う方法は、<code>Object.getOwnPropertySymbols</code>を使えば、外部から値を変更することが可能なため、今回は避けた。</p>
+
+<p>WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。</p>
+
+<h3 id="flowでprivateフィールドを定義してみる">flowでPrivateフィールドを定義してみる</h3>
+
+<pre><code class="language-typescript">// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+class Sample {
+  static privates: WeakMap&lt;Sample, Param&gt; = new WeakMap();
+
+  constructor(param: Param) {
+    Sample.privates.set(this, param);
+  }
+
+  getField1(): number {
+    return Sample.privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return Sample.privates.get(this).field2;
+  }
+}
+</code></pre>
+
+<p>コンストラクタ引数にObjectを渡して、StaticなWeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。</p>
+
+<pre><code class="language-typescript">const sample = new Sample({
+  field1: 1234,
+  field2: &quot;Text&quot;,
+});
+</code></pre>
+
+<p>ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、</p>
+
+<pre><code class="language-typescript">let param = {
+  field1: 1234,
+  field2: &quot;Text&quot;,
+};
+const sample = new Sample(param);
+
+// non-immutable
+param.field1 = 2345;
+
+</code></pre>
+
+<p>コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。</p>
+
+<pre><code class="language-typescript">constructor(param: Param) {
+  // ES7の`object-rest-spread`を使うと楽
+  Sample.privates.set(this, { ...param });
+}
+</code></pre>
+
+<h3 id="おまけ-privateなメソッドも定義できる">[おまけ] Privateなメソッドも定義できる？</h3>
+
+<p>同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。</p>
+
+<pre><code class="language-diff">class Sample {
+  static privates: WeakMap&lt;Sample, Param&gt; = new WeakMap();
+
+  constructor(param: Param) {
+    Sample.privates.set(this, param);
+  }
+
+  getField1(): number {
+    return Sample.privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return Sample.privates.get(this).field2;
+  }
++
++  getPowField1(num: number) {
++    return powField1(this, num);
++  }
+}
+
++// Private method
++function powField1(instance: Sample, num: number) {
++  return Math.pow(Sample.privates.get(instance).field1, num)
++}
+</code></pre>
+
+<p>ただ、ESLintを併用していると、<code>no-use-before-define</code>に引っかかったりする。</p>
+
+<p>ちとまどろっこしいね。</p>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2016\/05\/flow-class-private-fields\/';
+    var disqus_title = '静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2016\/05\/flow-class-private-fields\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"><h3>同じシリーズの記事</h3><ul><li>静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ</li><li><a href="http://blog.namiking.net/post/2016/05/flow-disadvantage/">静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</a></li></ul></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/05/flow-disadvantage/" title="静的型チェッカーflowを使ってみて、微妙に気になったこと４つ"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-05-12 (Thu)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/05/flow-class-private-fields/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/05/flow-class-private-fields/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/05/flow-class-private-fields/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/05/flow-class-private-fields/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/05/flow-class-private-fields/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f05%2fflow-class-private-fields%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-05-12 (Thu)</dt><dd><a href="http://blog.namiking.net/post/2016/05/flow-class-private-fields/">静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ</a></dd><dt>2016-05-12 (Thu)</dt><dd><a href="http://blog.namiking.net/post/2016/05/flow-disadvantage/">静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</a></dd><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/ddd">ddd(1)</a></li><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(3)</a></li><li><a href="/tags/eslint">eslint(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/flow">flow(2)</a></li><li><a href="/tags/flowtype">flowtype(2)</a></li><li><a href="/tags/javascript">javascript(2)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>
