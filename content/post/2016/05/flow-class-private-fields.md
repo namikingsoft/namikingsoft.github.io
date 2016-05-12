@@ -47,24 +47,25 @@ type Param = {
   field2: string,
 }
 
+const privates: WeakMap<Object, Param> = new WeakMap()
+
 class Sample {
-  static privates: WeakMap<Sample, Param> = new WeakMap();
 
   constructor(param: Param) {
-    Sample.privates.set(this, param);
+    privates.set(this, param)
   }
 
   getField1(): number {
-    return Sample.privates.get(this).field1;
+    return privates.get(this).field1
   }
 
   getField2(): string {
-    return Sample.privates.get(this).field2;
+    return privates.get(this).field2
   }
 }
 ```
 
-コンストラクタ引数にObjectを渡して、StaticなWeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
+コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
 
 ```typescript
 const sample = new Sample({
@@ -73,7 +74,7 @@ const sample = new Sample({
 });
 ```
 
-ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、
+ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。
 
 ```typescript
 let param = {
@@ -102,19 +103,20 @@ constructor(param: Param) {
 同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。
 
 ```diff
+const privates: WeakMap<Object, Param> = new WeakMap()
+
 class Sample {
-  static privates: WeakMap<Sample, Param> = new WeakMap();
 
   constructor(param: Param) {
-    Sample.privates.set(this, param);
+    privates.set(this, param)
   }
 
   getField1(): number {
-    return Sample.privates.get(this).field1;
+    return privates.get(this).field1
   }
 
   getField2(): string {
-    return Sample.privates.get(this).field2;
+    return privates.get(this).field2
   }
 +
 +  getPowField1(num: number) {
@@ -124,7 +126,7 @@ class Sample {
 
 +// Private method
 +function powField1(instance: Sample, num: number) {
-+  return Math.pow(Sample.privates.get(instance).field1, num)
++  return Math.pow(privates.get(instance).field1, num)
 +}
 ```
 
