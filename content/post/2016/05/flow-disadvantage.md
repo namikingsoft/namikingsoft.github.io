@@ -66,7 +66,9 @@ module.exports = {
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 
-### ES6のget/setプロパティが使えない
+### Babelを通しても、ES6文法で使えないものがある
+
+例えば、**ES6のget/setプロパティ**が使えなかった。
 
 イミュータブルなオブジェクトを作って、Privateな値を返すゲッターを作った際、プロパティのように扱えるので、好んで使っていたが、
 
@@ -88,7 +90,7 @@ error| get/set properties not yet supported
 ```
 
 
-公式GitHubにもIssueっぽいのはなかったが、`yet`ってあるので、いずれサポートされるのだろうか。
+`yet`ってあるので、いずれサポートされるのだろうか。
 
 
 ### ジェネリクスなクラス/関数の使い方次第でエラー
@@ -166,7 +168,7 @@ https://github.com/facebook/flow/issues/825
 flowを使ってみて、以下４つの気になったことをまとめてみた。
 
 * ESLintとの併用でめんどうな事が多かった
-* ES6のget/setプロパティが使えない
+* Babelを通しても、ES6文法で使えないものがある
 * ジェネリクスなクラス/関数の使い方次第でエラー
 * クラスのフィールド定義などでセミコロンが強制
 
