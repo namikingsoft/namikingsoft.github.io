@@ -55,7 +55,9 @@ module.exports = {
 <p><blockquote class="twitter-tweet" data-conversation="none" data-lang="ja"><p lang="ja" dir="ltr"><a href="https://twitter.com/namikingsoft">@namikingsoft</a> eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。<a href="https://t.co/CD5p5ejHIq">https://t.co/CD5p5ejHIq</a></p>&mdash; Toru Nagashima (@mysticatea) <a href="https://twitter.com/mysticatea/status/728262384771432448">2016年5月5日</a></blockquote>
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script></p>
 
-<h3 id="es6のget-setプロパティが使えない">ES6のget/setプロパティが使えない</h3>
+<h3 id="babelを通しても-es6文法で使えないものがある">Babelを通しても、ES6文法で使えないものがある</h3>
+
+<p>例えば、<strong>ES6のget/setプロパティ</strong>が使えなかった。</p>
 
 <p>イミュータブルなオブジェクトを作って、Privateな値を返すゲッターを作った際、プロパティのように扱えるので、好んで使っていたが、</p>
 
@@ -74,7 +76,7 @@ console.log(a.field)
 <pre><code>error| get/set properties not yet supported
 </code></pre>
 
-<p>公式GitHubにもIssueっぽいのはなかったが、<code>yet</code>ってあるので、いずれサポートされるのだろうか。</p>
+<p><code>yet</code>ってあるので、いずれサポートされるのだろうか。</p>
 
 <h3 id="ジェネリクスなクラス-関数の使い方次第でエラー">ジェネリクスなクラス/関数の使い方次第でエラー</h3>
 
@@ -148,7 +150,7 @@ const nums = toArray(2)
 
 <ul>
 <li>ESLintとの併用でめんどうな事が多かった</li>
-<li>ES6のget/setプロパティが使えない</li>
+<li>Babelを通しても、ES6文法で使えないものがある</li>
 <li>ジェネリクスなクラス/関数の使い方次第でエラー</li>
 <li>クラスのフィールド定義などでセミコロンが強制</li>
 </ul>

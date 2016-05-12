@@ -199,7 +199,9 @@ module.exports = {
 &lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
 &lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;es6のget-setプロパティが使えない&#34;&gt;ES6のget/setプロパティが使えない&lt;/h3&gt;
+&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
+
+&lt;p&gt;例えば、&lt;strong&gt;ES6のget/setプロパティ&lt;/strong&gt;が使えなかった。&lt;/p&gt;
 
 &lt;p&gt;イミュータブルなオブジェクトを作って、Privateな値を返すゲッターを作った際、プロパティのように扱えるので、好んで使っていたが、&lt;/p&gt;
 
@@ -218,7 +220,7 @@ console.log(a.field)
 &lt;pre&gt;&lt;code&gt;error| get/set properties not yet supported
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;公式GitHubにもIssueっぽいのはなかったが、&lt;code&gt;yet&lt;/code&gt;ってあるので、いずれサポートされるのだろうか。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;yet&lt;/code&gt;ってあるので、いずれサポートされるのだろうか。&lt;/p&gt;
 
 &lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
 
@@ -292,7 +294,7 @@ const nums = toArray(2)
 
 &lt;ul&gt;
 &lt;li&gt;ESLintとの併用でめんどうな事が多かった&lt;/li&gt;
-&lt;li&gt;ES6のget/setプロパティが使えない&lt;/li&gt;
+&lt;li&gt;Babelを通しても、ES6文法で使えないものがある&lt;/li&gt;
 &lt;li&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/li&gt;
 &lt;li&gt;クラスのフィールド定義などでセミコロンが強制&lt;/li&gt;
 &lt;/ul&gt;
