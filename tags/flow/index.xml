@@ -54,24 +54,25 @@ type Param = {
   field2: string,
 }
 
+const privates: WeakMap&amp;lt;Object, Param&amp;gt; = new WeakMap()
+
 class Sample {
-  static privates: WeakMap&amp;lt;Sample, Param&amp;gt; = new WeakMap();
 
   constructor(param: Param) {
-    Sample.privates.set(this, param);
+    privates.set(this, param)
   }
 
   getField1(): number {
-    return Sample.privates.get(this).field1;
+    return privates.get(this).field1
   }
 
   getField2(): string {
-    return Sample.privates.get(this).field2;
+    return privates.get(this).field2
   }
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;コンストラクタ引数にObjectを渡して、StaticなWeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。&lt;/p&gt;
+&lt;p&gt;コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const sample = new Sample({
   field1: 1234,
@@ -79,7 +80,7 @@ class Sample {
 });
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、&lt;/p&gt;
+&lt;p&gt;ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;let param = {
   field1: 1234,
@@ -104,19 +105,20 @@ param.field1 = 2345;
 
 &lt;p&gt;同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;class Sample {
-  static privates: WeakMap&amp;lt;Sample, Param&amp;gt; = new WeakMap();
+&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;const privates: WeakMap&amp;lt;Object, Param&amp;gt; = new WeakMap()
+
+class Sample {
 
   constructor(param: Param) {
-    Sample.privates.set(this, param);
+    privates.set(this, param)
   }
 
   getField1(): number {
-    return Sample.privates.get(this).field1;
+    return privates.get(this).field1
   }
 
   getField2(): string {
-    return Sample.privates.get(this).field2;
+    return privates.get(this).field2
   }
 +
 +  getPowField1(num: number) {
@@ -126,7 +128,7 @@ param.field1 = 2345;
 
 +// Private method
 +function powField1(instance: Sample, num: number) {
-+  return Math.pow(Sample.privates.get(instance).field1, num)
++  return Math.pow(privates.get(instance).field1, num)
 +}
 &lt;/code&gt;&lt;/pre&gt;
 
