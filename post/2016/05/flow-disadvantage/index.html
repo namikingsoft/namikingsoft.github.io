@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>静的型チェッカーflowを使ってみて、微妙に気になったこと４つ - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2016-05-12 (Thu)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/%E9%9D%99%E7%9A%84%E5%9E%8B%E4%BB%98%E3%81%91%E8%A8%80%E8%AA%9E">静的型付け言語</a></li><li><a class="label label-default" href="/tags/javascript">JavaScript</a></li><li><a class="label label-default" href="/tags/ecmascript">ECMAScript</a></li><li><a class="label label-default" href="/tags/flow">flow</a></li><li><a class="label label-default" href="/tags/flowtype">flowtype</a></li><li><a class="label label-default" href="/tags/eslint">ESLint</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p><a href="http://flowtype.org/">flow</a>はJavaScriptの静的型チェックツールの一つ。</p>
+
+<p>同じような静的型関連ツールであるTypeScriptと比較して、ESLintやBabelとの併用がしやすかったり、型付けが強めだったり(初期からnon-nullableに対応)と、受ける恩恵も多い。</p>
+
+<p>が、使っていて「おやっ？」っと思う点もいくつかあったので、まとめてみた。</p>
+
+<h2 id="気になったこと４つ">気になったこと４つ</h2>
+
+<h3 id="eslintとの併用でめんどうな事が多かった">ESLintとの併用でめんどうな事が多かった</h3>
+
+<p><a href="https://github.com/babel/babel-eslint">babel-eslint</a>というBabelパーサーを用いれば、概ねのESLintルールがflow文法でも適応できるが、例外もあった。</p>
+
+<p>例えば、インターフェイスの定義の場合、</p>
+
+<pre><code class="language-typescript">interface I {
+  field: number;
+  method(): string;
+}
+</code></pre>
+
+<p>ESLintの<code>no-undef</code>ルールを有効にしていると、以下のエラーが発生する。</p>
+
+<pre><code>error| 'I' is not defined. (no-undef)
+</code></pre>
+
+<p>ESLintの誤爆ではあるが、そもそも、<code>interface</code>なんて文法はECMAScriptにはないので、対応しとってのも無茶な話である。</p>
+
+<p>ESLintの<code>no-undef</code>まわりを無効にすればエラーは出ないが、有志の方が、flow用のBabelカスタムルールを実装してくれているので、ありがたく利用させていただく。</p>
+
+<blockquote>
+<p>GitHub: zertosh/eslint-plugin-flow-vars<br />
+<a href="https://github.com/zertosh/eslint-plugin-flow-vars">https://github.com/zertosh/eslint-plugin-flow-vars</a></p>
+</blockquote>
+
+<p>このBabelプラグインを使ってカスタムルールを有効にすれば、<code>no-undef</code>を無効にすることなく、ESLintとflowを併用できる。</p>
+
+<pre><code class="language-diff">// .eslintrc.jsの修正例
+module.exports = {
+  &quot;parser&quot;: &quot;babel-eslint&quot;,
++ &quot;plugins&quot;:
++   &quot;flow-vars&quot;,
++ ],
+  &quot;rules&quot;: {
+    &quot;no-undef&quot;: 1,
++   &quot;flow-vars/define-flow-type&quot;: 1,
++   &quot;flow-vars/use-flow-type&quot;: 1,
+  },
+};
+</code></pre>
+
+<p>その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。不具合があり次第、逐一有効にしていく必要があるかも。</p>
+
+<p><blockquote class="twitter-tweet" data-conversation="none" data-lang="ja"><p lang="ja" dir="ltr"><a href="https://twitter.com/namikingsoft">@namikingsoft</a> eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。<a href="https://t.co/CD5p5ejHIq">https://t.co/CD5p5ejHIq</a></p>&mdash; Toru Nagashima (@mysticatea) <a href="https://twitter.com/mysticatea/status/728262384771432448">2016年5月5日</a></blockquote>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+
+<h3 id="es6のget-setプロパティが使えない">ES6のget/setプロパティが使えない</h3>
+
+<p>イミュータブルなオブジェクトを作って、Privateな値を返すゲッターを作った際、プロパティのように扱えるので、好んで使っていたが、</p>
+
+<pre><code class="language-typescript">class A {
+  get field(): number {
+    return 1234
+  }
+}
+
+const a = new A()
+console.log(a.field)
+</code></pre>
+
+<p>flowに通すと、怒られる。</p>
+
+<pre><code>error| get/set properties not yet supported
+</code></pre>
+
+<p>公式GitHubにもIssueっぽいのはなかったが、<code>yet</code>ってあるので、いずれサポートされるのだろうか。</p>
+
+<h3 id="ジェネリクスなクラス-関数の使い方次第でエラー">ジェネリクスなクラス/関数の使い方次第でエラー</h3>
+
+<p>flow的には<strong>Polymorphism</strong>というのかな？<br />
+TypeScriptやJava感覚で以下のように書くと、flowだとSyntaxエラーになった。</p>
+
+<pre><code class="language-typescript">const map = new Map&lt;string, number&gt;()
+</code></pre>
+
+<pre><code>error| Parsing error: Unexpected token
+</code></pre>
+
+<p>そもそもBabelがエラーを吐く。<code>babel-plugin-transform-flow-strip-types</code>の限界っぽい。</p>
+
+<p>以下のように書くのがflow流っぽいが、なんか冗長な感じがして、あまり好みじゃない。</p>
+
+<pre><code class="language-typescript">// 変数定義で型を決めとく
+const map: WeakMap&lt;string, number&gt; = new WeakMap()
+
+// 型のキャスト
+const map = (new WeakMap(): WeakMap&lt;string, number&gt;)
+</code></pre>
+
+<p>関数の場合も似たようなSyntaxエラーを吐くが、
+以下の様な型推論が効く例だと、逆にスマートな感じで良い。</p>
+
+<pre><code class="language-typescript">function toArray&lt;T&gt;(x: T): Array&lt;T&gt; {
+  return [x]
+}
+
+// 引数の型(number)を元に、返り値の型(Array&lt;number&gt;)が推論される
+const nums = toArray(2)
+</code></pre>
+
+<h3 id="クラスのフィールド定義などでセミコロンが強制">クラスのフィールド定義などでセミコロンが強制</h3>
+
+<p>クラスやインタフェースの定義などで、以下のように書くと、</p>
+
+<pre><code class="language-typescript">class A {
+  num: number
+
+  constructor(num: number) {
+    this.number = num
+  }
+}
+</code></pre>
+
+<p>次のエラーが、constructorの行で発生する。</p>
+
+<pre><code>error| Unexpected identifier
+</code></pre>
+
+<p>フィールド定義の行末尾にセミコロン(;)を入れれば、エラーは出ない。</p>
+
+<pre><code class="language-diff">class A {
+- num: number
++ num: number;
+
+  constructor(num: number) {
+    this.number = num
+  }
+}
+</code></pre>
+
+<p>アンチ・セミコロン派には吐きそうなほどキツイ仕様。<br />
+<a href="https://github.com/facebook/flow/issues/825">https://github.com/facebook/flow/issues/825</a></p>
+
+<h2 id="まとめ">まとめ</h2>
+
+<p>flowを使ってみて、以下４つの気になったことをまとめてみた。</p>
+
+<ul>
+<li>ESLintとの併用でめんどうな事が多かった</li>
+<li>ES6のget/setプロパティが使えない</li>
+<li>ジェネリクスなクラス/関数の使い方次第でエラー</li>
+<li>クラスのフィールド定義などでセミコロンが強制</li>
+</ul>
+
+<p>flowは現在も、定期的にVerUPされているツールなので、今回上げた点もいつの間に修正されているかもしれない。今後も細かく見ていきたい。</p>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2016\/05\/flow-disadvantage\/';
+    var disqus_title = '静的型チェッカーflowを使ってみて、微妙に気になったこと４つ';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2016\/05\/flow-disadvantage\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/02/react-server-using-webpack/" title="サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-02-13 (Sat)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/05/flow-disadvantage/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/05/flow-disadvantage/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/05/flow-disadvantage/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/05/flow-disadvantage/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/05/flow-disadvantage/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f05%2fflow-disadvantage%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-05-12 (Thu)</dt><dd><a href="http://blog.namiking.net/post/2016/05/flow-disadvantage/">静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</a></dd><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(2)</a></li><li><a href="/tags/eslint">eslint(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/flow">flow(1)</a></li><li><a href="/tags/flowtype">flowtype(1)</a></li><li><a href="/tags/javascript">javascript(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>

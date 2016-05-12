@@ -21,9 +21,9 @@
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/logos.png&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;事前準備:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。Dockerのオーバーレイネットワーク機能を使うので、それを利用できるバージョンを入れる。&lt;/p&gt;
 
@@ -33,15 +33,15 @@
 &lt;li&gt;docker-machine&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;気をつけたいポイント４つ:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
+&lt;h3 id=&#34;気をつけたいポイント４つ&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
 
-&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
+&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
 
 &lt;p&gt;例えば、ホストOSにUbuntu14.04を選んでいると、オーバーレイ・ネットワーク上にのコンテナを立ち上げる時にエラーが出る。&lt;/p&gt;
 
@@ -58,7 +58,7 @@ ERROR: Cannot start container (container_id):
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;によると、「A host with a 3.16 kernel version or higher.」とのこと。DigitalOceanのUbuntu14.04はカーネルが古いようなので、14.10とか15.04以上を使う必要がある。&lt;/p&gt;
 
-&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
+&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;のサンプルをそのまま使うと、&lt;code&gt;docker-machine create&lt;/code&gt;時に概ね次のようなエラーに遭遇する。&lt;/p&gt;
 
@@ -88,7 +88,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
   ...
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
+&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmクラスタのノードに含めてしまおう。&lt;/p&gt;
 
@@ -100,7 +100,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/structure.svg&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;04-consulはプライベートネットワークに置く:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
+&lt;h4 id=&#34;04-consulはプライベートネットワークに置く&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;の感覚で、DigitalOceanにConsulキーストアを導入すると、グローバルにWebUIが公開されてしまい、精神的によろしくない。&lt;/p&gt;
 
@@ -126,7 +126,7 @@ open http://localhost:8500
 &lt;a href=&#34;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&#34;&gt;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;具体的な実行手順:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;具体的な実行手順&lt;/h3&gt;
+&lt;h3 id=&#34;具体的な実行手順&#34;&gt;具体的な実行手順&lt;/h3&gt;
 
 &lt;p&gt;自動化しやすいように、上のポイント４つを踏まえたシェルの実行手順を以下にまとめる。&lt;/p&gt;
 
@@ -217,7 +217,7 @@ docker-machine ssh swarm-node1 &amp;quot;
 &amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;注記いくつか:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;注記いくつか&lt;/h4&gt;
+&lt;h4 id=&#34;注記いくつか&#34;&gt;注記いくつか&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;シェル中の&lt;code&gt;${DIGITALOCEAN_TOKEN}&lt;/code&gt;はDigitalOceanの管理画面から取得したアクセストークンに置き換える。&lt;/li&gt;
@@ -226,9 +226,9 @@ docker-machine ssh swarm-node1 &amp;quot;
 &lt;li&gt;途中で、マスターのプライベートIPを取得しているのは、各ノードに設置したConsulクライアントをサーバーにJOINさせるため。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;動作確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
 
-&lt;h4 id=&#34;swarmクラスタ確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
+&lt;h4 id=&#34;swarmクラスタ確認&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ eval $(docker-machine env --swarm swarm-node0)
 $ docker info
@@ -258,9 +258,9 @@ Name: swarm-node0
 
 &lt;p&gt;ノードが２つあることが確認できる。&lt;/p&gt;
 
-&lt;h4 id=&#34;オーバーレイ-ネットワークの確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
+&lt;h4 id=&#34;オーバーレイ-ネットワークの確認&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
 
-&lt;h5 id=&#34;docker-compose-yml:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;docker-compose.yml&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;container1:
   image: busybox
@@ -277,7 +277,7 @@ container2:
   command: tail -f /dev/null
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
+&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker-compose --x-networking up -d
 $ docker ps --format &amp;quot;{{.Names}}&amp;quot;
@@ -288,7 +288,7 @@ swarm-node1/container2
 
 &lt;p&gt;それぞれのノードにコンテナが作られた。&lt;/p&gt;
 
-&lt;h5 id=&#34;疎通確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;疎通確認&lt;/h5&gt;
+&lt;h5 id=&#34;疎通確認&#34;&gt;疎通確認&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker exec -it container1 ping container2 -c4
 

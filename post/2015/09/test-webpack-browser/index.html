@@ -11,7 +11,7 @@
 
 <p><img src="/images/post/2015/09/test-webpack-browser/index.jpg" alt="ScreenShot" /></p>
 
-<h3 id="動作サンプル:83d5efb00d572fc7f727b6dff95ecdf6">動作サンプル</h3>
+<h3 id="動作サンプル">動作サンプル</h3>
 
 <p>ひと通り動くサンプルを作ったので、以下のGitHubに上げておきます。
 nodeやnpmがインストールされていれば、動作すると思われます。</p>
@@ -24,7 +24,7 @@ nodeやnpmがインストールされていれば、動作すると思われま�
 <a href="https://github.com/namikingsoft/sample-webpack-test">https://github.com/namikingsoft/sample-webpack-test</a></p>
 </blockquote>
 
-<h3 id="試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6">試しにブラウザで動かしてみる</h3>
+<h3 id="試しにブラウザで動かしてみる">試しにブラウザで動かしてみる</h3>
 
 <p>GitHub上の<a href="https://github.com/namikingsoft/sample-webpack-test">動作サンプル</a>をcloneして、
 webpack-dev-serverを起動したら、
@@ -32,7 +32,7 @@ webpack-dev-serverを起動したら、
 
 <p><a href="http://localhost:8080/webpack-dev-server/">http://localhost:8080/webpack-dev-server/</a></p>
 
-<h4 id="コマンド例:83d5efb00d572fc7f727b6dff95ecdf6">コマンド例</h4>
+<h4 id="コマンド例">コマンド例</h4>
 
 <pre><code class="language-bash">git clone https://github.com/namikingsoft/sample-webpack-test
 cd sample-webpack-test
@@ -40,7 +40,7 @@ npm install &amp;&amp; npm start
 open http://localhost:8080/webpack-dev-server/
 </code></pre>
 
-<h4 id="動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6">動作画面の例</h4>
+<h4 id="動作画面の例">動作画面の例</h4>
 
 <p>フロントエンドアプリとMochaのSpecを同時に動かしている図。
 Seleniumみたいにギュンギュン動いて楽しい。
@@ -49,12 +49,12 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 <p><img src="/images/post/2015/09/test-webpack-browser/animation.gif" alt="Animation" /></p>
 
 <p>Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL<sup class="footnote-ref" id="fnref:83d5efb00d572fc7f727b6dff95ecdf6:1"><a rel="footnote" href="#fn:83d5efb00d572fc7f727b6dff95ecdf6:1">1</a></sup>で可能。
+アプリの動作確認だけしたいときは以下のURL<sup class="footnote-ref" id="fnref:1"><a rel="footnote" href="#fn:1">1</a></sup>で可能。
 <a href="http://localhost:8081/webpack-dev-server/app">http://localhost:8081/webpack-dev-server/app</a></p>
 
-<h3 id="ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6">ざっくり解説</h3>
+<h3 id="ざっくり解説">ざっくり解説</h3>
 
-<h4 id="ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6">ファイル構成</h4>
+<h4 id="ファイル構成">ファイル構成</h4>
 
 <pre><code class="language-sh">sample-webpack-test
 |-- build
@@ -72,7 +72,7 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 webpack-dev-server内の動作であれば、
 メモリ内のものが呼び出されるようなので、特に設置する必要はなさそう。</p>
 
-<h4 id="複数のspecファイルに対応する:83d5efb00d572fc7f727b6dff95ecdf6">複数のSpecファイルに対応する</h4>
+<h4 id="複数のspecファイルに対応する">複数のSpecファイルに対応する</h4>
 
 <p>npmのglobモジュールを利用して、
 複数のSpecファイルをエントリーポイントに含めることができる。
@@ -86,7 +86,7 @@ entry: {
 }
 </code></pre>
 
-<h4 id="修正後に自動的にテストが走るようにする:83d5efb00d572fc7f727b6dff95ecdf6">修正後に自動的にテストが走るようにする</h4>
+<h4 id="修正後に自動的にテストが走るようにする">修正後に自動的にテストが走るようにする</h4>
 
 <p>webpack-dev-serverには、ファイル修正を検知して再読み込みをしてくれる、
 hotモードという機能が付いているので、webpack.config.jsでそれをを有効にする。</p>
@@ -109,7 +109,7 @@ plugins: [
 ],
 </code></pre>
 
-<h4 id="specファイルをブラウザで動作するように変換する:83d5efb00d572fc7f727b6dff95ecdf6">Specファイルをブラウザで動作するように変換する</h4>
+<h4 id="specファイルをブラウザで動作するように変換する">Specファイルをブラウザで動作するように変換する</h4>
 
 <p>webpackの<a href="http://webpack.github.io/docs/testing.html">Testing</a>のページにもあるが、
 mocha-loaderを噛ますことで、ブラウザでMochaが利用可能になるJSが吐き出せるようになる。</p>
@@ -138,7 +138,7 @@ module: {
 },
 </code></pre>
 
-<h4 id="appとspecを同時に走らせるhtmlを用意:83d5efb00d572fc7f727b6dff95ecdf6">AppとSpecを同時に走らせるHTMLを用意</h4>
+<h4 id="appとspecを同時に走らせるhtmlを用意">AppとSpecを同時に走らせるHTMLを用意</h4>
 
 <p>アプリの動作画面にSpec結果のレイアウトを入れ込む。<br />
 <code>app.js</code>で必要なUIを書き出すなどの初期処理を行ってから、<code>spec.js</code>を走らせている。</p>
@@ -175,7 +175,7 @@ module: {
 &lt;/html&gt;
 </code></pre>
 
-<h3 id="あとがき:83d5efb00d572fc7f727b6dff95ecdf6">あとがき</h3>
+<h3 id="あとがき">あとがき</h3>
 
 <p>ChromeとかFirefoxなどの複数のブラウザ上で手軽にフロント動作仕様を自動チェックしたい、
 みたいなときの方法論の一つとして紹介してみた。</p>
@@ -189,8 +189,8 @@ webpackはKermaとも簡単に連動できるようなので、
 <hr />
 
 <ol>
-<li id="fn:83d5efb00d572fc7f727b6dff95ecdf6:1">URLの<code>app</code>の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(<code>.js</code>は省略してます)
- <a class="footnote-return" href="#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1"><sup>[return]</sup></a></li>
+<li id="fn:1">URLの<code>app</code>の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(<code>.js</code>は省略してます)
+ <a class="footnote-return" href="#fnref:1"><sup>[return]</sup></a></li>
 </ol>
 </div>
 </div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
@@ -207,4 +207,4 @@ webpackはKermaとも簡単に連動できるようなので、
     })();
 </script>
 <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"><a href="/post/2015/09/docker-exec-exited/" title="Dockerイメージのビルド中にExitedしたコンテナに入る方法"><i class="fa fa-arrow-circle-o-left"></i><p class="hidden-xs">2015-09-29 (Tue)</p></a></div><div class="module-paging__next col-xs-6"><a href="/post/2015/09/kanban-board/" title="オープンソースのかんばん式管理ツールを３つほど試してみた"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2015-09-04 (Fri)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2015/09/test-webpack-browser/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2015%2f09%2ftest-webpack-browser%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"><a href="/post/2015/09/docker-exec-exited/" title="Dockerイメージのビルド中にExitedしたコンテナに入る方法"><i class="fa fa-arrow-circle-o-left"></i><p class="hidden-xs">2015-09-29 (Tue)</p></a></div><div class="module-paging__next col-xs-6"><a href="/post/2015/09/kanban-board/" title="オープンソースのかんばん式管理ツールを３つほど試してみた"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2015-09-04 (Fri)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2015/09/test-webpack-browser/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2015/09/test-webpack-browser/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2015%2f09%2ftest-webpack-browser%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-05-12 (Thu)</dt><dd><a href="http://blog.namiking.net/post/2016/05/flow-disadvantage/">静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</a></dd><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(2)</a></li><li><a href="/tags/eslint">eslint(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/flow">flow(1)</a></li><li><a href="/tags/flowtype">flowtype(1)</a></li><li><a href="/tags/javascript">javascript(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>

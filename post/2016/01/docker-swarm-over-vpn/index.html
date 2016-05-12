@@ -2,9 +2,9 @@
 
 <p>クラウド上で組んだDockerのオーバーレイネットワークの中に、屋内ファイアウォール内のマシンで組んでたDockerを参加させることができないか、試してみた。</p>
 
-<h3 id="なぜに-余談:de820086aea356a53ede32388b7ce8bb">なぜに？ (余談)</h3>
+<h3 id="なぜに-余談">なぜに？ (余談)</h3>
 
-<p>例えば、<a href="/post/2016/01/docker-swarm-spark/">以前の記事</a>のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin<sup class="footnote-ref" id="fnref:de820086aea356a53ede32388b7ce8bb:1"><a rel="footnote" href="#fn:de820086aea356a53ede32388b7ce8bb:1">1</a></sup>を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。</p>
+<p>例えば、<a href="/post/2016/01/docker-swarm-spark/">以前の記事</a>のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin<sup class="footnote-ref" id="fnref:1"><a rel="footnote" href="#fn:1">1</a></sup>を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。</p>
 
 <p><img src="/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local.svg" alt="Zeppelin on Local" /></p>
 
@@ -19,17 +19,17 @@
 
 <p><img src="/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local-ideal.svg" alt="Zeppelin on Local Ideal" /></p>
 
-<h3 id="この記事でやること:de820086aea356a53ede32388b7ce8bb">この記事でやること</h3>
+<h3 id="この記事でやること">この記事でやること</h3>
 
 <p>上のApache Sparkの例は置いといて、今回は取り急ぎクラウドとローカルを跨いだSwarmクラスタを構築して、Dockerオーバーレイネットワークの疎通確認を行いたい。検証のため、以下の図の様な構成を準備して、オーバーレイネットワークの疎通を確認する。</p>
 
 <p><img src="/images/post/2016/01/docker-swarm-over-vpn/docker-swarm-over-vpn.svg" alt="Zeppelin on Local Ideal" /></p>
 
-<h5 id="要点:de820086aea356a53ede32388b7ce8bb">要点</h5>
+<h5 id="要点">要点</h5>
 
 <ul>
 <li>ローカル環境とクラウドのDockerをVPNを用いて、オーバーレイネットワークで繋ぎたい。</li>
-<li>VPN接続には、SoftEther VPN<sup class="footnote-ref" id="fnref:de820086aea356a53ede32388b7ce8bb:2"><a rel="footnote" href="#fn:de820086aea356a53ede32388b7ce8bb:2">2</a></sup>を使ってみる。</li>
+<li>VPN接続には、SoftEther VPN<sup class="footnote-ref" id="fnref:2"><a rel="footnote" href="#fn:2">2</a></sup>を使ってみる。</li>
 <li>ローカル側とクラウド側１台ずつ、Swarm Masterをレプリケーションした。
 
 <ul>
@@ -38,9 +38,9 @@
 </ul></li>
 </ul>
 
-<h3 id="事前準備:de820086aea356a53ede32388b7ce8bb">事前準備</h3>
+<h3 id="事前準備">事前準備</h3>
 
-<h4 id="必要なソフトウェアのインストール:de820086aea356a53ede32388b7ce8bb">必要なソフトウェアのインストール</h4>
+<h4 id="必要なソフトウェアのインストール">必要なソフトウェアのインストール</h4>
 
 <p>作業で使うPC(またはホスト)に以下のソフトウェアをインストールしておく。</p>
 
@@ -50,13 +50,13 @@
 <li>Virtualbox (vagrantを併用してもよい)</li>
 </ul>
 
-<h4 id="digitaloceanの登録とアクセストークンの取得:de820086aea356a53ede32388b7ce8bb">DigitalOceanの登録とアクセストークンの取得</h4>
+<h4 id="digitaloceanの登録とアクセストークンの取得">DigitalOceanの登録とアクセストークンの取得</h4>
 
 <p>登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。</p>
 
 <p><a href="https://www.digitalocean.com/">https://www.digitalocean.com/</a></p>
 
-<h3 id="ノード用のホストを用意する:de820086aea356a53ede32388b7ce8bb">ノード用のホストを用意する</h3>
+<h3 id="ノード用のホストを用意する">ノード用のホストを用意する</h3>
 
 <p>今回の例では、DigitalOceanでノードを２台とローカルでVirtualbox１台を用意する。</p>
 
@@ -98,7 +98,7 @@
 </tbody>
 </table>
 
-<h5 id="備考:de820086aea356a53ede32388b7ce8bb">備考</h5>
+<h5 id="備考">備考</h5>
 
 <ul>
 <li>swarm-node0はマスターノードとして使う</li>
@@ -107,13 +107,13 @@
 <li>VPNのIPについては、VPN接続後に割り当てる。</li>
 </ul>
 
-<h3 id="softether-vpn-serverを動かす:de820086aea356a53ede32388b7ce8bb">SoftEther VPN Serverを動かす</h3>
+<h3 id="softether-vpn-serverを動かす">SoftEther VPN Serverを動かす</h3>
 
 <p>swarm-node0にSSHなどでログインして、作業を行う。</p>
 
 <p>Linux版については、<a href="https://ja.softether.org/">SoftEther VPNのサイト</a>からソースコードをダウンロードして、コンパイルする。後で自動化しやすいように、GUIやインタラクティブCUIを使わないように書いておく。</p>
 
-<h4 id="ダウンロード:de820086aea356a53ede32388b7ce8bb">ダウンロード</h4>
+<h4 id="ダウンロード">ダウンロード</h4>
 
 <pre><code class="language-sh"># 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -124,7 +124,7 @@ curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.1
 tar xzf softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 </code></pre>
 
-<h4 id="コンパイルとインストール:de820086aea356a53ede32388b7ce8bb">コンパイルとインストール</h4>
+<h4 id="コンパイルとインストール">コンパイルとインストール</h4>
 
 <pre><code class="language-sh"># コンパイル
 cd vpnserver
@@ -135,7 +135,7 @@ export PATH=&quot;/usr/local/src/vpnserver:$PATH&quot;
 echo 'export PATH=&quot;/usr/local/src/vpnserver:$PATH&quot;' &gt;&gt; /etc/profile
 </code></pre>
 
-<h4 id="サービス登録と起動-systemd:de820086aea356a53ede32388b7ce8bb">サービス登録と起動 (systemd)</h4>
+<h4 id="サービス登録と起動-systemd">サービス登録と起動 (systemd)</h4>
 
 <pre><code class="language-sh"># サービス登録
 cat &lt;&lt; EOS &gt; /lib/systemd/system/vpnserver.service
@@ -157,7 +157,7 @@ systemctl enable vpnserver
 systemctl start vpnserver
 </code></pre>
 
-<h4 id="vpnサーバー設定:de820086aea356a53ede32388b7ce8bb">VPNサーバー設定</h4>
+<h4 id="vpnサーバー設定">VPNサーバー設定</h4>
 
 <pre><code class="language-sh"># 各種設定項目 (値は任意で決める)
 export HUBNAME=cluster
@@ -199,12 +199,12 @@ vpncmd localhost /SERVER /CMD \
 <p>VPN設定のリファレンスは以下を参照。<br />
 <a href="https://ja.softether.org/4-docs/1-manual/6/6.4">https://ja.softether.org/4-docs/1-manual/6/6.4</a></p>
 
-<h3 id="softether-vpn-clientを動かす:de820086aea356a53ede32388b7ce8bb">SoftEther VPN Clientを動かす</h3>
+<h3 id="softether-vpn-clientを動かす">SoftEther VPN Clientを動かす</h3>
 
 <p>全てのノードにSSHなどでログインして、作業を行う。<br />
 Serverと同じく、<a href="https://ja.softether.org/">SoftEther VPNのサイト</a>からソースコードをダウンロードして、コンパイルする。</p>
 
-<h4 id="ダウンロード-1:de820086aea356a53ede32388b7ce8bb">ダウンロード</h4>
+<h4 id="ダウンロード-1">ダウンロード</h4>
 
 <pre><code class="language-sh"># 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -216,7 +216,7 @@ tar xzf softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 rm softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 </code></pre>
 
-<h4 id="コンパイルとインストール-1:de820086aea356a53ede32388b7ce8bb">コンパイルとインストール</h4>
+<h4 id="コンパイルとインストール-1">コンパイルとインストール</h4>
 
 <pre><code class="language-sh"># コンパイル
 cd vpnclient
@@ -227,7 +227,7 @@ export PATH=&quot;/usr/local/src/vpnclient:$PATH&quot;
 echo 'export PATH=&quot;/usr/local/src/vpnclient:$PATH&quot;' &gt;&gt; /etc/profile
 </code></pre>
 
-<h4 id="サービス登録と起動-systemd-1:de820086aea356a53ede32388b7ce8bb">サービス登録と起動 (systemd)</h4>
+<h4 id="サービス登録と起動-systemd-1">サービス登録と起動 (systemd)</h4>
 
 <pre><code class="language-sh"># サービス登録
 cat &lt;&lt; EOS &gt; /lib/systemd/system/vpnclient.service
@@ -249,7 +249,7 @@ systemctl enable vpnclient
 systemctl start vpnclient
 </code></pre>
 
-<h4 id="vpnサーバー設定-1:de820086aea356a53ede32388b7ce8bb">VPNサーバー設定</h4>
+<h4 id="vpnサーバー設定-1">VPNサーバー設定</h4>
 
 <pre><code class="language-sh"># 各種設定項目 (基本的にはServerの値と合わせる)
 ACCOUNT=private
@@ -292,7 +292,7 @@ dhclient vpn_$NICNAME
 
 <p>swarm-node0だけは、DHCPでIPを振らずに固定IPを設定する。</p>
 
-<h4 id="vpn接続確認:de820086aea356a53ede32388b7ce8bb">VPN接続確認</h4>
+<h4 id="vpn接続確認">VPN接続確認</h4>
 
 <p>SoftEther VPNのClientのセッティングが完了すると、以下の様な成果が出る。</p>
 
@@ -312,11 +312,11 @@ dhclient vpn_$NICNAME
 
 <p>これから設置するConsulやDockerは、このネットワークにのせるように設定する。</p>
 
-<h3 id="各ノードでconsulを動かす:de820086aea356a53ede32388b7ce8bb">各ノードでConsulを動かす</h3>
+<h3 id="各ノードでconsulを動かす">各ノードでConsulを動かす</h3>
 
 <p>インストールとサービス登録手順については、<a href="/post/2016/01/docker-swarm-build-using-tls#各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8">以前の記事</a>にまとめてあるので参照されたい。ここではConsulサーバーの設定手順を示す。</p>
 
-<h4 id="swarm-node0にてサーバーモードで動かす設定:de820086aea356a53ede32388b7ce8bb">swarm-node0にてサーバーモードで動かす設定</h4>
+<h4 id="swarm-node0にてサーバーモードで動かす設定">swarm-node0にてサーバーモードで動かす設定</h4>
 
 <p>SSHでログインして、作業を行う。</p>
 
@@ -349,7 +349,7 @@ EOS
 systemctl start consul
 </code></pre>
 
-<h4 id="swarm-node1とswarm-localにてクライアントモードで動かす設定:de820086aea356a53ede32388b7ce8bb">swarm-node1とswarm-localにてクライアントモードで動かす設定</h4>
+<h4 id="swarm-node1とswarm-localにてクライアントモードで動かす設定">swarm-node1とswarm-localにてクライアントモードで動かす設定</h4>
 
 <p>SSHでログインして、作業を行う。</p>
 
@@ -382,7 +382,7 @@ EOS
 systemctl start consul
 </code></pre>
 
-<h4 id="メンバー確認:de820086aea356a53ede32388b7ce8bb">メンバー確認</h4>
+<h4 id="メンバー確認">メンバー確認</h4>
 
 <p>各ノードのConsulが連携できているかを確認する。</p>
 
@@ -399,7 +399,7 @@ Node     Address            Status  Type    Build  Protocol  DC
 <pre><code class="language-sh">open http://192.168.30.2:8500
 </code></pre>
 
-<h3 id="各ノードでdockerを動かす:de820086aea356a53ede32388b7ce8bb">各ノードでDockerを動かす</h3>
+<h3 id="各ノードでdockerを動かす">各ノードでDockerを動かす</h3>
 
 <ul>
 <li>全3ノードに対して、SSHでログインして作業を行う。</li>
@@ -409,12 +409,12 @@ Node     Address            Status  Type    Build  Protocol  DC
 <li>ただし、<code>vpn_vlan0</code>以外はポートをファイアウォールで閉じておく。</li>
 </ul>
 
-<h4 id="インストール:de820086aea356a53ede32388b7ce8bb">インストール</h4>
+<h4 id="インストール">インストール</h4>
 
 <pre><code class="language-sh">wget -qO- https://get.docker.com/ | sh
 </code></pre>
 
-<h4 id="ファイアウォール設定:de820086aea356a53ede32388b7ce8bb">ファイアウォール設定</h4>
+<h4 id="ファイアウォール設定">ファイアウォール設定</h4>
 
 <pre><code class="language-sh">iptables -A INPUT -i eth0 -p tcp -m tcp --dport 2375 -j DROP
 iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
@@ -422,7 +422,7 @@ iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
 
 <p>DigitalOceanのノードのみでよい。</p>
 
-<h4 id="dockerデーモン起動時の引数設定:de820086aea356a53ede32388b7ce8bb">Dockerデーモン起動時の引数設定</h4>
+<h4 id="dockerデーモン起動時の引数設定">Dockerデーモン起動時の引数設定</h4>
 
 <pre><code class="language-sh">vi /lib/systemd/system/docker.service
 
@@ -438,16 +438,16 @@ ExecStart=/usr/bin/docker daemon \
 
 <p>変更後は見やすさのため複数行で書いているが、<code>\</code>を消して1行ぶっ続けで記述する。</p>
 
-<h4 id="docker再起動:de820086aea356a53ede32388b7ce8bb">Docker再起動</h4>
+<h4 id="docker再起動">Docker再起動</h4>
 
 <pre><code class="language-sh">service docker restart
 </code></pre>
 
-<h3 id="各ノードでswarmコンテナを動かす:de820086aea356a53ede32388b7ce8bb">各ノードでSwarmコンテナを動かす</h3>
+<h3 id="各ノードでswarmコンテナを動かす">各ノードでSwarmコンテナを動かす</h3>
 
 <p>各ノードにSSHでログインして、Swarmコンテナを起動させる。</p>
 
-<h4 id="swarm-node0-swarm-local:de820086aea356a53ede32388b7ce8bb">swarm-node0, swarm-local</h4>
+<h4 id="swarm-node0-swarm-local">swarm-node0, swarm-local</h4>
 
 <pre><code class="language-sh"># Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -462,7 +462,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 <p>Swarm Managerについては、双方レプリケーションするために<code>--replication</code>引数をつける。</p>
 
-<h4 id="swarm-node1:de820086aea356a53ede32388b7ce8bb">swarm-node1</h4>
+<h4 id="swarm-node1">swarm-node1</h4>
 
 <pre><code class="language-sh"># Swarm Agent
 docker run -d --name=swarm-agent --net=host --restart=always \
@@ -471,7 +471,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 <p><code>192.168.30.x</code>のところには、swarm-node1がVPNのDHCPに割り当てられたのIPを入れる。</p>
 
-<h4 id="swarm-local:de820086aea356a53ede32388b7ce8bb">swarm-local</h4>
+<h4 id="swarm-local">swarm-local</h4>
 
 <pre><code class="language-sh"># Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -486,9 +486,9 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 <p><code>192.168.30.y</code>のところには、swarm-localがVPNのDHCPに割り当てられたIPを入れる。</p>
 
-<h3 id="動作確認:de820086aea356a53ede32388b7ce8bb">動作確認</h3>
+<h3 id="動作確認">動作確認</h3>
 
-<h4 id="ローカルpcのos設定にて-vpn接続を行う:de820086aea356a53ede32388b7ce8bb">ローカルPCのOS設定にて、VPN接続を行う</h4>
+<h4 id="ローカルpcのos設定にて-vpn接続を行う">ローカルPCのOS設定にて、VPN接続を行う</h4>
 
 <p>Macであれば、<a href="http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5">SoftEther VPNのドキュメント</a>を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。</p>
 
@@ -499,7 +499,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 <li>共有シークレット： sharedkey</li>
 </ul>
 
-<h4 id="ローカルpcから-swarmマスターに接続してみる:de820086aea356a53ede32388b7ce8bb">ローカルPCから、Swarmマスターに接続してみる</h4>
+<h4 id="ローカルpcから-swarmマスターに接続してみる">ローカルPCから、Swarmマスターに接続してみる</h4>
 
 <p>ターミナルなどから以下のコマンドを入力して、Swarmクラスタの接続状況を確認してみる。</p>
 
@@ -538,9 +538,9 @@ Name: swarm-node0
 
 <p>ちなみに、<code>-H=192.168.30.2:3375</code>の部分は、環境変数<code>DOCKER_HOST</code>に<code>192.168.30.2:3375</code>と設定しておけば省略できる。</p>
 
-<h4 id="各ノードにコンテナを置いてみる:de820086aea356a53ede32388b7ce8bb">各ノードにコンテナを置いてみる</h4>
+<h4 id="各ノードにコンテナを置いてみる">各ノードにコンテナを置いてみる</h4>
 
-<h5 id="オーバーレイネットワークの作成:de820086aea356a53ede32388b7ce8bb">オーバーレイネットワークの作成</h5>
+<h5 id="オーバーレイネットワークの作成">オーバーレイネットワークの作成</h5>
 
 <pre><code class="language-sh">export DOCKER_HOST=&quot;192.168.30.2:3375&quot;
 docker network create testnet
@@ -548,7 +548,7 @@ docker network create testnet
 
 <p>Swarmマスターへの接続であれば、デフォルトでドライバが<code>overlay</code>に設定される。</p>
 
-<h5 id="docker-compose-yml:de820086aea356a53ede32388b7ce8bb">docker-compose.yml</h5>
+<h5 id="docker-compose-yml">docker-compose.yml</h5>
 
 <pre><code class="language-ruby">nginx:
   image: nginx
@@ -559,13 +559,13 @@ docker network create testnet
 
 <p>portsを設定しておけば、コンフリクトを防ぐため、コンテナ配置が自然とバラける。</p>
 
-<h5 id="docker-compose-up-scale:de820086aea356a53ede32388b7ce8bb">docker-compose up &amp; scale</h5>
+<h5 id="docker-compose-up-scale">docker-compose up &amp; scale</h5>
 
 <pre><code class="language-sh">docker-compose up -d
 docker-compose scale nginx=3
 </code></pre>
 
-<h5 id="コンテナ配置確認:de820086aea356a53ede32388b7ce8bb">コンテナ配置確認</h5>
+<h5 id="コンテナ配置確認">コンテナ配置確認</h5>
 
 <pre><code class="language-sh">$ docker ps --format &quot;{{.Names}}&quot;
 
@@ -582,10 +582,10 @@ swarm-local/****_nginx_1
 <hr />
 
 <ol>
-<li id="fn:de820086aea356a53ede32388b7ce8bb:1"><a href="https://zeppelin.incubator.apache.org/">Zeppelin</a>はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
- <a class="footnote-return" href="#fnref:de820086aea356a53ede32388b7ce8bb:1"><sup>[return]</sup></a></li>
-<li id="fn:de820086aea356a53ede32388b7ce8bb:2">TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、<a href="http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15">Ubuntu15.10で上手く動作しなかった</a>ので、見送り
- <a class="footnote-return" href="#fnref:de820086aea356a53ede32388b7ce8bb:2"><sup>[return]</sup></a></li>
+<li id="fn:1"><a href="https://zeppelin.incubator.apache.org/">Zeppelin</a>はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
+ <a class="footnote-return" href="#fnref:1"><sup>[return]</sup></a></li>
+<li id="fn:2">TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、<a href="http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15">Ubuntu15.10で上手く動作しなかった</a>ので、見送り
+ <a class="footnote-return" href="#fnref:2"><sup>[return]</sup></a></li>
 </ol>
 </div>
 </div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
@@ -602,4 +602,4 @@ swarm-local/****_nginx_1
     })();
 </script>
 <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"><a href="/post/2016/01/spark-mllib-regression/" title="Sparkで機械学習： 回帰モデルで値を予測する"><i class="fa fa-arrow-circle-o-left"></i><p class="hidden-xs">2016-01-31 (Sun)</p></a></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/docker-swarm-build-using-tls/" title="TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-18 (Mon)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-over-vpn%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd><dt>2016-01-12 (Tue)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-spark/">Docker SwarmでApache Sparkクラスタを構築してみる</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"><a href="/post/2016/01/spark-mllib-regression/" title="Sparkで機械学習： 回帰モデルで値を予測する"><i class="fa fa-arrow-circle-o-left"></i><p class="hidden-xs">2016-01-31 (Sun)</p></a></div><div class="module-paging__next col-xs-6"><a href="/post/2016/01/docker-swarm-build-using-tls/" title="TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-01-18 (Mon)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="#"><i class="fa fa-2x fa-user"></i></a></li><li><a href="#"><i class="fa fa-2x fa-github"></i></a></li><li><a href="#"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2016%2f01%2fdocker-swarm-over-vpn%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2016-05-12 (Thu)</dt><dd><a href="http://blog.namiking.net/post/2016/05/flow-disadvantage/">静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</a></dd><dt>2016-02-13 (Sat)</dt><dd><a href="http://blog.namiking.net/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd><dt>2016-01-31 (Sun)</dt><dd><a href="http://blog.namiking.net/post/2016/01/spark-mllib-regression/">Sparkで機械学習： 回帰モデルで値を予測する</a></dd><dt>2016-01-22 (Fri)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-over-vpn/">クラウドとローカルをVPNでガッチャンコしたDockerネットワークを組んでみる</a></dd><dt>2016-01-18 (Mon)</dt><dd><a href="http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls/">TLS認証なDocker Swarmクラスタを構築 (docker-machineなしで)</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(2)</a></li><li><a href="/tags/eslint">eslint(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/flow">flow(1)</a></li><li><a href="/tags/flowtype">flowtype(1)</a></li><li><a href="/tags/javascript">javascript(1)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>

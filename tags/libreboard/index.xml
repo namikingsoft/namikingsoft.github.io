@@ -32,7 +32,7 @@
 &lt;a href=&#34;http://newui.libreboard.com&#34;&gt;http://newui.libreboard.com&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;dockerを利用した導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
 
@@ -41,11 +41,11 @@
 &lt;a href=&#34;https://github.com/wekan/wekan&#34;&gt;https://github.com/wekan/wekan&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;00-事前準備:a3ec11490e4688501750670051fa9d02&#34;&gt;00. 事前準備&lt;/h4&gt;
+&lt;h4 id=&#34;00-事前準備&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:a3ec11490e4688501750670051fa9d02:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+&lt;h4 id=&#34;01-docker-compose-yml-設置&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
 
 &lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
 &lt;code&gt;ROOT_URL&lt;/code&gt;辺りを各々の環境に合わせて書き換える。&lt;/p&gt;
@@ -73,14 +73,14 @@ wekan:
   restart: always
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;02-docker起動:a3ec11490e4688501750670051fa9d02&#34;&gt;02. Docker起動&lt;/h4&gt;
+&lt;h4 id=&#34;02-docker起動&#34;&gt;02. Docker起動&lt;/h4&gt;
 
 &lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-動作確認:a3ec11490e4688501750670051fa9d02&#34;&gt;03. 動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;03-動作確認&#34;&gt;03. 動作確認&lt;/h4&gt;
 
 &lt;p&gt;画面内の「登録する」から、ユーザーを登録を行う。&lt;/p&gt;
 
@@ -91,8 +91,8 @@ wekan:
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:a3ec11490e4688501750670051fa9d02:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>

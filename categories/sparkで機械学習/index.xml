@@ -19,7 +19,7 @@
 
 &lt;p&gt;Apache Spark上にて、簡単なCSVのサンプルデータを取り込み、線形回帰や決定木回帰を利用して、穴が空いた項目を予測するサンプルプログラムを書いてみる。&lt;/p&gt;
 
-&lt;h3 id=&#34;サンプルデータ-身体情報から結婚時期を予測する:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータ (身体情報から結婚時期を予測する)&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルデータ-身体情報から結婚時期を予測する&#34;&gt;サンプルデータ (身体情報から結婚時期を予測する)&lt;/h3&gt;
 
 &lt;p&gt;実データではありません。入門用にシンプルで法則性のあるデータを探したのですが、なかなか見つからなかったので、自分で訓練用のデータを作ってみた。&lt;/p&gt;
 
@@ -116,7 +116,7 @@
 &lt;a href=&#34;http://blog.namiking.net/files/post/2016/01/spark-mllib-regression/training.csv&#34;&gt;CSV形式のダウンロード&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;データの傾向:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;データの傾向&lt;/h4&gt;
+&lt;h4 id=&#34;データの傾向&#34;&gt;データの傾向&lt;/h4&gt;
 
 &lt;p&gt;ただ無差別にデータを作っても、予測が合ってるかどうかの判断がつかないため、&lt;br /&gt;
 以下の様な&lt;strong&gt;事実無根&lt;/strong&gt;な法則で値をでっちあげてみた。&lt;/p&gt;
@@ -130,22 +130,22 @@
 &lt;li&gt;男性の高身長はとても晩婚&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;コーディング前の準備:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;コーディング前の準備&lt;/h3&gt;
+&lt;h3 id=&#34;コーディング前の準備&#34;&gt;コーディング前の準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;apache-zeppelinのインストール:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;Apache Zeppelinのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;apache-zeppelinのインストール&#34;&gt;Apache Zeppelinのインストール&lt;/h4&gt;
 
-&lt;p&gt;Spark(ScalaやPython)の記述やその他細かいシェルスクリプトなどの操作をWeb上でインタラクティブに行えるノートブック系OSS&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;。この記事では、Sparkの操作は基本的にこのソフトを用いてコーディングを行っている。Sparkも一緒に含まれているので、これをローカルにインストールするだけで概ね動くはず。&lt;/p&gt;
+&lt;p&gt;Spark(ScalaやPython)の記述やその他細かいシェルスクリプトなどの操作をWeb上でインタラクティブに行えるノートブック系OSS&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;。この記事では、Sparkの操作は基本的にこのソフトを用いてコーディングを行っている。Sparkも一緒に含まれているので、これをローカルにインストールするだけで概ね動くはず。&lt;/p&gt;
 
 &lt;blockquote&gt;
 &lt;p&gt;Apache Zeppelin (incubating)&lt;br /&gt;
 &lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;https://zeppelin.incubator.apache.org/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;サンプルデータの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータの取り込み&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルデータの取り込み&#34;&gt;サンプルデータの取り込み&lt;/h3&gt;
 
 &lt;p&gt;ここからは、Zeppelin上での作業となる。事前にZeppelinを起動して、適当な新しいノートブックを作成しておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;サンプルデータのダウンロード:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータのダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;サンプルデータのダウンロード&#34;&gt;サンプルデータのダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;%sh
 curl -Lo /tmp/training.csv \
@@ -154,7 +154,7 @@ curl -Lo /tmp/training.csv \
 
 &lt;p&gt;先ほどのCSV形式のサンプルデータを一時保存領域にダウンロードするシェルスクリプトを記述する。&lt;/p&gt;
 
-&lt;h4 id=&#34;１レコード毎のcaseクラスを作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;１レコード毎のCaseクラスを作成&lt;/h4&gt;
+&lt;h4 id=&#34;１レコード毎のcaseクラスを作成&#34;&gt;１レコード毎のCaseクラスを作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;case class Profile(
   marriedAge: Option[Double],
@@ -168,7 +168,7 @@ curl -Lo /tmp/training.csv \
 &lt;p&gt;CSVデータなどをDataFrame形式に変換する際に必要になる。
 &lt;code&gt;marriedAge&lt;/code&gt;をOption型にしているのは、テストデータを取り込む際に入れる値が無いため。&lt;/p&gt;
 
-&lt;h4 id=&#34;csvをパースして-dataframe形式に変換:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;CSVをパースして、DataFrame形式に変換&lt;/h4&gt;
+&lt;h4 id=&#34;csvをパースして-dataframe形式に変換&#34;&gt;CSVをパースして、DataFrame形式に変換&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;var csvRDD = sc.textFile(&amp;quot;/tmp/training.csv&amp;quot;)
 var csvHeadRDD = sc.parallelize(Array(csvRDD.first))
@@ -188,7 +188,7 @@ var training = csvRDD
 
 &lt;p&gt;RDDだと、&lt;code&gt;tail&lt;/code&gt;や&lt;code&gt;slice&lt;/code&gt;関数みたいなものがなくて、ヘッダ除去程度でもちょっとまどろっこしい。分散処理を考えるとしかたないのだろうか。&lt;/p&gt;
 
-&lt;h4 id=&#34;おまけ-spark-csvモジュールを使ったサンプルデータの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;[おまけ] spark-csvモジュールを使ったサンプルデータの取り込み&lt;/h4&gt;
+&lt;h4 id=&#34;おまけ-spark-csvモジュールを使ったサンプルデータの取り込み&#34;&gt;[おまけ] spark-csvモジュールを使ったサンプルデータの取り込み&lt;/h4&gt;
 
 &lt;p&gt;先ほどの手順で、サンプルデータの取り込みは完了だが、もう１パターン、CSVのパースやDataFrame変換を手伝ってくれるspark-csvモジュールを使ったCSV取り込みを書いておく。&lt;/p&gt;
 
@@ -196,7 +196,7 @@ var training = csvRDD
 &lt;p&gt;Zeppelinはパラグラフごとに実行するしないを制御できるので、別パターンのコードや使わなくなったコードも、そのまま残しておいても支障はない。後になって再利用できたりするので、残しておくと便利かも。&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h5 id=&#34;依存モジュールロード:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;依存モジュールロード&lt;/h5&gt;
+&lt;h5 id=&#34;依存モジュールロード&#34;&gt;依存モジュールロード&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;%dep
 z.reset()
@@ -211,7 +211,7 @@ Hint: put this paragraph before any Spark code and restart Zeppelin/Interpreter
 
 &lt;p&gt;既に起動してしまっている場合は、Zeppelinを再起動するか、InterpreterページのSpark欄の&lt;code&gt;restart&lt;/code&gt;ボタンを押下する。&lt;/p&gt;
 
-&lt;h5 id=&#34;spark-csvを使ったcsvの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;spark-csvを使ったCSVの取り込み&lt;/h5&gt;
+&lt;h5 id=&#34;spark-csvを使ったcsvの取り込み&#34;&gt;spark-csvを使ったCSVの取り込み&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.sql.types.{
   StructType,
@@ -235,13 +235,13 @@ val training = sqlContext.read
 
 &lt;p&gt;CSVのパースやヘッダ除去(項目名に利用)まで自動で行ってくれる。型指定まで自動で行うオプション(inferSchema)もあるが、Double型がInteger型になってしまったので、今回は手動で指定した。&lt;/p&gt;
 
-&lt;h3 id=&#34;サンプルデータの前処理:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータの前処理&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルデータの前処理&#34;&gt;サンプルデータの前処理&lt;/h3&gt;
 
 &lt;p&gt;Sparkの機械学習ライブラリでは、各分析アルゴリズムにデータを引き渡す前処理として、特徴データ(血液型、性別、身長、体重)を、まとめてベクトル形式に変換する必要がある。&lt;/p&gt;
 
 &lt;p&gt;そういった前処理を楽にするために、前処理や回帰モデル設定、訓練データ取り込みを一貫して行えるspark.mlのPipelineを利用してみる。Pipelineについては、&lt;a href=&#34;https://spark.apache.org/docs/1.6.0/ml-guide.html&#34;&gt;公式のドキュメント&lt;/a&gt;が詳しい。別サイトに&lt;a href=&#34;http://mogile.web.fc2.com/spark/ml-guide.html&#34;&gt;日本語訳&lt;/a&gt;もあった。&lt;/p&gt;
 
-&lt;h4 id=&#34;文字列インデクサ:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;文字列インデクサ&lt;/h4&gt;
+&lt;h4 id=&#34;文字列インデクサ&#34;&gt;文字列インデクサ&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.StringIndexer
 
@@ -255,7 +255,7 @@ val sexIndexer = new StringIndexer()
 
 &lt;p&gt;StringIndexerはパイプラインをつなぐための部品の一つ。&lt;code&gt;A&lt;/code&gt;,&lt;code&gt;B&lt;/code&gt;,&lt;code&gt;O&lt;/code&gt;,&lt;code&gt;AB&lt;/code&gt;といった文字列のカテゴリデータを&lt;code&gt;0.0&lt;/code&gt;,&lt;code&gt;1.0&lt;/code&gt;,&lt;code&gt;2.0&lt;/code&gt;,&lt;code&gt;3.0&lt;/code&gt;みたいに実数のインデックスに変換してくれる。&lt;/p&gt;
 
-&lt;h4 id=&#34;複数項目のベクトル化:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;複数項目のベクトル化&lt;/h4&gt;
+&lt;h4 id=&#34;複数項目のベクトル化&#34;&gt;複数項目のベクトル化&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.VectorAssembler
 
@@ -271,7 +271,7 @@ val assembler = new VectorAssembler()
 
 &lt;p&gt;VectorAssemblerはパイプラインをつなぐための部品の一つ。複数項目の実数データを一つの特徴ベクトルデータに変換してくれる。&lt;/p&gt;
 
-&lt;h4 id=&#34;ベクトル標準化:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;ベクトル標準化&lt;/h4&gt;
+&lt;h4 id=&#34;ベクトル標準化&#34;&gt;ベクトル標準化&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.StandardScaler
 
@@ -284,11 +284,11 @@ val scaler = new StandardScaler()
 
 &lt;p&gt;これで前処理のためのパイプライン部品は揃った。&lt;/p&gt;
 
-&lt;h3 id=&#34;線形回帰モデルの作成して-予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰モデルの作成して、予測値を得る&lt;/h3&gt;
+&lt;h3 id=&#34;線形回帰モデルの作成して-予測値を得る&#34;&gt;線形回帰モデルの作成して、予測値を得る&lt;/h3&gt;
 
 &lt;p&gt;まずは線形回帰を用いて、値の予測を行うためのモデルを作成する。&lt;/p&gt;
 
-&lt;h4 id=&#34;線形回帰:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰&lt;/h4&gt;
+&lt;h4 id=&#34;線形回帰&#34;&gt;線形回帰&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.regression.LinearRegression
 
@@ -299,7 +299,7 @@ val regression = new LinearRegression()
 
 &lt;p&gt;パイプライン部品の一つ。&lt;code&gt;setLabelCol&lt;/code&gt;には、予想したい項目を指定する。&lt;/p&gt;
 
-&lt;h4 id=&#34;パイプライン作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;パイプライン作成&lt;/h4&gt;
+&lt;h4 id=&#34;パイプライン作成&#34;&gt;パイプライン作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.Pipeline
 
@@ -315,7 +315,7 @@ val pipeline = new Pipeline()
 
 &lt;p&gt;今までのパイプライン部品を繋げて、パイプラインを作成する。&lt;/p&gt;
 
-&lt;h4 id=&#34;クロス検証でチューニング設定をして-モデルを作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;クロス検証でチューニング設定をして、モデルを作成&lt;/h4&gt;
+&lt;h4 id=&#34;クロス検証でチューニング設定をして-モデルを作成&#34;&gt;クロス検証でチューニング設定をして、モデルを作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.tuning.{
@@ -350,14 +350,14 @@ val model = cross.fit(training)
 
 &lt;p&gt;最終的には&lt;code&gt;model&lt;/code&gt;変数に最適なモデルが束縛される。&lt;/p&gt;
 
-&lt;h5 id=&#34;ちなみに-クロス検証を行わない場合は:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;ちなみに、クロス検証を行わない場合は&lt;/h5&gt;
+&lt;h5 id=&#34;ちなみに-クロス検証を行わない場合は&#34;&gt;ちなみに、クロス検証を行わない場合は&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;val model = pipeline.fit(training)
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;パイプラインに直接学習データを突っ込む。&lt;/p&gt;
 
-&lt;h4 id=&#34;テストデータ作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;テストデータ作成&lt;/h4&gt;
+&lt;h4 id=&#34;テストデータ作成&#34;&gt;テストデータ作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;var test = sc.parallelize(Seq(
   // A型標準体型男
@@ -395,7 +395,7 @@ val model = cross.fit(training)
 
 &lt;p&gt;学習データの特徴データから大幅に外れるデータの予測も下の方に入れてみた。&lt;/p&gt;
 
-&lt;h4 id=&#34;モデルから予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;モデルから予測値を得る&lt;/h4&gt;
+&lt;h4 id=&#34;モデルから予測値を得る&#34;&gt;モデルから予測値を得る&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;model.transform(test)
   .select(&amp;quot;blood&amp;quot;, &amp;quot;sex&amp;quot;, &amp;quot;height&amp;quot;, &amp;quot;weight&amp;quot;, &amp;quot;prediction&amp;quot;).show
@@ -422,7 +422,7 @@ val model = cross.fit(training)
 +-----+---+-------+------+------------------+
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;結果考察:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;結果考察&lt;/h5&gt;
+&lt;h5 id=&#34;結果考察&#34;&gt;結果考察&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;男性/女性の結婚時期の違いは、うまいこと現れた。&lt;/li&gt;
@@ -433,14 +433,14 @@ val model = cross.fit(training)
 
 &lt;p&gt;ちなみに、南くんの恋人は生まれる50年前に結婚しており、巨神兵は結婚までに100世紀かかるらしい。突拍子もない結果に見えるが、&lt;code&gt;身長が高いほど結婚が遅い&lt;/code&gt;というルールを線形的に捉えてくれているようにも見える。&lt;/p&gt;
 
-&lt;h3 id=&#34;決定木回帰モデルを作成して-予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;決定木回帰モデルを作成して、予測値を得る&lt;/h3&gt;
+&lt;h3 id=&#34;決定木回帰モデルを作成して-予測値を得る&#34;&gt;決定木回帰モデルを作成して、予測値を得る&lt;/h3&gt;
 
 &lt;p&gt;決定木はクラス分類が得意な手法なので、今回のような細かいルールの設定でも、うまく予測してくれるかもしれない。&lt;/p&gt;
 
 &lt;p&gt;解析手法を変わるとはいえ、インタフェースが変わるわけではないので、
 大幅にコードを変える必要はなく、試行錯誤が楽。&lt;/p&gt;
 
-&lt;h4 id=&#34;クロス検証からモデルの作成まで:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;クロス検証からモデルの作成まで&lt;/h4&gt;
+&lt;h4 id=&#34;クロス検証からモデルの作成まで&#34;&gt;クロス検証からモデルの作成まで&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.regression.DecisionTreeRegressor
 import org.apache.spark.ml.Pipeline
@@ -483,7 +483,7 @@ val model = cross.fit(training)
 
 &lt;p&gt;Regressorクラスの種類、paramGridで設定する項目が変わるぐらいで、その他は線形回帰のコードと変わらない。&lt;/p&gt;
 
-&lt;h5 id=&#34;評価実行:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;評価実行&lt;/h5&gt;
+&lt;h5 id=&#34;評価実行&#34;&gt;評価実行&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;model.transform(test)
   .select(&amp;quot;blood&amp;quot;, &amp;quot;sex&amp;quot;, &amp;quot;height&amp;quot;, &amp;quot;weight&amp;quot;, &amp;quot;prediction&amp;quot;).show
@@ -510,22 +510,22 @@ val model = cross.fit(training)
 +-----+---+-------+------+------------------+
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;結果考察-1:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;結果考察&lt;/h5&gt;
+&lt;h5 id=&#34;結果考察-1&#34;&gt;結果考察&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;どのルールも学習データの値に近い形で、うまいこと予測された。&lt;/li&gt;
 &lt;li&gt;ただ、下２つの人外データに関しても、学習データに近い値が出てしまっているので、学習データの特徴値から大きくハズレるレコードの予測値は大味になってしまう？&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;まとめ:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;まとめ&lt;/h3&gt;
+&lt;h3 id=&#34;まとめ&#34;&gt;まとめ&lt;/h3&gt;
 
 &lt;p&gt;今回は、CSV形式のサンプルデータを線形回帰と決定木回帰を用いて、値の予測を行った。&lt;/p&gt;
 
-&lt;h5 id=&#34;線形回帰-1:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰&lt;/h5&gt;
+&lt;h5 id=&#34;線形回帰-1&#34;&gt;線形回帰&lt;/h5&gt;
 
 &lt;p&gt;細かいルールまでは予測しきれなかったが、学習データにない特徴を持つデータでも、うまく特徴を捉えようと、努力していた感があった。&lt;/p&gt;
 
-&lt;h5 id=&#34;決定木回帰:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;決定木回帰&lt;/h5&gt;
+&lt;h5 id=&#34;決定木回帰&#34;&gt;決定木回帰&lt;/h5&gt;
 
 &lt;p&gt;細かいルールに基づいた値をうまく予測してくれていたが、学習データにない特徴を持つデータに関しては、諦めていた感があった。&lt;/p&gt;
 
@@ -535,8 +535,8 @@ val model = cross.fit(training)
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;類似のOSSに、Jupyter(iPython Notebook)やspark-notebookがある。データの加工やモデルのチューニングで試行錯誤することが多いので、こういうソフトはかなり重宝する。
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;類似のOSSに、Jupyter(iPython Notebook)やspark-notebookがある。データの加工やモデルのチューニングで試行錯誤することが多いので、こういうソフトはかなり重宝する。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>

@@ -19,9 +19,9 @@
 
 &lt;p&gt;クラウド上で組んだDockerのオーバーレイネットワークの中に、屋内ファイアウォール内のマシンで組んでたDockerを参加させることができないか、試してみた。&lt;/p&gt;
 
-&lt;h3 id=&#34;なぜに-余談:de820086aea356a53ede32388b7ce8bb&#34;&gt;なぜに？ (余談)&lt;/h3&gt;
+&lt;h3 id=&#34;なぜに-余談&#34;&gt;なぜに？ (余談)&lt;/h3&gt;
 
-&lt;p&gt;例えば、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-spark/&#34;&gt;以前の記事&lt;/a&gt;のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。&lt;/p&gt;
+&lt;p&gt;例えば、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-spark/&#34;&gt;以前の記事&lt;/a&gt;のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local.svg&#34; alt=&#34;Zeppelin on Local&#34; /&gt;&lt;/p&gt;
 
@@ -36,17 +36,17 @@
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local-ideal.svg&#34; alt=&#34;Zeppelin on Local Ideal&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;この記事でやること:de820086aea356a53ede32388b7ce8bb&#34;&gt;この記事でやること&lt;/h3&gt;
+&lt;h3 id=&#34;この記事でやること&#34;&gt;この記事でやること&lt;/h3&gt;
 
 &lt;p&gt;上のApache Sparkの例は置いといて、今回は取り急ぎクラウドとローカルを跨いだSwarmクラスタを構築して、Dockerオーバーレイネットワークの疎通確認を行いたい。検証のため、以下の図の様な構成を準備して、オーバーレイネットワークの疎通を確認する。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/docker-swarm-over-vpn.svg&#34; alt=&#34;Zeppelin on Local Ideal&#34; /&gt;&lt;/p&gt;
 
-&lt;h5 id=&#34;要点:de820086aea356a53ede32388b7ce8bb&#34;&gt;要点&lt;/h5&gt;
+&lt;h5 id=&#34;要点&#34;&gt;要点&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;ローカル環境とクラウドのDockerをVPNを用いて、オーバーレイネットワークで繋ぎたい。&lt;/li&gt;
-&lt;li&gt;VPN接続には、SoftEther VPN&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;を使ってみる。&lt;/li&gt;
+&lt;li&gt;VPN接続には、SoftEther VPN&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;を使ってみる。&lt;/li&gt;
 &lt;li&gt;ローカル側とクラウド側１台ずつ、Swarm Masterをレプリケーションした。
 
 &lt;ul&gt;
@@ -55,9 +55,9 @@
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;事前準備:de820086aea356a53ede32388b7ce8bb&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のソフトウェアをインストールしておく。&lt;/p&gt;
 
@@ -67,13 +67,13 @@
 &lt;li&gt;Virtualbox (vagrantを併用してもよい)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:de820086aea356a53ede32388b7ce8bb&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ノード用のホストを用意する:de820086aea356a53ede32388b7ce8bb&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
+&lt;h3 id=&#34;ノード用のホストを用意する&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
 
 &lt;p&gt;今回の例では、DigitalOceanでノードを２台とローカルでVirtualbox１台を用意する。&lt;/p&gt;
 
@@ -115,7 +115,7 @@
 &lt;/tbody&gt;
 &lt;/table&gt;
 
-&lt;h5 id=&#34;備考:de820086aea356a53ede32388b7ce8bb&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0はマスターノードとして使う&lt;/li&gt;
@@ -124,13 +124,13 @@
 &lt;li&gt;VPNのIPについては、VPN接続後に割り当てる。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;softether-vpn-serverを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-serverを動かす&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
 
 &lt;p&gt;swarm-node0にSSHなどでログインして、作業を行う。&lt;/p&gt;
 
 &lt;p&gt;Linux版については、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。後で自動化しやすいように、GUIやインタラクティブCUIを使わないように書いておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;ダウンロード:de820086aea356a53ede32388b7ce8bb&#34;&gt;ダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;ダウンロード&#34;&gt;ダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -141,7 +141,7 @@ curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.1
 tar xzf softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンパイルとインストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンパイルとインストール&lt;/h4&gt;
+&lt;h4 id=&#34;コンパイルとインストール&#34;&gt;コンパイルとインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# コンパイル
 cd vpnserver
@@ -152,7 +152,7 @@ export PATH=&amp;quot;/usr/local/src/vpnserver:$PATH&amp;quot;
 echo &#39;export PATH=&amp;quot;/usr/local/src/vpnserver:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; /etc/profile
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サービス登録と起動-systemd:de820086aea356a53ede32388b7ce8bb&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
+&lt;h4 id=&#34;サービス登録と起動-systemd&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# サービス登録
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/vpnserver.service
@@ -174,7 +174,7 @@ systemctl enable vpnserver
 systemctl start vpnserver
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;vpnサーバー設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPNサーバー設定&lt;/h4&gt;
+&lt;h4 id=&#34;vpnサーバー設定&#34;&gt;VPNサーバー設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 各種設定項目 (値は任意で決める)
 export HUBNAME=cluster
@@ -216,12 +216,12 @@ vpncmd localhost /SERVER /CMD \
 &lt;p&gt;VPN設定のリファレンスは以下を参照。&lt;br /&gt;
 &lt;a href=&#34;https://ja.softether.org/4-docs/1-manual/6/6.4&#34;&gt;https://ja.softether.org/4-docs/1-manual/6/6.4&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;softether-vpn-clientを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-clientを動かす&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
 
 &lt;p&gt;全てのノードにSSHなどでログインして、作業を行う。&lt;br /&gt;
 Serverと同じく、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。&lt;/p&gt;
 
-&lt;h4 id=&#34;ダウンロード-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;ダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;ダウンロード-1&#34;&gt;ダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -233,7 +233,7 @@ tar xzf softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 rm softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンパイルとインストール-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンパイルとインストール&lt;/h4&gt;
+&lt;h4 id=&#34;コンパイルとインストール-1&#34;&gt;コンパイルとインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# コンパイル
 cd vpnclient
@@ -244,7 +244,7 @@ export PATH=&amp;quot;/usr/local/src/vpnclient:$PATH&amp;quot;
 echo &#39;export PATH=&amp;quot;/usr/local/src/vpnclient:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; /etc/profile
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サービス登録と起動-systemd-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
+&lt;h4 id=&#34;サービス登録と起動-systemd-1&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# サービス登録
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/vpnclient.service
@@ -266,7 +266,7 @@ systemctl enable vpnclient
 systemctl start vpnclient
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;vpnサーバー設定-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPNサーバー設定&lt;/h4&gt;
+&lt;h4 id=&#34;vpnサーバー設定-1&#34;&gt;VPNサーバー設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 各種設定項目 (基本的にはServerの値と合わせる)
 ACCOUNT=private
@@ -309,7 +309,7 @@ dhclient vpn_$NICNAME
 
 &lt;p&gt;swarm-node0だけは、DHCPでIPを振らずに固定IPを設定する。&lt;/p&gt;
 
-&lt;h4 id=&#34;vpn接続確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPN接続確認&lt;/h4&gt;
+&lt;h4 id=&#34;vpn接続確認&#34;&gt;VPN接続確認&lt;/h4&gt;
 
 &lt;p&gt;SoftEther VPNのClientのセッティングが完了すると、以下の様な成果が出る。&lt;/p&gt;
 
@@ -329,11 +329,11 @@ dhclient vpn_$NICNAME
 
 &lt;p&gt;これから設置するConsulやDockerは、このネットワークにのせるように設定する。&lt;/p&gt;
 
-&lt;h3 id=&#34;各ノードでconsulを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでconsulを動かす&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
 
 &lt;p&gt;インストールとサービス登録手順については、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls#各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;以前の記事&lt;/a&gt;にまとめてあるので参照されたい。ここではConsulサーバーの設定手順を示す。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0にてサーバーモードで動かす設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node0にてサーバーモードで動かす設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0にてサーバーモードで動かす設定&#34;&gt;swarm-node0にてサーバーモードで動かす設定&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして、作業を行う。&lt;/p&gt;
 
@@ -366,7 +366,7 @@ EOS
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1とswarm-localにてクライアントモードで動かす設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node1とswarm-localにてクライアントモードで動かす設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1とswarm-localにてクライアントモードで動かす設定&#34;&gt;swarm-node1とswarm-localにてクライアントモードで動かす設定&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして、作業を行う。&lt;/p&gt;
 
@@ -399,7 +399,7 @@ EOS
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;メンバー確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;メンバー確認&lt;/h4&gt;
+&lt;h4 id=&#34;メンバー確認&#34;&gt;メンバー確認&lt;/h4&gt;
 
 &lt;p&gt;各ノードのConsulが連携できているかを確認する。&lt;/p&gt;
 
@@ -416,7 +416,7 @@ Node     Address            Status  Type    Build  Protocol  DC
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://192.168.30.2:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードでdockerを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでDockerを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでdockerを動かす&#34;&gt;各ノードでDockerを動かす&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;全3ノードに対して、SSHでログインして作業を行う。&lt;/li&gt;
@@ -426,12 +426,12 @@ Node     Address            Status  Type    Build  Protocol  DC
 &lt;li&gt;ただし、&lt;code&gt;vpn_vlan0&lt;/code&gt;以外はポートをファイアウォールで閉じておく。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;インストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;インストール&lt;/h4&gt;
+&lt;h4 id=&#34;インストール&#34;&gt;インストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;wget -qO- https://get.docker.com/ | sh
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;ファイアウォール設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;ファイアウォール設定&lt;/h4&gt;
+&lt;h4 id=&#34;ファイアウォール設定&#34;&gt;ファイアウォール設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;iptables -A INPUT -i eth0 -p tcp -m tcp --dport 2375 -j DROP
 iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
@@ -439,7 +439,7 @@ iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
 
 &lt;p&gt;DigitalOceanのノードのみでよい。&lt;/p&gt;
 
-&lt;h4 id=&#34;dockerデーモン起動時の引数設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
+&lt;h4 id=&#34;dockerデーモン起動時の引数設定&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -455,16 +455,16 @@ ExecStart=/usr/bin/docker daemon \
 
 &lt;p&gt;変更後は見やすさのため複数行で書いているが、&lt;code&gt;\&lt;/code&gt;を消して1行ぶっ続けで記述する。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker再起動:de820086aea356a53ede32388b7ce8bb&#34;&gt;Docker再起動&lt;/h4&gt;
+&lt;h4 id=&#34;docker再起動&#34;&gt;Docker再起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;service docker restart
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードでswarmコンテナを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでswarmコンテナを動かす&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、Swarmコンテナを起動させる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-swarm-local:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node0, swarm-local&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-swarm-local&#34;&gt;swarm-node0, swarm-local&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -479,7 +479,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;Swarm Managerについては、双方レプリケーションするために&lt;code&gt;--replication&lt;/code&gt;引数をつける。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node1:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node1&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1&#34;&gt;swarm-node1&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
 docker run -d --name=swarm-agent --net=host --restart=always \
@@ -488,7 +488,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;&lt;code&gt;192.168.30.x&lt;/code&gt;のところには、swarm-node1がVPNのDHCPに割り当てられたのIPを入れる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-local:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-local&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-local&#34;&gt;swarm-local&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -503,9 +503,9 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;&lt;code&gt;192.168.30.y&lt;/code&gt;のところには、swarm-localがVPNのDHCPに割り当てられたIPを入れる。&lt;/p&gt;
 
-&lt;h3 id=&#34;動作確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
 
-&lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
 
 &lt;p&gt;Macであれば、&lt;a href=&#34;http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5&#34;&gt;SoftEther VPNのドキュメント&lt;/a&gt;を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。&lt;/p&gt;
 
@@ -516,7 +516,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 &lt;li&gt;共有シークレット： sharedkey&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;ローカルpcから-swarmマスターに接続してみる:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCから、Swarmマスターに接続してみる&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcから-swarmマスターに接続してみる&#34;&gt;ローカルPCから、Swarmマスターに接続してみる&lt;/h4&gt;
 
 &lt;p&gt;ターミナルなどから以下のコマンドを入力して、Swarmクラスタの接続状況を確認してみる。&lt;/p&gt;
 
@@ -555,9 +555,9 @@ Name: swarm-node0
 
 &lt;p&gt;ちなみに、&lt;code&gt;-H=192.168.30.2:3375&lt;/code&gt;の部分は、環境変数&lt;code&gt;DOCKER_HOST&lt;/code&gt;に&lt;code&gt;192.168.30.2:3375&lt;/code&gt;と設定しておけば省略できる。&lt;/p&gt;
 
-&lt;h4 id=&#34;各ノードにコンテナを置いてみる:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードにコンテナを置いてみる&lt;/h4&gt;
+&lt;h4 id=&#34;各ノードにコンテナを置いてみる&#34;&gt;各ノードにコンテナを置いてみる&lt;/h4&gt;
 
-&lt;h5 id=&#34;オーバーレイネットワークの作成:de820086aea356a53ede32388b7ce8bb&#34;&gt;オーバーレイネットワークの作成&lt;/h5&gt;
+&lt;h5 id=&#34;オーバーレイネットワークの作成&#34;&gt;オーバーレイネットワークの作成&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_HOST=&amp;quot;192.168.30.2:3375&amp;quot;
 docker network create testnet
@@ -565,7 +565,7 @@ docker network create testnet
 
 &lt;p&gt;Swarmマスターへの接続であれば、デフォルトでドライバが&lt;code&gt;overlay&lt;/code&gt;に設定される。&lt;/p&gt;
 
-&lt;h5 id=&#34;docker-compose-yml:de820086aea356a53ede32388b7ce8bb&#34;&gt;docker-compose.yml&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;nginx:
   image: nginx
@@ -576,13 +576,13 @@ docker network create testnet
 
 &lt;p&gt;portsを設定しておけば、コンフリクトを防ぐため、コンテナ配置が自然とバラける。&lt;/p&gt;
 
-&lt;h5 id=&#34;docker-compose-up-scale:de820086aea356a53ede32388b7ce8bb&#34;&gt;docker-compose up &amp;amp; scale&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-up-scale&#34;&gt;docker-compose up &amp;amp; scale&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose up -d
 docker-compose scale nginx=3
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;コンテナ配置確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンテナ配置確認&lt;/h5&gt;
+&lt;h5 id=&#34;コンテナ配置確認&#34;&gt;コンテナ配置確認&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker ps --format &amp;quot;{{.Names}}&amp;quot;
 
@@ -599,10 +599,10 @@ swarm-local/****_nginx_1
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;Zeppelin&lt;/a&gt;はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、&lt;a href=&#34;http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15&#34;&gt;Ubuntu15.10で上手く動作しなかった&lt;/a&gt;ので、見送り
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;Zeppelin&lt;/a&gt;はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:2&#34;&gt;TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、&lt;a href=&#34;http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15&#34;&gt;Ubuntu15.10で上手く動作しなかった&lt;/a&gt;ので、見送り
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>

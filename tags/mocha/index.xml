@@ -28,7 +28,7 @@
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/index.jpg&#34; alt=&#34;ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;動作サンプル:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作サンプル&lt;/h3&gt;
+&lt;h3 id=&#34;動作サンプル&#34;&gt;動作サンプル&lt;/h3&gt;
 
 &lt;p&gt;ひと通り動くサンプルを作ったので、以下のGitHubに上げておきます。
 nodeやnpmがインストールされていれば、動作すると思われます。&lt;/p&gt;
@@ -41,7 +41,7 @@ nodeやnpmがインストールされていれば、動作すると思われま�
 &lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;https://github.com/namikingsoft/sample-webpack-test&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;試しにブラウザで動かしてみる&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;GitHub上の&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;動作サンプル&lt;/a&gt;をcloneして、
 webpack-dev-serverを起動したら、
@@ -49,7 +49,7 @@ webpack-dev-serverを起動したら、
 
 &lt;p&gt;&lt;a href=&#34;http://localhost:8080/webpack-dev-server/&#34;&gt;http://localhost:8080/webpack-dev-server/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;コマンド例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;コマンド例&lt;/h4&gt;
+&lt;h4 id=&#34;コマンド例&#34;&gt;コマンド例&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/sample-webpack-test
 cd sample-webpack-test
@@ -57,7 +57,7 @@ npm install &amp;amp;&amp;amp; npm start
 open http://localhost:8080/webpack-dev-server/
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作画面の例&lt;/h4&gt;
+&lt;h4 id=&#34;動作画面の例&#34;&gt;動作画面の例&lt;/h4&gt;
 
 &lt;p&gt;フロントエンドアプリとMochaのSpecを同時に動かしている図。
 Seleniumみたいにギュンギュン動いて楽しい。
@@ -66,12 +66,12 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/animation.gif&#34; alt=&#34;Animation&#34; /&gt;&lt;/p&gt;
 
 &lt;p&gt;Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
+アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
 &lt;a href=&#34;http://localhost:8081/webpack-dev-server/app&#34;&gt;http://localhost:8081/webpack-dev-server/app&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ざっくり解説&lt;/h3&gt;
+&lt;h3 id=&#34;ざっくり解説&#34;&gt;ざっくり解説&lt;/h3&gt;
 
-&lt;h4 id=&#34;ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ファイル構成&lt;/h4&gt;
+&lt;h4 id=&#34;ファイル構成&#34;&gt;ファイル構成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;sample-webpack-test
 |-- build
@@ -89,7 +89,7 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 webpack-dev-server内の動作であれば、
 メモリ内のものが呼び出されるようなので、特に設置する必要はなさそう。&lt;/p&gt;
 
-&lt;h4 id=&#34;複数のspecファイルに対応する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
+&lt;h4 id=&#34;複数のspecファイルに対応する&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
 
 &lt;p&gt;npmのglobモジュールを利用して、
 複数のSpecファイルをエントリーポイントに含めることができる。
@@ -103,7 +103,7 @@ entry: {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;修正後に自動的にテストが走るようにする:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
+&lt;h4 id=&#34;修正後に自動的にテストが走るようにする&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
 
 &lt;p&gt;webpack-dev-serverには、ファイル修正を検知して再読み込みをしてくれる、
 hotモードという機能が付いているので、webpack.config.jsでそれをを有効にする。&lt;/p&gt;
@@ -126,7 +126,7 @@ plugins: [
 ],
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
+&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
 
 &lt;p&gt;webpackの&lt;a href=&#34;http://webpack.github.io/docs/testing.html&#34;&gt;Testing&lt;/a&gt;のページにもあるが、
 mocha-loaderを噛ますことで、ブラウザでMochaが利用可能になるJSが吐き出せるようになる。&lt;/p&gt;
@@ -155,7 +155,7 @@ module: {
 },
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
+&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
 
 &lt;p&gt;アプリの動作画面にSpec結果のレイアウトを入れ込む。&lt;br /&gt;
 &lt;code&gt;app.js&lt;/code&gt;で必要なUIを書き出すなどの初期処理を行ってから、&lt;code&gt;spec.js&lt;/code&gt;を走らせている。&lt;/p&gt;
@@ -192,7 +192,7 @@ module: {
 &amp;lt;/html&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;あとがき:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;あとがき&lt;/h3&gt;
+&lt;h3 id=&#34;あとがき&#34;&gt;あとがき&lt;/h3&gt;
 
 &lt;p&gt;ChromeとかFirefoxなどの複数のブラウザ上で手軽にフロント動作仕様を自動チェックしたい、
 みたいなときの方法論の一つとして紹介してみた。&lt;/p&gt;
@@ -206,8 +206,8 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>

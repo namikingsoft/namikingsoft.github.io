@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Flow on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/flow/</link>
+    <description>Recent content in Flow on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Thu, 12 May 2016 07:00:00 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/flow/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</title>
+      <link>http://blog.namiking.net/post/2016/05/flow-disadvantage/</link>
+      <pubDate>Thu, 12 May 2016 07:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2016/05/flow-disadvantage/</guid>
+      <description>
+
+&lt;p&gt;&lt;a href=&#34;http://flowtype.org/&#34;&gt;flow&lt;/a&gt;はJavaScriptの静的型チェックツールの一つ。&lt;/p&gt;
+
+&lt;p&gt;同じような静的型関連ツールであるTypeScriptと比較して、ESLintやBabelとの併用がしやすかったり、型付けが強めだったり(初期からnon-nullableに対応)と、受ける恩恵も多い。&lt;/p&gt;
+
+&lt;p&gt;が、使っていて「おやっ？」っと思う点もいくつかあったので、まとめてみた。&lt;/p&gt;
+
+&lt;h2 id=&#34;気になったこと４つ&#34;&gt;気になったこと４つ&lt;/h2&gt;
+
+&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/babel/babel-eslint&#34;&gt;babel-eslint&lt;/a&gt;というBabelパーサーを用いれば、概ねのESLintルールがflow文法でも適応できるが、例外もあった。&lt;/p&gt;
+
+&lt;p&gt;例えば、インターフェイスの定義の場合、&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;interface I {
+  field: number;
+  method(): string;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ESLintの&lt;code&gt;no-undef&lt;/code&gt;ルールを有効にしていると、以下のエラーが発生する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;error| &#39;I&#39; is not defined. (no-undef)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;ESLintの誤爆ではあるが、そもそも、&lt;code&gt;interface&lt;/code&gt;なんて文法はECMAScriptにはないので、対応しとってのも無茶な話である。&lt;/p&gt;
+
+&lt;p&gt;ESLintの&lt;code&gt;no-undef&lt;/code&gt;まわりを無効にすればエラーは出ないが、有志の方が、flow用のBabelカスタムルールを実装してくれているので、ありがたく利用させていただく。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: zertosh/eslint-plugin-flow-vars&lt;br /&gt;
+&lt;a href=&#34;https://github.com/zertosh/eslint-plugin-flow-vars&#34;&gt;https://github.com/zertosh/eslint-plugin-flow-vars&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;このBabelプラグインを使ってカスタムルールを有効にすれば、&lt;code&gt;no-undef&lt;/code&gt;を無効にすることなく、ESLintとflowを併用できる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;// .eslintrc.jsの修正例
+module.exports = {
+  &amp;quot;parser&amp;quot;: &amp;quot;babel-eslint&amp;quot;,
++ &amp;quot;plugins&amp;quot;:
++   &amp;quot;flow-vars&amp;quot;,
++ ],
+  &amp;quot;rules&amp;quot;: {
+    &amp;quot;no-undef&amp;quot;: 1,
++   &amp;quot;flow-vars/define-flow-type&amp;quot;: 1,
++   &amp;quot;flow-vars/use-flow-type&amp;quot;: 1,
+  },
+};
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。不具合があり次第、逐一有効にしていく必要があるかも。&lt;/p&gt;
+
+&lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
+&lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;es6のget-setプロパティが使えない&#34;&gt;ES6のget/setプロパティが使えない&lt;/h3&gt;
+
+&lt;p&gt;イミュータブルなオブジェクトを作って、Privateな値を返すゲッターを作った際、プロパティのように扱えるので、好んで使っていたが、&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;class A {
+  get field(): number {
+    return 1234
+  }
+}
+
+const a = new A()
+console.log(a.field)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;flowに通すと、怒られる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;error| get/set properties not yet supported
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;公式GitHubにもIssueっぽいのはなかったが、&lt;code&gt;yet&lt;/code&gt;ってあるので、いずれサポートされるのだろうか。&lt;/p&gt;
+
+&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
+
+&lt;p&gt;flow的には&lt;strong&gt;Polymorphism&lt;/strong&gt;というのかな？&lt;br /&gt;
+TypeScriptやJava感覚で以下のように書くと、flowだとSyntaxエラーになった。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const map = new Map&amp;lt;string, number&amp;gt;()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;error| Parsing error: Unexpected token
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;そもそもBabelがエラーを吐く。&lt;code&gt;babel-plugin-transform-flow-strip-types&lt;/code&gt;の限界っぽい。&lt;/p&gt;
+
+&lt;p&gt;以下のように書くのがflow流っぽいが、なんか冗長な感じがして、あまり好みじゃない。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// 変数定義で型を決めとく
+const map: WeakMap&amp;lt;string, number&amp;gt; = new WeakMap()
+
+// 型のキャスト
+const map = (new WeakMap(): WeakMap&amp;lt;string, number&amp;gt;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;関数の場合も似たようなSyntaxエラーを吐くが、
+以下の様な型推論が効く例だと、逆にスマートな感じで良い。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;function toArray&amp;lt;T&amp;gt;(x: T): Array&amp;lt;T&amp;gt; {
+  return [x]
+}
+
+// 引数の型(number)を元に、返り値の型(Array&amp;lt;number&amp;gt;)が推論される
+const nums = toArray(2)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
+
+&lt;p&gt;クラスやインタフェースの定義などで、以下のように書くと、&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;class A {
+  num: number
+
+  constructor(num: number) {
+    this.number = num
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;次のエラーが、constructorの行で発生する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;error| Unexpected identifier
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;フィールド定義の行末尾にセミコロン(;)を入れれば、エラーは出ない。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;class A {
+- num: number
++ num: number;
+
+  constructor(num: number) {
+    this.number = num
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;アンチ・セミコロン派には吐きそうなほどキツイ仕様。&lt;br /&gt;
+&lt;a href=&#34;https://github.com/facebook/flow/issues/825&#34;&gt;https://github.com/facebook/flow/issues/825&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+
+&lt;p&gt;flowを使ってみて、以下４つの気になったことをまとめてみた。&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;ESLintとの併用でめんどうな事が多かった&lt;/li&gt;
+&lt;li&gt;ES6のget/setプロパティが使えない&lt;/li&gt;
+&lt;li&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/li&gt;
+&lt;li&gt;クラスのフィールド定義などでセミコロンが強制&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;flowは現在も、定期的にVerUPされているツールなので、今回上げた点もいつの間に修正されているかもしれない。今後も細かく見ていきたい。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

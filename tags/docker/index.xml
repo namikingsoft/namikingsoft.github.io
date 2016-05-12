@@ -19,9 +19,9 @@
 
 &lt;p&gt;クラウド上で組んだDockerのオーバーレイネットワークの中に、屋内ファイアウォール内のマシンで組んでたDockerを参加させることができないか、試してみた。&lt;/p&gt;
 
-&lt;h3 id=&#34;なぜに-余談:de820086aea356a53ede32388b7ce8bb&#34;&gt;なぜに？ (余談)&lt;/h3&gt;
+&lt;h3 id=&#34;なぜに-余談&#34;&gt;なぜに？ (余談)&lt;/h3&gt;
 
-&lt;p&gt;例えば、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-spark/&#34;&gt;以前の記事&lt;/a&gt;のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。&lt;/p&gt;
+&lt;p&gt;例えば、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-spark/&#34;&gt;以前の記事&lt;/a&gt;のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local.svg&#34; alt=&#34;Zeppelin on Local&#34; /&gt;&lt;/p&gt;
 
@@ -36,17 +36,17 @@
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local-ideal.svg&#34; alt=&#34;Zeppelin on Local Ideal&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;この記事でやること:de820086aea356a53ede32388b7ce8bb&#34;&gt;この記事でやること&lt;/h3&gt;
+&lt;h3 id=&#34;この記事でやること&#34;&gt;この記事でやること&lt;/h3&gt;
 
 &lt;p&gt;上のApache Sparkの例は置いといて、今回は取り急ぎクラウドとローカルを跨いだSwarmクラスタを構築して、Dockerオーバーレイネットワークの疎通確認を行いたい。検証のため、以下の図の様な構成を準備して、オーバーレイネットワークの疎通を確認する。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/docker-swarm-over-vpn.svg&#34; alt=&#34;Zeppelin on Local Ideal&#34; /&gt;&lt;/p&gt;
 
-&lt;h5 id=&#34;要点:de820086aea356a53ede32388b7ce8bb&#34;&gt;要点&lt;/h5&gt;
+&lt;h5 id=&#34;要点&#34;&gt;要点&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;ローカル環境とクラウドのDockerをVPNを用いて、オーバーレイネットワークで繋ぎたい。&lt;/li&gt;
-&lt;li&gt;VPN接続には、SoftEther VPN&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;を使ってみる。&lt;/li&gt;
+&lt;li&gt;VPN接続には、SoftEther VPN&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;を使ってみる。&lt;/li&gt;
 &lt;li&gt;ローカル側とクラウド側１台ずつ、Swarm Masterをレプリケーションした。
 
 &lt;ul&gt;
@@ -55,9 +55,9 @@
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;事前準備:de820086aea356a53ede32388b7ce8bb&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のソフトウェアをインストールしておく。&lt;/p&gt;
 
@@ -67,13 +67,13 @@
 &lt;li&gt;Virtualbox (vagrantを併用してもよい)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:de820086aea356a53ede32388b7ce8bb&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ノード用のホストを用意する:de820086aea356a53ede32388b7ce8bb&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
+&lt;h3 id=&#34;ノード用のホストを用意する&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
 
 &lt;p&gt;今回の例では、DigitalOceanでノードを２台とローカルでVirtualbox１台を用意する。&lt;/p&gt;
 
@@ -115,7 +115,7 @@
 &lt;/tbody&gt;
 &lt;/table&gt;
 
-&lt;h5 id=&#34;備考:de820086aea356a53ede32388b7ce8bb&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0はマスターノードとして使う&lt;/li&gt;
@@ -124,13 +124,13 @@
 &lt;li&gt;VPNのIPについては、VPN接続後に割り当てる。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;softether-vpn-serverを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-serverを動かす&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
 
 &lt;p&gt;swarm-node0にSSHなどでログインして、作業を行う。&lt;/p&gt;
 
 &lt;p&gt;Linux版については、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。後で自動化しやすいように、GUIやインタラクティブCUIを使わないように書いておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;ダウンロード:de820086aea356a53ede32388b7ce8bb&#34;&gt;ダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;ダウンロード&#34;&gt;ダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -141,7 +141,7 @@ curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.1
 tar xzf softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンパイルとインストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンパイルとインストール&lt;/h4&gt;
+&lt;h4 id=&#34;コンパイルとインストール&#34;&gt;コンパイルとインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# コンパイル
 cd vpnserver
@@ -152,7 +152,7 @@ export PATH=&amp;quot;/usr/local/src/vpnserver:$PATH&amp;quot;
 echo &#39;export PATH=&amp;quot;/usr/local/src/vpnserver:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; /etc/profile
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サービス登録と起動-systemd:de820086aea356a53ede32388b7ce8bb&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
+&lt;h4 id=&#34;サービス登録と起動-systemd&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# サービス登録
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/vpnserver.service
@@ -174,7 +174,7 @@ systemctl enable vpnserver
 systemctl start vpnserver
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;vpnサーバー設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPNサーバー設定&lt;/h4&gt;
+&lt;h4 id=&#34;vpnサーバー設定&#34;&gt;VPNサーバー設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 各種設定項目 (値は任意で決める)
 export HUBNAME=cluster
@@ -216,12 +216,12 @@ vpncmd localhost /SERVER /CMD \
 &lt;p&gt;VPN設定のリファレンスは以下を参照。&lt;br /&gt;
 &lt;a href=&#34;https://ja.softether.org/4-docs/1-manual/6/6.4&#34;&gt;https://ja.softether.org/4-docs/1-manual/6/6.4&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;softether-vpn-clientを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-clientを動かす&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
 
 &lt;p&gt;全てのノードにSSHなどでログインして、作業を行う。&lt;br /&gt;
 Serverと同じく、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。&lt;/p&gt;
 
-&lt;h4 id=&#34;ダウンロード-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;ダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;ダウンロード-1&#34;&gt;ダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -233,7 +233,7 @@ tar xzf softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 rm softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンパイルとインストール-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンパイルとインストール&lt;/h4&gt;
+&lt;h4 id=&#34;コンパイルとインストール-1&#34;&gt;コンパイルとインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# コンパイル
 cd vpnclient
@@ -244,7 +244,7 @@ export PATH=&amp;quot;/usr/local/src/vpnclient:$PATH&amp;quot;
 echo &#39;export PATH=&amp;quot;/usr/local/src/vpnclient:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; /etc/profile
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サービス登録と起動-systemd-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
+&lt;h4 id=&#34;サービス登録と起動-systemd-1&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# サービス登録
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/vpnclient.service
@@ -266,7 +266,7 @@ systemctl enable vpnclient
 systemctl start vpnclient
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;vpnサーバー設定-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPNサーバー設定&lt;/h4&gt;
+&lt;h4 id=&#34;vpnサーバー設定-1&#34;&gt;VPNサーバー設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 各種設定項目 (基本的にはServerの値と合わせる)
 ACCOUNT=private
@@ -309,7 +309,7 @@ dhclient vpn_$NICNAME
 
 &lt;p&gt;swarm-node0だけは、DHCPでIPを振らずに固定IPを設定する。&lt;/p&gt;
 
-&lt;h4 id=&#34;vpn接続確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPN接続確認&lt;/h4&gt;
+&lt;h4 id=&#34;vpn接続確認&#34;&gt;VPN接続確認&lt;/h4&gt;
 
 &lt;p&gt;SoftEther VPNのClientのセッティングが完了すると、以下の様な成果が出る。&lt;/p&gt;
 
@@ -329,11 +329,11 @@ dhclient vpn_$NICNAME
 
 &lt;p&gt;これから設置するConsulやDockerは、このネットワークにのせるように設定する。&lt;/p&gt;
 
-&lt;h3 id=&#34;各ノードでconsulを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでconsulを動かす&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
 
 &lt;p&gt;インストールとサービス登録手順については、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls#各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;以前の記事&lt;/a&gt;にまとめてあるので参照されたい。ここではConsulサーバーの設定手順を示す。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0にてサーバーモードで動かす設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node0にてサーバーモードで動かす設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0にてサーバーモードで動かす設定&#34;&gt;swarm-node0にてサーバーモードで動かす設定&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして、作業を行う。&lt;/p&gt;
 
@@ -366,7 +366,7 @@ EOS
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1とswarm-localにてクライアントモードで動かす設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node1とswarm-localにてクライアントモードで動かす設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1とswarm-localにてクライアントモードで動かす設定&#34;&gt;swarm-node1とswarm-localにてクライアントモードで動かす設定&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして、作業を行う。&lt;/p&gt;
 
@@ -399,7 +399,7 @@ EOS
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;メンバー確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;メンバー確認&lt;/h4&gt;
+&lt;h4 id=&#34;メンバー確認&#34;&gt;メンバー確認&lt;/h4&gt;
 
 &lt;p&gt;各ノードのConsulが連携できているかを確認する。&lt;/p&gt;
 
@@ -416,7 +416,7 @@ Node     Address            Status  Type    Build  Protocol  DC
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://192.168.30.2:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードでdockerを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでDockerを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでdockerを動かす&#34;&gt;各ノードでDockerを動かす&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;全3ノードに対して、SSHでログインして作業を行う。&lt;/li&gt;
@@ -426,12 +426,12 @@ Node     Address            Status  Type    Build  Protocol  DC
 &lt;li&gt;ただし、&lt;code&gt;vpn_vlan0&lt;/code&gt;以外はポートをファイアウォールで閉じておく。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;インストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;インストール&lt;/h4&gt;
+&lt;h4 id=&#34;インストール&#34;&gt;インストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;wget -qO- https://get.docker.com/ | sh
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;ファイアウォール設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;ファイアウォール設定&lt;/h4&gt;
+&lt;h4 id=&#34;ファイアウォール設定&#34;&gt;ファイアウォール設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;iptables -A INPUT -i eth0 -p tcp -m tcp --dport 2375 -j DROP
 iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
@@ -439,7 +439,7 @@ iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
 
 &lt;p&gt;DigitalOceanのノードのみでよい。&lt;/p&gt;
 
-&lt;h4 id=&#34;dockerデーモン起動時の引数設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
+&lt;h4 id=&#34;dockerデーモン起動時の引数設定&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -455,16 +455,16 @@ ExecStart=/usr/bin/docker daemon \
 
 &lt;p&gt;変更後は見やすさのため複数行で書いているが、&lt;code&gt;\&lt;/code&gt;を消して1行ぶっ続けで記述する。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker再起動:de820086aea356a53ede32388b7ce8bb&#34;&gt;Docker再起動&lt;/h4&gt;
+&lt;h4 id=&#34;docker再起動&#34;&gt;Docker再起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;service docker restart
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードでswarmコンテナを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでswarmコンテナを動かす&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、Swarmコンテナを起動させる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-swarm-local:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node0, swarm-local&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-swarm-local&#34;&gt;swarm-node0, swarm-local&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -479,7 +479,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;Swarm Managerについては、双方レプリケーションするために&lt;code&gt;--replication&lt;/code&gt;引数をつける。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node1:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node1&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1&#34;&gt;swarm-node1&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
 docker run -d --name=swarm-agent --net=host --restart=always \
@@ -488,7 +488,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;&lt;code&gt;192.168.30.x&lt;/code&gt;のところには、swarm-node1がVPNのDHCPに割り当てられたのIPを入れる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-local:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-local&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-local&#34;&gt;swarm-local&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -503,9 +503,9 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;&lt;code&gt;192.168.30.y&lt;/code&gt;のところには、swarm-localがVPNのDHCPに割り当てられたIPを入れる。&lt;/p&gt;
 
-&lt;h3 id=&#34;動作確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
 
-&lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
 
 &lt;p&gt;Macであれば、&lt;a href=&#34;http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5&#34;&gt;SoftEther VPNのドキュメント&lt;/a&gt;を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。&lt;/p&gt;
 
@@ -516,7 +516,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 &lt;li&gt;共有シークレット： sharedkey&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;ローカルpcから-swarmマスターに接続してみる:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCから、Swarmマスターに接続してみる&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcから-swarmマスターに接続してみる&#34;&gt;ローカルPCから、Swarmマスターに接続してみる&lt;/h4&gt;
 
 &lt;p&gt;ターミナルなどから以下のコマンドを入力して、Swarmクラスタの接続状況を確認してみる。&lt;/p&gt;
 
@@ -555,9 +555,9 @@ Name: swarm-node0
 
 &lt;p&gt;ちなみに、&lt;code&gt;-H=192.168.30.2:3375&lt;/code&gt;の部分は、環境変数&lt;code&gt;DOCKER_HOST&lt;/code&gt;に&lt;code&gt;192.168.30.2:3375&lt;/code&gt;と設定しておけば省略できる。&lt;/p&gt;
 
-&lt;h4 id=&#34;各ノードにコンテナを置いてみる:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードにコンテナを置いてみる&lt;/h4&gt;
+&lt;h4 id=&#34;各ノードにコンテナを置いてみる&#34;&gt;各ノードにコンテナを置いてみる&lt;/h4&gt;
 
-&lt;h5 id=&#34;オーバーレイネットワークの作成:de820086aea356a53ede32388b7ce8bb&#34;&gt;オーバーレイネットワークの作成&lt;/h5&gt;
+&lt;h5 id=&#34;オーバーレイネットワークの作成&#34;&gt;オーバーレイネットワークの作成&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_HOST=&amp;quot;192.168.30.2:3375&amp;quot;
 docker network create testnet
@@ -565,7 +565,7 @@ docker network create testnet
 
 &lt;p&gt;Swarmマスターへの接続であれば、デフォルトでドライバが&lt;code&gt;overlay&lt;/code&gt;に設定される。&lt;/p&gt;
 
-&lt;h5 id=&#34;docker-compose-yml:de820086aea356a53ede32388b7ce8bb&#34;&gt;docker-compose.yml&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;nginx:
   image: nginx
@@ -576,13 +576,13 @@ docker network create testnet
 
 &lt;p&gt;portsを設定しておけば、コンフリクトを防ぐため、コンテナ配置が自然とバラける。&lt;/p&gt;
 
-&lt;h5 id=&#34;docker-compose-up-scale:de820086aea356a53ede32388b7ce8bb&#34;&gt;docker-compose up &amp;amp; scale&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-up-scale&#34;&gt;docker-compose up &amp;amp; scale&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose up -d
 docker-compose scale nginx=3
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;コンテナ配置確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンテナ配置確認&lt;/h5&gt;
+&lt;h5 id=&#34;コンテナ配置確認&#34;&gt;コンテナ配置確認&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker ps --format &amp;quot;{{.Names}}&amp;quot;
 
@@ -599,10 +599,10 @@ swarm-local/****_nginx_1
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;Zeppelin&lt;/a&gt;はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、&lt;a href=&#34;http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15&#34;&gt;Ubuntu15.10で上手く動作しなかった&lt;/a&gt;ので、見送り
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;Zeppelin&lt;/a&gt;はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:2&#34;&gt;TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、&lt;a href=&#34;http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15&#34;&gt;Ubuntu15.10で上手く動作しなかった&lt;/a&gt;ので、見送り
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -622,13 +622,13 @@ swarm-local/****_nginx_1
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/eyecatch.png&#34; alt=&#34;Docker Swarm using TLS&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;作業の流れ:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;作業の流れ&lt;/h3&gt;
+&lt;h3 id=&#34;作業の流れ&#34;&gt;作業の流れ&lt;/h3&gt;
 
 &lt;p&gt;概ね以下の様な流れでSwarmクラスタの構築を行う。基本的には、docker-machineで行われていることを模倣している。docker-machine自体ではサービスディスカバリの準備は行わないので、そこら辺の手順も残しておく。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/overview.svg&#34; alt=&#34;Overview&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;付録-swarmクラスタをterraformで構築するサンプル:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;[付録] SwarmクラスタをTerraformで構築するサンプル&lt;/h4&gt;
+&lt;h4 id=&#34;付録-swarmクラスタをterraformで構築するサンプル&#34;&gt;[付録] SwarmクラスタをTerraformで構築するサンプル&lt;/h4&gt;
 
 &lt;p&gt;今回の記事で行う作業をTerraformで自動化したものを、以下のリポジトリに置いておくので、ご参考までに。terraform.tfの&lt;code&gt;count&lt;/code&gt;の値を弄ることで、指定数のノードを自動で作成するので、大量にノードが必要な場合に便利かも。&lt;/p&gt;
 
@@ -637,9 +637,9 @@ swarm-local/****_nginx_1
 &lt;a href=&#34;https://github.com/namikingsoft/sample-terraform-docker-swarm-over-tls&#34;&gt;https://github.com/namikingsoft/sample-terraform-docker-swarm-over-tls&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;事前準備:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。&lt;/p&gt;
 
@@ -648,14 +648,14 @@ swarm-local/****_nginx_1
 &lt;li&gt;OpenSSL (Linux系やOSXなら、デフォルトで入っているはず)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;この記事の例では、ホストにDigitalOceanを使うが、AWSとかでも可能と思います。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;br /&gt;
 登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
-&lt;h3 id=&#34;ノード用のホストを用意する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
+&lt;h3 id=&#34;ノード用のホストを用意する&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
 
 &lt;p&gt;今回の例では、DigitalOceanでノードを２台用意して、Swarmクラスタの連携を確認した。&lt;/p&gt;
 
@@ -689,7 +689,7 @@ swarm-local/****_nginx_1
 &lt;/tbody&gt;
 &lt;/table&gt;
 
-&lt;h5 id=&#34;備考:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0はマスターノードとして使う&lt;/li&gt;
@@ -699,17 +699,17 @@ swarm-local/****_nginx_1
 &lt;li&gt;eth1はプライベートネットワークに繋がるインタフェース&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでconsulを動かす&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
 
 &lt;p&gt;Swarmクラスタのサービスディスカバリー(分散KVS)であるConsulを各ノードにインストールする。使わないでもSwarmクラスタは構築できるが、マルチホスト間でオーバーレイ・ネットワークを作れるようになったりと色々利点が多いので。(etcdやZookeeperでも構築可能)&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/consul.svg&#34; alt=&#34;Swarm Structure&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0にてconsulをサーバーモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0にてConsulをサーバーモードで動かす&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0にてconsulをサーバーモードで動かす&#34;&gt;swarm-node0にてConsulをサーバーモードで動かす&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして作業を行う。&lt;/p&gt;
 
-&lt;h5 id=&#34;インストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;インストール&lt;/h5&gt;
+&lt;h5 id=&#34;インストール&#34;&gt;インストール&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl zip
@@ -725,7 +725,7 @@ curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
 unzip consul_0.6.1_web_ui.zip -d consul-webui
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;サービス登録:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;サービス登録&lt;/h5&gt;
+&lt;h5 id=&#34;サービス登録&#34;&gt;サービス登録&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# service
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/consul.service
@@ -743,7 +743,7 @@ WantedBy=multi-user.target
 EOS
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;設定:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;設定&lt;/h5&gt;
+&lt;h5 id=&#34;設定&#34;&gt;設定&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 自分自身のプライベートIPを取得
 export MY_PRIVATE_IP=$(
@@ -770,17 +770,17 @@ EOS
 
 &lt;p&gt;１台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。&lt;/p&gt;
 
-&lt;h5 id=&#34;自動起動設定-起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;自動起動設定＆起動&lt;/h5&gt;
+&lt;h5 id=&#34;自動起動設定-起動&#34;&gt;自動起動設定＆起動&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;systemctl enable consul
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして作業を行う。設定以外は同じなので割愛。&lt;/p&gt;
 
-&lt;h5 id=&#34;設定-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;設定&lt;/h5&gt;
+&lt;h5 id=&#34;設定-1&#34;&gt;設定&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 自分自身のプライベートIPを取得
 export MY_PRIVATE_IP=$(
@@ -807,7 +807,7 @@ EOS
 &lt;p&gt;swarm-node0のプライベートIPにジョインする。&lt;br /&gt;
 設定が終わったら、自動起動設定と起動を行っておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;メンバー確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;メンバー確認&lt;/h4&gt;
+&lt;h4 id=&#34;メンバー確認&#34;&gt;メンバー確認&lt;/h4&gt;
 
 &lt;p&gt;各ノードのConsulが連携できているかを確認する。&lt;/p&gt;
 
@@ -826,7 +826,7 @@ consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードにdockerをインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードにDockerをインストール&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードにdockerをインストール&#34;&gt;各ノードにDockerをインストール&lt;/h3&gt;
 
 &lt;p&gt;各ノードのSSHにて、以下のコマンドを実行する。&lt;/p&gt;
 
@@ -835,11 +835,11 @@ consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
 
 &lt;p&gt;デーモン起動時の引数設定などは後ほど行う。&lt;/p&gt;
 
-&lt;h3 id=&#34;tls認証用の鍵を生成する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS認証用の鍵を生成する&lt;/h3&gt;
+&lt;h3 id=&#34;tls認証用の鍵を生成する&#34;&gt;TLS認証用の鍵を生成する&lt;/h3&gt;
 
 &lt;p&gt;クライアント側(ローカルPC)で生成する。後ほど各ノードに必要なファイルを転送する。&lt;/p&gt;
 
-&lt;h4 id=&#34;caの証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;CAの証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;caの証明書を生成&#34;&gt;CAの証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;openssl genrsa -out ca-key.pem 4096
 openssl req -subj &amp;quot;/CN=ca&amp;quot; -new -x509 -days 365 -key ca-key.pem -out ca.pem
@@ -847,7 +847,7 @@ openssl req -subj &amp;quot;/CN=ca&amp;quot; -new -x509 -days 365 -key ca-key.pe
 
 &lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
-&lt;h4 id=&#34;クライアントの秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;クライアントの秘密鍵と証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;クライアントの秘密鍵と証明書を生成&#34;&gt;クライアントの秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
 echo &amp;quot;extendedKeyUsage = clientAuth&amp;quot; &amp;gt;&amp;gt; extfile-client.cnf
@@ -861,7 +861,7 @@ openssl x509 -req -days 365 -sha256 -in client.csr -out cert.pem \
 
 &lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-master-の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0(master)の秘密鍵と証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-master-の秘密鍵と証明書を生成&#34;&gt;swarm-node0(master)の秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
 echo &amp;quot;subjectAltName = IP:x.x.x.1&amp;quot; &amp;gt; extfile.cnf
@@ -876,7 +876,7 @@ openssl x509 -req -days 365 -sha256 -in node0.csr -out node0-cert.pem \
 
 &lt;p&gt;Swarm Managerを動かすノードなので、clientAuthも設定しておく。subjectAltNameにグローバルIPを設定するので、CommonName(CN)は割と何でもよいが、ドメイン名があれば、それを設定するとよい。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node1の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1の秘密鍵と証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1の秘密鍵と証明書を生成&#34;&gt;swarm-node1の秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
 echo &amp;quot;subjectAltName = IP:x.x.x.2&amp;quot; &amp;gt; extfile.cnf
@@ -890,9 +890,9 @@ openssl x509 -req -days 365 -sha256 -in node1.csr -out node1-cert.pem \
 
 &lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
-&lt;h4 id=&#34;tls認証鍵を各ノードへアップロード:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS認証鍵を各ノードへアップロード&lt;/h4&gt;
+&lt;h4 id=&#34;tls認証鍵を各ノードへアップロード&#34;&gt;TLS認証鍵を各ノードへアップロード&lt;/h4&gt;
 
-&lt;p&gt;SFTPやSCPなどを使って、各ノードの&lt;code&gt;/etc/docker&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;あたりにアップロードする。&lt;/p&gt;
+&lt;p&gt;SFTPやSCPなどを使って、各ノードの&lt;code&gt;/etc/docker&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;あたりにアップロードする。&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0
@@ -911,13 +911,13 @@ openssl x509 -req -days 365 -sha256 -in node1.csr -out node1-cert.pem \
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;各ノードのdockerの設定を変更する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードのDockerの設定を変更する&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードのdockerの設定を変更する&#34;&gt;各ノードのDockerの設定を変更する&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、設定を行う。&lt;/p&gt;
 
-&lt;h4 id=&#34;dockerデーモン起動時の引数設定:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
+&lt;h4 id=&#34;dockerデーモン起動時の引数設定&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
 
-&lt;h5 id=&#34;swarm-node0:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h5&gt;
+&lt;h5 id=&#34;swarm-node0&#34;&gt;swarm-node0&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -935,7 +935,7 @@ ExecStart=/usr/bin/docker daemon \
   -H fd://
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;swarm-node1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h5&gt;
+&lt;h5 id=&#34;swarm-node1&#34;&gt;swarm-node1&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -953,7 +953,7 @@ ExecStart=/usr/bin/docker daemon \
   -H fd://
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;備考-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考-1&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;変更後は見やすさのため複数行で書いているが、&lt;code&gt;\&lt;/code&gt;を消して1行ぶっ続けで記述する。&lt;/li&gt;
@@ -961,12 +961,12 @@ ExecStart=/usr/bin/docker daemon \
 &lt;li&gt;cluster-storeとcluster-advertiseの指定は、オーバーレイ・ネットワーク機能のためなので、使わない場合は特に指定しなくても、Swarmクラスタの動作は可能。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;docker再起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Docker再起動&lt;/h4&gt;
+&lt;h4 id=&#34;docker再起動&#34;&gt;Docker再起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;service docker restart
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;tls接続確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS接続確認&lt;/h4&gt;
+&lt;h4 id=&#34;tls接続確認&#34;&gt;TLS接続確認&lt;/h4&gt;
 
 &lt;p&gt;ローカルPCから、TLS(TCP)でホストのDockerを利用できるか確認してみる。&lt;/p&gt;
 
@@ -996,11 +996,11 @@ docker version
 
 &lt;p&gt;&lt;code&gt;DOCKER_CERT_PATH&lt;/code&gt;については、&lt;code&gt;~/.docker/&lt;/code&gt;にクライアント認証鍵(ca.pem, cert.pem, key.pem)を設置すれば、省略可能。&lt;/p&gt;
 
-&lt;h3 id=&#34;各ノードでswarmコンテナを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでswarmコンテナを動かす&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、Swarmコンテナを起動させる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-1&#34;&gt;swarm-node0&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -1017,25 +1017,25 @@ docker run -d --name=swarm-agent --net=host --restart=always \
   swarm join --advertise=x.x.x.1:2376 consul://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1-1&#34;&gt;swarm-node1&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
 docker run -d --name swarm-agent --net=host --restart=always \
   swarm join --advertise=x.x.x.2:2376 consul://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;備考-2:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h4&gt;
+&lt;h4 id=&#34;備考-2&#34;&gt;備考&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;ネットワークのホストと共有する必要があるので、&lt;code&gt;--net=host&lt;/code&gt;を指定している。&lt;/li&gt;
 &lt;li&gt;Swarm Managerで&lt;code&gt;/etc/docker&lt;/code&gt;を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、&lt;code&gt;/etc/docker/key.json&lt;/code&gt;の共有のため。DockerユニークIDの識別に必要とのこと。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;動作確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
 
 &lt;p&gt;クライアント側(ローカルPC)から、Swarmクラスタへの接続を試みる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-masterにtls接続:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Swarm MasterにTLS接続&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-masterにtls接続&#34;&gt;Swarm MasterにTLS接続&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_TLS_VERIFY=&amp;quot;1&amp;quot;
 export DOCKER_HOST=&amp;quot;tcp://x.x.x.1:3376&amp;quot;
@@ -1069,7 +1069,7 @@ Name: swarm-node0
 
 &lt;p&gt;上のように、ノードが2つ接続されていることが確認できれば、Swarmクラスタの構築がうまく行えている。&lt;code&gt;DOCKER_HOST&lt;/code&gt;のポート指定を&lt;code&gt;2376&lt;/code&gt;ではなく、&lt;code&gt;3376&lt;/code&gt;にすることで、dockerコマンドでSwarm関連の操作を行うことができる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarmクラスタにコンテナを配置してみる:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Swarmクラスタにコンテナを配置してみる&lt;/h4&gt;
+&lt;h4 id=&#34;swarmクラスタにコンテナを配置してみる&#34;&gt;Swarmクラスタにコンテナを配置してみる&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker run -d --name container1 nginx
 $ docker run -d --name container2 nginx
@@ -1085,8 +1085,8 @@ swarm-node2/container2
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;TLS認証鍵の置き場所は任意。Dockerデーモン起動時の引数で指定する。
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;TLS認証鍵の置き場所は任意。Dockerデーモン起動時の引数で指定する。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -1106,9 +1106,9 @@ swarm-node2/container2
 
 &lt;p&gt;まずはシンプルに、Standaloneモードから動かしてみたい。&lt;/p&gt;
 
-&lt;h3 id=&#34;事前準備:27882acbebbf2525e531e2163851a874&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;マルチホスト同士の通信が可能なswarmクラスタを構築しておく:27882acbebbf2525e531e2163851a874&#34;&gt;マルチホスト同士の通信が可能なSwarmクラスタを構築しておく&lt;/h4&gt;
+&lt;h4 id=&#34;マルチホスト同士の通信が可能なswarmクラスタを構築しておく&#34;&gt;マルチホスト同士の通信が可能なSwarmクラスタを構築しておく&lt;/h4&gt;
 
 &lt;p&gt;Sparkのクラスタ同士は、一方通行な通信ではなく、割りと親密な双方向通信をするため、オーバーレイ・ネットワーク上に構築しないとうまく動作しない。&lt;/p&gt;
 
@@ -1117,13 +1117,13 @@ swarm-node2/container2
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/structure-swarm.svg&#34; alt=&#34;Swarm Structure&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;sparkクラスタをコンテナで構築する:27882acbebbf2525e531e2163851a874&#34;&gt;Sparkクラスタをコンテナで構築する&lt;/h3&gt;
+&lt;h3 id=&#34;sparkクラスタをコンテナで構築する&#34;&gt;Sparkクラスタをコンテナで構築する&lt;/h3&gt;
 
 &lt;p&gt;docker-composeを用いて、各ノードにSparkクラスタを構築する。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/spark-containers.svg&#34; alt=&#34;Spark Containers&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;apache-sparkのdockerイメージ:27882acbebbf2525e531e2163851a874&#34;&gt;Apache SparkのDockerイメージ&lt;/h4&gt;
+&lt;h4 id=&#34;apache-sparkのdockerイメージ&#34;&gt;Apache SparkのDockerイメージ&lt;/h4&gt;
 
 &lt;p&gt;Standaloneモードで動くシンプルなものが使いたかったので、SparkのDockerイメージは自前で用意したものを使った。&lt;/p&gt;
 
@@ -1134,7 +1134,7 @@ swarm-node2/container2
 
 &lt;p&gt;masterなら&lt;code&gt;bin/start-master.sh&lt;/code&gt;を実行し、workerなら&lt;code&gt;bin/start-slave.sh ${MASTER_HOSTNAME}:7077&lt;/code&gt;を実行するだけのシンプルなもの。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker-compose-yml:27882acbebbf2525e531e2163851a874&#34;&gt;docker-compose.yml&lt;/h4&gt;
+&lt;h4 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;master:
   image: namikingsoft/spark
@@ -1161,12 +1161,12 @@ worker:
 &lt;p&gt;イメージ各コンテナはDockerのオーバーレイネットワークで繋がるので、
 ポートも特に指定しなくてもよい。WebUIなどは後ほど、Socksプロキシ経由で確認する。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-masterの環境変数を設定:27882acbebbf2525e531e2163851a874&#34;&gt;Swarm Masterの環境変数を設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-masterの環境変数を設定&#34;&gt;Swarm Masterの環境変数を設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;eval &amp;quot;$(docker-machine env --swarm swarm-node0)&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;docker-compose-up:27882acbebbf2525e531e2163851a874&#34;&gt;docker-compose up&lt;/h4&gt;
+&lt;h4 id=&#34;docker-compose-up&#34;&gt;docker-compose up&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose --x-networking up -d
 &lt;/code&gt;&lt;/pre&gt;
@@ -1177,14 +1177,14 @@ worker:
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/spark-containers-progress.svg&#34; alt=&#34;Spark Containers Progress&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;ワーカーをスケールしてみる:27882acbebbf2525e531e2163851a874&#34;&gt;ワーカーをスケールしてみる&lt;/h4&gt;
+&lt;h4 id=&#34;ワーカーをスケールしてみる&#34;&gt;ワーカーをスケールしてみる&lt;/h4&gt;
 
 &lt;p&gt;docker-composeのscaleコマンドでワーカーノードを指定数分スケールすることができる。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose scale worker=2
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンテナ配置の確認:27882acbebbf2525e531e2163851a874&#34;&gt;コンテナ配置の確認&lt;/h4&gt;
+&lt;h4 id=&#34;コンテナ配置の確認&#34;&gt;コンテナ配置の確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker ps --format &amp;quot;{{.Names}}&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
@@ -1202,7 +1202,7 @@ spark-shell起動時に&lt;code&gt;Cannot allocate memory&lt;/code&gt;的なエ�
 チューニング次第かもだが、DigitalOcean 2GBだとリソース的には厳しそう。&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;sparkシェルを動かしてみる:27882acbebbf2525e531e2163851a874&#34;&gt;Sparkシェルを動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;sparkシェルを動かしてみる&#34;&gt;Sparkシェルを動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;仮にSparkマスターコンテナをドライバーとして、動かしてみる。
 (ワーカーでも動作可能)&lt;/p&gt;
@@ -1215,7 +1215,7 @@ spark-shell --master spark://master:7077
 res0: Int = 50005000
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;spark-uiを確認:27882acbebbf2525e531e2163851a874&#34;&gt;Spark UIを確認&lt;/h3&gt;
+&lt;h3 id=&#34;spark-uiを確認&#34;&gt;Spark UIを確認&lt;/h3&gt;
 
 &lt;p&gt;SparkのWebUIから、ワーカーが接続されているか確認したいが、docker-compose.ymlではポートを開けていない。(本来閉じたネットワークで動かすので、ポートを開放するのはあまりよろしくない)&lt;/p&gt;
 
@@ -1223,7 +1223,7 @@ res0: Int = 50005000
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/spark-sshsocks.svg&#34; alt=&#34;Sparkマスター WebUI&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;sshdコンテナを追加:27882acbebbf2525e531e2163851a874&#34;&gt;SSHdコンテナを追加&lt;/h4&gt;
+&lt;h4 id=&#34;sshdコンテナを追加&#34;&gt;SSHdコンテナを追加&lt;/h4&gt;
 
 &lt;p&gt;先ほどのdocker-compose.ymlに追加する。&lt;/p&gt;
 
@@ -1260,7 +1260,7 @@ sshd:
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose --x-networking up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;ローカルpcでsocksプロキシを起動:27882acbebbf2525e531e2163851a874&#34;&gt;ローカルPCでSocksプロキシを起動&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcでsocksプロキシを起動&#34;&gt;ローカルPCでSocksプロキシを起動&lt;/h4&gt;
 
 &lt;p&gt;swarm-masterのIPを確認。&lt;/p&gt;
 
@@ -1275,7 +1275,7 @@ Password: something
 
 &lt;p&gt;Socksプロキシを止めるときは&lt;code&gt;Ctrl-c&lt;/code&gt;を押下。&lt;/p&gt;
 
-&lt;h4 id=&#34;ローカルpcにてsocksプロキシを設定:27882acbebbf2525e531e2163851a874&#34;&gt;ローカルPCにてSocksプロキシを設定&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcにてsocksプロキシを設定&#34;&gt;ローカルPCにてSocksプロキシを設定&lt;/h4&gt;
 
 &lt;p&gt;ローカルPCのSocksプロキシ設定を&lt;code&gt;localhost:1080&lt;/code&gt;に設定する。
 SSHのSocks周りについては以下のページが参考になった。&lt;/p&gt;
@@ -1283,7 +1283,7 @@ SSHのSocks周りについては以下のページが参考になった。&lt;/p
 &lt;p&gt;&lt;a href=&#34;http://blog.wktk.co.jp/ja/entry/2014/03/11/ssh-socks-proxy-mac-chrome&#34;&gt;ssh経由のSOCKSプロキシを通じてMac上のGoogle Chromeでブラウジング&lt;/a&gt;&lt;br /&gt;
 &lt;a href=&#34;https://www.kmc.gr.jp/advent-calendar/ssh/2013/12/14/tsocks.html&#34;&gt;ssh -D と tsocks -  京大マイコンクラブ (KMC)&lt;/a&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;ブラウザで確認:27882acbebbf2525e531e2163851a874&#34;&gt;ブラウザで確認&lt;/h4&gt;
+&lt;h4 id=&#34;ブラウザで確認&#34;&gt;ブラウザで確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://(swarm-masterのIP):8080
 &lt;/code&gt;&lt;/pre&gt;
@@ -1309,9 +1309,9 @@ IPや名前解決はSSH接続先のものを参照してくれて便利。(OSX10
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/logos.png&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;事前準備:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。Dockerのオーバーレイネットワーク機能を使うので、それを利用できるバージョンを入れる。&lt;/p&gt;
 
@@ -1321,15 +1321,15 @@ IPや名前解決はSSH接続先のものを参照してくれて便利。(OSX10
 &lt;li&gt;docker-machine&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;気をつけたいポイント４つ:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
+&lt;h3 id=&#34;気をつけたいポイント４つ&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
 
-&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
+&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
 
 &lt;p&gt;例えば、ホストOSにUbuntu14.04を選んでいると、オーバーレイ・ネットワーク上にのコンテナを立ち上げる時にエラーが出る。&lt;/p&gt;
 
@@ -1346,7 +1346,7 @@ ERROR: Cannot start container (container_id):
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;によると、「A host with a 3.16 kernel version or higher.」とのこと。DigitalOceanのUbuntu14.04はカーネルが古いようなので、14.10とか15.04以上を使う必要がある。&lt;/p&gt;
 
-&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
+&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;のサンプルをそのまま使うと、&lt;code&gt;docker-machine create&lt;/code&gt;時に概ね次のようなエラーに遭遇する。&lt;/p&gt;
 
@@ -1376,7 +1376,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
   ...
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
+&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmクラスタのノードに含めてしまおう。&lt;/p&gt;
 
@@ -1388,7 +1388,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/structure.svg&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;04-consulはプライベートネットワークに置く:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
+&lt;h4 id=&#34;04-consulはプライベートネットワークに置く&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;の感覚で、DigitalOceanにConsulキーストアを導入すると、グローバルにWebUIが公開されてしまい、精神的によろしくない。&lt;/p&gt;
 
@@ -1414,7 +1414,7 @@ open http://localhost:8500
 &lt;a href=&#34;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&#34;&gt;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;具体的な実行手順:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;具体的な実行手順&lt;/h3&gt;
+&lt;h3 id=&#34;具体的な実行手順&#34;&gt;具体的な実行手順&lt;/h3&gt;
 
 &lt;p&gt;自動化しやすいように、上のポイント４つを踏まえたシェルの実行手順を以下にまとめる。&lt;/p&gt;
 
@@ -1505,7 +1505,7 @@ docker-machine ssh swarm-node1 &amp;quot;
 &amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;注記いくつか:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;注記いくつか&lt;/h4&gt;
+&lt;h4 id=&#34;注記いくつか&#34;&gt;注記いくつか&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;シェル中の&lt;code&gt;${DIGITALOCEAN_TOKEN}&lt;/code&gt;はDigitalOceanの管理画面から取得したアクセストークンに置き換える。&lt;/li&gt;
@@ -1514,9 +1514,9 @@ docker-machine ssh swarm-node1 &amp;quot;
 &lt;li&gt;途中で、マスターのプライベートIPを取得しているのは、各ノードに設置したConsulクライアントをサーバーにJOINさせるため。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;動作確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
 
-&lt;h4 id=&#34;swarmクラスタ確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
+&lt;h4 id=&#34;swarmクラスタ確認&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ eval $(docker-machine env --swarm swarm-node0)
 $ docker info
@@ -1546,9 +1546,9 @@ Name: swarm-node0
 
 &lt;p&gt;ノードが２つあることが確認できる。&lt;/p&gt;
 
-&lt;h4 id=&#34;オーバーレイ-ネットワークの確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
+&lt;h4 id=&#34;オーバーレイ-ネットワークの確認&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
 
-&lt;h5 id=&#34;docker-compose-yml:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;docker-compose.yml&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;container1:
   image: busybox
@@ -1565,7 +1565,7 @@ container2:
   command: tail -f /dev/null
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
+&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker-compose --x-networking up -d
 $ docker ps --format &amp;quot;{{.Names}}&amp;quot;
@@ -1576,7 +1576,7 @@ swarm-node1/container2
 
 &lt;p&gt;それぞれのノードにコンテナが作られた。&lt;/p&gt;
 
-&lt;h5 id=&#34;疎通確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;疎通確認&lt;/h5&gt;
+&lt;h5 id=&#34;疎通確認&#34;&gt;疎通確認&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker exec -it container1 ping container2 -c4
 
@@ -1618,7 +1618,7 @@ round-trip min/avg/max = 0.847/0.985/1.379 ms
 
 &lt;p&gt;長めのansible-playbookをRUNしてる途中でエラーが出た時に役立ったので、まとめておく。&lt;/p&gt;
 
-&lt;h3 id=&#34;どういう時に使う:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;どういう時に使う？&lt;/h3&gt;
+&lt;h3 id=&#34;どういう時に使う&#34;&gt;どういう時に使う？&lt;/h3&gt;
 
 &lt;p&gt;例えば、&lt;code&gt;docker build&lt;/code&gt;途中によくわからない理由でエラー落ちした時、
 直前状態のコンテナに入ってデバッグしたい事がある。&lt;/p&gt;
@@ -1634,7 +1634,7 @@ Dockerコマンド単位でコミットされるため、
 大幅にロールバックしていることがある。&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;ビルド途中にエラーで落ちるdockerfileの例:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;ビルド途中にエラーで落ちるDockerfileの例&lt;/h4&gt;
+&lt;h4 id=&#34;ビルド途中にエラーで落ちるdockerfileの例&#34;&gt;ビルド途中にエラーで落ちるDockerfileの例&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-docker&#34;&gt;FROM busybox
 
@@ -1645,7 +1645,7 @@ RUN touch /step4
 
 &lt;p&gt;&lt;code&gt;errcmd&lt;/code&gt;という架空のコマンドで、わざとエラーを起こしてみる。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker-build-の途中で落ちる:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;docker build の途中で落ちる&lt;/h4&gt;
+&lt;h4 id=&#34;docker-build-の途中で落ちる&#34;&gt;docker build の途中で落ちる&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker build . -t tset
 
@@ -1679,7 +1679,7 @@ d117aa39bacd
 &lt;p&gt;&lt;code&gt;d117aa39bacd&lt;/code&gt;コンテナが消されずに残っている。&lt;br /&gt;
 これが直近の作業コンテナで&lt;code&gt;touch /step2&lt;/code&gt;までのコマンドを実行されているはず。&lt;/p&gt;
 
-&lt;h4 id=&#34;exitedなコンテナには入れない:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;Exitedなコンテナには入れない？&lt;/h4&gt;
+&lt;h4 id=&#34;exitedなコンテナには入れない&#34;&gt;Exitedなコンテナには入れない？&lt;/h4&gt;
 
 &lt;p&gt;生きているコンテナであれば、&lt;code&gt;docker exec&lt;/code&gt;+シェルでコンテナの中に入れるが、
 Exitedしていると、以下の様なエラーが出る。&lt;/p&gt;
@@ -1689,9 +1689,9 @@ Exitedしていると、以下の様なエラーが出る。&lt;/p&gt;
 Error response from daemon: Container d117aa39bacd is not running
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;解決手順:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;解決手順&lt;/h3&gt;
+&lt;h3 id=&#34;解決手順&#34;&gt;解決手順&lt;/h3&gt;
 
-&lt;h4 id=&#34;１-exitedコンテナを一旦コミットして-イメージ化する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;１．Exitedコンテナを一旦コミットして、イメージ化する&lt;/h4&gt;
+&lt;h4 id=&#34;１-exitedコンテナを一旦コミットして-イメージ化する&#34;&gt;１．Exitedコンテナを一旦コミットして、イメージ化する&lt;/h4&gt;
 
 &lt;p&gt;死んでいるコンテナをコミットするという機会があまりなかったので、
 ちょっと戸惑ったが、以下のコマンドでイメージ化できる。&lt;/p&gt;
@@ -1699,7 +1699,7 @@ Error response from daemon: Container d117aa39bacd is not running
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker commit -t exited d117aa39bacd
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;２-インタラクティブ-ttyモードで実行する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;２．インタラクティブ+TTYモードで実行する&lt;/h4&gt;
+&lt;h4 id=&#34;２-インタラクティブ-ttyモードで実行する&#34;&gt;２．インタラクティブ+TTYモードで実行する&lt;/h4&gt;
 
 &lt;p&gt;そのまま&lt;code&gt;docker run&lt;/code&gt;しても速攻で死ぬので、&lt;code&gt;-it bash&lt;/code&gt;をつけて実行。&lt;/p&gt;
 
@@ -1739,7 +1739,7 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;a href=&#34;https://docs.docker.com/compose/&#34;&gt;https://docs.docker.com/compose/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;インストール手順:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;インストール手順&lt;/h3&gt;
+&lt;h3 id=&#34;インストール手順&#34;&gt;インストール手順&lt;/h3&gt;
 
 &lt;p&gt;公式ドキュメントに対応OSごとのインストール方法がまとめてあった。&lt;/p&gt;
 
@@ -1758,19 +1758,19 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;easy_install pip
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;バージョン差異エラー回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;バージョン差異エラー回避方法&lt;/h3&gt;
+&lt;h3 id=&#34;バージョン差異エラー回避方法&#34;&gt;バージョン差異エラー回避方法&lt;/h3&gt;
 
 &lt;p&gt;&lt;code&gt;docker-compose up&lt;/code&gt;などの実行時に、以下の様なエラーが表示されることがある。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;client and server don&#39;t have same version (client : 1.19, server: 1.18)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;原因:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;原因&lt;/h4&gt;
+&lt;h4 id=&#34;原因&#34;&gt;原因&lt;/h4&gt;
 
 &lt;p&gt;このエラーは、インストールされている&lt;code&gt;Dockerサーバー&lt;/code&gt;のバージョンと、
 &lt;code&gt;docker-composeクライアント(API)&lt;/code&gt;のバージョンに互換性がない時に表示されるらしい。&lt;/p&gt;
 
-&lt;h4 id=&#34;回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;回避方法&lt;/h4&gt;
+&lt;h4 id=&#34;回避方法&#34;&gt;回避方法&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;COMPOSE_API_VERSION&lt;/code&gt;環境変数にサーバーのバージョンを設定すれば、
 &lt;code&gt;docker-compose&lt;/code&gt;の方で、サーバーのバージョンに合わせて通信してくれるとのこと。
@@ -1786,7 +1786,7 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;pre&gt;&lt;code&gt;COMPOSE_API_VERSION=auto
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;docker-composeの利用例:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;docker-composeの利用例&lt;/h3&gt;
+&lt;h3 id=&#34;docker-composeの利用例&#34;&gt;docker-composeの利用例&lt;/h3&gt;
 
 &lt;p&gt;当ブログの以下の記事で、具体的な使用例を紹介しているので、参照されたい。&lt;/p&gt;
 
@@ -1820,7 +1820,7 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;a href=&#34;https://taiga.io/&#34;&gt;https://taiga.io/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;dockerを利用した導入手順:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;以下の&lt;code&gt;docker-compose.yml&lt;/code&gt;とイメージを参考/利用させていただきました。&lt;/p&gt;
 
@@ -1829,11 +1829,11 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;a href=&#34;https://github.com/htdvisser/taiga-docker&#34;&gt;https://github.com/htdvisser/taiga-docker&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;00-事前準備:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;00. 事前準備&lt;/h4&gt;
+&lt;h4 id=&#34;00-事前準備&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;01-docker-compose-yml-設置:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+&lt;h4 id=&#34;01-docker-compose-yml-設置&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
 
 &lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
 &lt;code&gt;hostname&lt;/code&gt;, &lt;code&gt;EMAIL_*&lt;/code&gt;辺りは各々の環境に合わせて書き換える。&lt;/p&gt;
@@ -1883,19 +1883,19 @@ taigafront:
   restart: always
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;02-docker起動:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;02. Docker起動&lt;/h4&gt;
+&lt;h4 id=&#34;02-docker起動&#34;&gt;02. Docker起動&lt;/h4&gt;
 
 &lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-足りないdbレコードを挿入:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;03. 足りないDBレコードを挿入&lt;/h4&gt;
+&lt;h4 id=&#34;03-足りないdbレコードを挿入&#34;&gt;03. 足りないDBレコードを挿入&lt;/h4&gt;
 
 &lt;p&gt;Dockerコンテナ起動時に、初期DBデータの挿入が行われるが、
 おそらく&lt;code&gt;TAIGA&lt;/code&gt;のバージョンアップで、必要なDBデータが増えたっぽい。&lt;/p&gt;
 
-&lt;p&gt;動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
+&lt;p&gt;動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
 取り急ぎ、こちらのコマンドで入れておく。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;docker exec -it (taigabackコンテナID) \
@@ -1911,16 +1911,16 @@ docker exec -it (taigabackコンテナID) \
     loaddata initial_project_templates initial_role
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;04-動作確認:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;04. 動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;04-動作確認&#34;&gt;04. 動作確認&lt;/h4&gt;
 
-&lt;h5 id=&#34;通常画面:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;通常画面&lt;/h5&gt;
+&lt;h5 id=&#34;通常画面&#34;&gt;通常画面&lt;/h5&gt;
 
 &lt;p&gt;画面内の「create your free account here」からユーザー登録を行う。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;http://(SERVER_IP)/
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;管理画面:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;管理画面&lt;/h5&gt;
+&lt;h5 id=&#34;管理画面&#34;&gt;管理画面&lt;/h5&gt;
 
 &lt;p&gt;DBレコード操作などを行う画面？&lt;br /&gt;
 通常運用であれば、使わなくてもよい画面と思われる。&lt;/p&gt;
@@ -1930,16 +1930,16 @@ Username: admin
 Password: 123123
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;導入でつまづいた点:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;導入でつまづいた点&lt;/h3&gt;
+&lt;h3 id=&#34;導入でつまづいた点&#34;&gt;導入でつまづいた点&lt;/h3&gt;
 
-&lt;h5 id=&#34;新規ユーザー登録ボタン押下後に-次画面に遷移しない:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;新規ユーザー登録ボタン押下後に、次画面に遷移しない。&lt;/h5&gt;
+&lt;h5 id=&#34;新規ユーザー登録ボタン押下後に-次画面に遷移しない&#34;&gt;新規ユーザー登録ボタン押下後に、次画面に遷移しない。&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;SMTP設定が正しくない。&lt;/li&gt;
 &lt;li&gt;Docker起動直後に登録した。(初期DBデータ登録が終わっていない？)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h5 id=&#34;プロジェクトの作成途中で次画面に遷移しなくなる:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;プロジェクトの作成途中で次画面に遷移しなくなる。&lt;/h5&gt;
+&lt;h5 id=&#34;プロジェクトの作成途中で次画面に遷移しなくなる&#34;&gt;プロジェクトの作成途中で次画面に遷移しなくなる。&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;追加DBデータを挿入していない。&lt;/li&gt;
@@ -1949,10 +1949,10 @@ Password: 123123
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:2&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -1981,7 +1981,7 @@ Password: 123123
 &lt;a href=&#34;http://newui.libreboard.com&#34;&gt;http://newui.libreboard.com&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;dockerを利用した導入手順:a3ec11490e4688501750670051fa9d02&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
 
@@ -1990,11 +1990,11 @@ Password: 123123
 &lt;a href=&#34;https://github.com/wekan/wekan&#34;&gt;https://github.com/wekan/wekan&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;00-事前準備:a3ec11490e4688501750670051fa9d02&#34;&gt;00. 事前準備&lt;/h4&gt;
+&lt;h4 id=&#34;00-事前準備&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:a3ec11490e4688501750670051fa9d02:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;01-docker-compose-yml-設置:a3ec11490e4688501750670051fa9d02&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+&lt;h4 id=&#34;01-docker-compose-yml-設置&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
 
 &lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
 &lt;code&gt;ROOT_URL&lt;/code&gt;辺りを各々の環境に合わせて書き換える。&lt;/p&gt;
@@ -2022,14 +2022,14 @@ wekan:
   restart: always
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;02-docker起動:a3ec11490e4688501750670051fa9d02&#34;&gt;02. Docker起動&lt;/h4&gt;
+&lt;h4 id=&#34;02-docker起動&#34;&gt;02. Docker起動&lt;/h4&gt;
 
 &lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-動作確認:a3ec11490e4688501750670051fa9d02&#34;&gt;03. 動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;03-動作確認&#34;&gt;03. 動作確認&lt;/h4&gt;
 
 &lt;p&gt;画面内の「登録する」から、ユーザーを登録を行う。&lt;/p&gt;
 
@@ -2040,8 +2040,8 @@ wekan:
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:a3ec11490e4688501750670051fa9d02:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:a3ec11490e4688501750670051fa9d02:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -2065,7 +2065,7 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 &lt;a href=&#34;http://restya.com/board/&#34;&gt;http://restya.com/board/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;dockerを利用した導入手順:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;公式ページに必要なミドルウェアは書いてあるが、
 導入手順が書かれていないっぽい。
@@ -2076,11 +2076,11 @@ Trelloだと、有料ユーザーしかできないことが、普通にでき�
 &lt;a href=&#34;https://github.com/namikingsoft/docker-restyaboard&#34;&gt;https://github.com/namikingsoft/docker-restyaboard&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;00-事前準備:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;00. 事前準備&lt;/h4&gt;
+&lt;h4 id=&#34;00-事前準備&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;01-dockerイメージビルドとコンテナ起動:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;01. Dockerイメージビルドとコンテナ起動&lt;/h4&gt;
+&lt;h4 id=&#34;01-dockerイメージビルドとコンテナ起動&#34;&gt;01. Dockerイメージビルドとコンテナ起動&lt;/h4&gt;
 
 &lt;p&gt;以下のコマンドで、Docker環境を構築できる。&lt;/p&gt;
 
@@ -2093,7 +2093,7 @@ docker-compose up -d
 &lt;p&gt;&lt;code&gt;docker-compose up -d&lt;/code&gt;でイメージのビルドとコンテナ起動を全て自動でやってくれる。
 イメージビルドにそこそこ時間が掛かるので注意。&lt;/p&gt;
 
-&lt;h4 id=&#34;02-動作確認:e066c3646c5551a0ffd1b68896a78fd2&#34;&gt;02. 動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;02-動作確認&#34;&gt;02. 動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code&gt;http://(ServerIP):1234
 
@@ -2110,8 +2110,8 @@ Password: restya
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:e066c3646c5551a0ffd1b68896a78fd2:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
