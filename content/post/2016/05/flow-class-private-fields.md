@@ -98,6 +98,26 @@ constructor(param: Param) {
 ```
 
 
+### コンソールデバッグがしづらいデメリットがある
+
+WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。
+```typescript
+const sample = new Sample({
+  field1: 5,
+  field2: "test",
+})
+console.log(sample)
+```
+としても、フィールドの内容は表示されず、以下の様なダンプに。
+```
+Sample {}
+```
+実質、インスタンス内のプロパティには含まれていないので、表示出ないのは当たり前ではある。`privates`のWeakMapをダンプすれば、以下の様な表示はされるが、ファイル外からでは参照できないので、厳しい。
+```
+WeakMap {Sample {} => Object {field1: 1234, field2: "test"}}
+```
+
+
 ### [おまけ] Privateなメソッドも定義できる？
 
 同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。
