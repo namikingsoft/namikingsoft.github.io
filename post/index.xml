@@ -101,6 +101,27 @@ param.field1 = 2345;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;h3 id=&#34;コンソールデバッグがしづらいデメリットがある&#34;&gt;コンソールデバッグがしづらいデメリットがある&lt;/h3&gt;
+
+&lt;p&gt;WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const sample = new Sample({
+  field1: 5,
+  field2: &amp;quot;test&amp;quot;,
+})
+console.log(sample)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;としても、フィールドの内容は表示されず、以下の様なダンプに。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Sample {}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;実質、インスタンス内のプロパティには含まれていないので、表示出ないのは当たり前ではある。&lt;code&gt;privates&lt;/code&gt;のWeakMapをダンプすれば、以下の様な表示はされるが、ファイル外からでは参照できないので、厳しい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;WeakMap {Sample {} =&amp;gt; Object {field1: 1234, field2: &amp;quot;test&amp;quot;}}
+&lt;/code&gt;&lt;/pre&gt;
+
 &lt;h3 id=&#34;おまけ-privateなメソッドも定義できる&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
 
 &lt;p&gt;同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。&lt;/p&gt;
