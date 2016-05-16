@@ -29,6 +29,7 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。
 
 
+
 <a name="weakmap"></a>
 ## ES6のWeakMapを使う方法
 
@@ -102,7 +103,7 @@ constructor(param: Param) {
 ```
 
 
-### コンソールデバッグがしづらいデメリット
+### コンソールデバッグがしづらい
 
 WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。
 ```typescript
@@ -155,7 +156,6 @@ export default class Sample {
 ```
 
 ただ、ESLintを併用していると、`no-use-before-define`に引っかかったりする。
-
 ちとまどろっこしいね。
 
 
@@ -164,6 +164,15 @@ export default class Sample {
 ## flowのmunge_underscoresオプションを使う
 
 flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-configuration.html)を有効にすると、先頭に`_`(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。
+
+```diff
+# .flowconfig
+
+[options]
++ munge_underscores=true
+
+```
+
 
 これを利用して、Privateフィールドを実現してみる。
 [GitHub上の使用例](https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js)
