@@ -3,22 +3,99 @@
 <p><a href="http://flowtype.org/">flow</a>はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。</p>
 
 <ul>
-<li><a href="#weakmap">ES6のWeakMapを使う方法</a></li>
 <li><a href="#munge">flowのmunge_underscoresオプションを使う方法</a></li>
+<li><a href="#weakmap">ES6のWeakMapを使う方法</a></li>
 </ul>
 
 <h3 id="なんでprivateフィールドが必要">なんでPrivateフィールドが必要？</h3>
 
-<p>インスタンス生成後に、外部からフィールド値を変更させたくない。<strong>イミュータブル(不変)</strong>なオブジェクトにしたいため。</p>
+<ul>
+<li>インスタンス生成後に外部からフィールド値を変更させたくないため。
 
 <ul>
-<li><strong>ドメイン駆動設計</strong>(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。</li>
-<li>同じインスタンスを複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、<strong>予期せぬ不具合が起こる</strong>可能性がある。</li>
-<li>だからといって、オブジェクトのDeepCopyはしたくない。</li>
-<li>オブジェクトを参照で保持して、<strong>負荷軽減＆メモリ効率向上</strong>に期待。(アプリ構造にもよる)</li>
+<li><strong>ドメイン駆動設計</strong>(DDD)的なクラス設計をしていると、<strong>イミュータブル(不変)</strong>のエンティティや値オブジェクトのようなものを多用する。</li>
+<li>イミュータブルであることを保証できれば、安心してインスタンスを参照で保持できる。(DeepCopyをする必要がなくなる)</li>
+</ul></li>
+<li>Public箇所(API)を最小限にしておおきたい。
+
+<ul>
+<li>リファクタリングやテスト記述が楽になる。</li>
+</ul></li>
 </ul>
 
-<p>インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。</p>
+<p>などなど。</p>
+
+<p><a name="munge"></a></p>
+
+<h2 id="flowのmunge-underscoresオプションを使う方法">flowのmunge_underscoresオプションを使う方法</h2>
+
+<p>flowオプションの<a href="http://flowtype.org/docs/advanced-configuration.html">munge_underscores</a>を有効にすると、先頭に<code>_</code>(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。</p>
+
+<h3 id="flowconfig-追記">.flowconfig 追記</h3>
+
+<pre><code class="language-diff">[options]
++ munge_underscores=true
+</code></pre>
+
+<h3 id="実装例">実装例</h3>
+
+<p><a href="https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js">GitHub上の使用例</a>を参考にして、Privateフィールドを実現してみる。</p>
+
+<pre><code class="language-typescript">// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+class PrivateSample {
+  _param: Param;
+
+  constructor(param: Param) {
+    this._param = param;
+  }
+
+  getField1(): number {
+    return this._param.field1;
+  }
+
+  _getField2(): string {
+    return this._param.field2;
+  }
+}
+
+export default class Sample extends PrivateSample {}
+</code></pre>
+
+<p>実際にflowをかけると、以下の様なエラーになる。</p>
+
+<pre><code class="language-typescript">const sample = new Sample({
+  field1: 5,
+  field2: &quot;test&quot;,
+})
+assert(instance.getField1() === 5) // OK
+assert(instance._getField2() === &quot;test&quot;) // NG
+assert(instance._param.field1 === 5) // NG
+</code></pre>
+
+<pre><code>error| property `_param` Property not found in (:0:1,0) Sample
+error| property `_getField2` Property not found in (:0:1,0) Sample
+</code></pre>
+
+<p>先頭に<code>_</code>(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。</p>
+
+<h3 id="継承元のクラスを直接インスタンス化すると使えちゃう">継承元のクラスを直接インスタンス化すると使えちゃう</h3>
+
+<p>ちなみに、継承元の<code>PrivateSample</code>を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは<code>export</code>しないほうが良さそう。</p>
+
+<pre><code>const sample = new PrivateSample({
+  field1: 5,
+  field2: &quot;test&quot;,
+})
+assert(instance.getField1() === 5) // OK
+assert(instance._getField2() === &quot;test&quot;) // OK
+assert(instance._param.field1 === 5) // OK
+</code></pre>
 
 <p><a name="weakmap"></a></p>
 
@@ -35,7 +112,7 @@
 
 <p>WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。</p>
 
-<h3 id="実装例">実装例</h3>
+<h3 id="実装例-1">実装例</h3>
 
 <pre><code class="language-typescript">// @flow
 
@@ -59,35 +136,6 @@ export default class Sample {
   getField2(): string {
     return privates.get(this).field2;
   }
-}
-</code></pre>
-
-<p>コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。</p>
-
-<pre><code class="language-typescript">const sample = new Sample({
-  field1: 1234,
-  field2: &quot;Text&quot;,
-});
-</code></pre>
-
-<p>ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。</p>
-
-<pre><code class="language-typescript">let param = {
-  field1: 1234,
-  field2: &quot;Text&quot;,
-};
-const sample = new Sample(param);
-
-// non-immutable
-param.field1 = 2345;
-
-</code></pre>
-
-<p>コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。</p>
-
-<pre><code class="language-typescript">constructor(param: Param) {
-  // ES7の`object-rest-spread`を使うと楽
-  Sample.privates.set(this, { ...param });
 }
 </code></pre>
 
@@ -146,76 +194,47 @@ export default class Sample {
 <p>ただ、ESLintを併用していると、<code>no-use-before-define</code>に引っかかったりする。
 ちとまどろっこしいね。</p>
 
-<p><a name="munge"></a></p>
+<h2 id="備考-注意点">備考・注意点</h2>
 
-<h2 id="flowのmunge-underscoresオプションを使う方法">flowのmunge_underscoresオプションを使う方法</h2>
-
-<p>flowオプションの<a href="http://flowtype.org/docs/advanced-configuration.html">munge_underscores</a>を有効にすると、先頭に<code>_</code>(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。</p>
-
-<h3 id="flowconfig-追記">.flowconfig 追記</h3>
-
-<pre><code class="language-diff">[options]
-+ munge_underscores=true
-</code></pre>
-
-<h3 id="実装例-1">実装例</h3>
-
-<p><a href="https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js">GitHub上の使用例</a>を参考にして、Privateフィールドを実現してみる。</p>
-
-<pre><code class="language-typescript">// @flow
-
-type Param = {
-  field1: number,
-  field2: string,
-}
-
-class PrivateSample {
-  _param: Param;
-
-  constructor(param: Param) {
-    this._param = param;
-  }
-
-  getField1(): number {
-    return this._param.field1;
-  }
-
-  _getField2(): string {
-    return this._param.field2;
-  }
-}
-
-export default class Sample extends PrivateSample {}
-</code></pre>
-
-<p>実際にflowをかけると、以下の様なエラーになる。</p>
+<p>コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。</p>
 
 <pre><code class="language-typescript">const sample = new Sample({
-  field1: 5,
-  field2: &quot;test&quot;,
-})
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === &quot;test&quot;) // NG
-assert(instance._param.field1 === 5) // NG
+  field1: 1234,
+  field2: &quot;Text&quot;,
+});
 </code></pre>
 
-<pre><code>error| property `_param` Property not found in (:0:1,0) Sample
+<p>ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。</p>
+
+<pre><code class="language-typescript">let param = {
+  field1: 1234,
+  field2: &quot;Text&quot;,
+};
+const sample = new Sample(param);
+
+// non-immutable
+param.field1 = 2345;
+
 </code></pre>
 
-<p>先頭に<code>_</code>(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。</p>
+<p>コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。</p>
 
-<h3 id="継承元のクラスを直接インスタンス化すると使えちゃう">継承元のクラスを直接インスタンス化すると使えちゃう</h3>
-
-<p>ちなみに、継承元の<code>PrivateSample</code>を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは<code>export</code>しないほうが良さそう。</p>
-
-<pre><code>const sample = new PrivateSample({
-  field1: 5,
-  field2: &quot;test&quot;,
-})
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === &quot;test&quot;) // NG
-assert(instance._param.field1 === 5) // NG
+<pre><code class="language-typescript">constructor(param: Param) {
+  // ES7の`object-rest-spread`を使うと楽
+  Sample.privates.set(this, { ...param });
+}
 </code></pre>
+
+<h2 id="まとめ">まとめ</h2>
+
+<p>JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、TypeScriptを含め、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんとPrivateを実現しやすくなったと思う。</p>
+
+<blockquote>
+<p>JavaScriptとprivateの見果てぬ夢<br />
+<a href="http://blog.tojiru.net/article/238901975.html">http://blog.tojiru.net/article/238901975.html</a></p>
+</blockquote>
+
+<p>言語仕様を超える夢を見て、戦い続けた男たちに敬意を表したい。</p>
 </div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
 <script type="text/javascript">
     var disqus_shortname = 'namikingsoft';
