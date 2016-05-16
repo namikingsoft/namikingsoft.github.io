@@ -28,135 +28,6 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 などなど。
 
 
-<a name="weakmap"></a>
-## ES6のWeakMapを使う方法
-
-flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。
-
-> ES6 class での private プロパティの定義  
-> http://qiita.com/k_ui/items/889ec276fc04b1448674
-
-Symbolアクセスを使う方法は、`Object.getOwnPropertySymbols`を使えば、外部から値を変更することが可能なため、今回は避けた。
-
-WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。
-
-### 実装例
-
-```typescript
-// @flow
-
-type Param = {
-  field1: number,
-  field2: string,
-}
-
-const privates: WeakMap<Object, Param> = new WeakMap();
-
-export default class Sample {
-
-  constructor(param: Param) {
-    privates.set(this, param);
-  }
-
-  getField1(): number {
-    return privates.get(this).field1;
-  }
-
-  getField2(): string {
-    return privates.get(this).field2;
-  }
-}
-```
-
-コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
-
-```typescript
-const sample = new Sample({
-  field1: 1234,
-  field2: "Text",
-});
-```
-
-ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。
-
-```typescript
-let param = {
-  field1: 1234,
-  field2: "Text",
-};
-const sample = new Sample(param);
-
-// non-immutable
-param.field1 = 2345;
-
-```
-
-コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。
-
-```typescript
-constructor(param: Param) {
-  // ES7の`object-rest-spread`を使うと楽
-  Sample.privates.set(this, { ...param });
-}
-```
-
-
-### コンソールデバッグがしづらい
-
-WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。
-```typescript
-const sample = new Sample({
-  field1: 5,
-  field2: "test",
-});
-console.log(sample);
-```
-としても、フィールドの内容は表示されず、以下の様なダンプに。
-```
-Sample {}
-```
-実質、インスタンス内のプロパティには含まれていないので、表示出ないのは当たり前ではある。`privates`のWeakMapをダンプすれば、以下の様な表示はされるが、ファイル外からでは参照できないので、厳しい。
-```
-WeakMap {Sample {} => Object {field1: 1234, field2: "test"}}
-```
-
-
-### [おまけ] Privateなメソッドも定義できる？
-
-同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。
-
-```diff
-const privates: WeakMap<Object, Param> = new WeakMap();
-
-export default class Sample {
-
-  constructor(param: Param) {
-    privates.set(this, param);
-  }
-
-  getField1(): number {
-    return privates.get(this).field1;
-  }
-
-  getField2(): string {
-    return privates.get(this).field2;
-  }
-+
-+  getPowField1(num: number) {
-+    return powField1(this, num);
-+  }
-}
-
-+// Private method
-+function powField1(instance: Sample, num: number) {
-+  return Math.pow(privates.get(instance).field1, num);
-+}
-```
-
-ただ、ESLintを併用していると、`no-use-before-define`に引っかかったりする。
-ちとまどろっこしいね。
-
-
 
 <a name="munge"></a>
 ## flowのmunge_underscoresオプションを使う方法
@@ -234,9 +105,142 @@ assert(instance._param.field1 === 5) // NG
 
 
 
+<a name="weakmap"></a>
+## ES6のWeakMapを使う方法
+
+flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。
+
+> ES6 class での private プロパティの定義  
+> http://qiita.com/k_ui/items/889ec276fc04b1448674
+
+Symbolアクセスを使う方法は、`Object.getOwnPropertySymbols`を使えば、外部から値を変更することが可能なため、今回は避けた。
+
+WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。
+
+### 実装例
+
+```typescript
+// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+const privates: WeakMap<Object, Param> = new WeakMap();
+
+export default class Sample {
+
+  constructor(param: Param) {
+    privates.set(this, param);
+  }
+
+  getField1(): number {
+    return privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return privates.get(this).field2;
+  }
+}
+```
+
+
+### コンソールデバッグがしづらい
+
+WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。
+```typescript
+const sample = new Sample({
+  field1: 5,
+  field2: "test",
+});
+console.log(sample);
+```
+としても、フィールドの内容は表示されず、以下の様なダンプに。
+```
+Sample {}
+```
+実質、インスタンス内のプロパティには含まれていないので、表示出ないのは当たり前ではある。`privates`のWeakMapをダンプすれば、以下の様な表示はされるが、ファイル外からでは参照できないので、厳しい。
+```
+WeakMap {Sample {} => Object {field1: 1234, field2: "test"}}
+```
+
+
+### [おまけ] Privateなメソッドも定義できる？
+
+同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。
+
+```diff
+const privates: WeakMap<Object, Param> = new WeakMap();
+
+export default class Sample {
+
+  constructor(param: Param) {
+    privates.set(this, param);
+  }
+
+  getField1(): number {
+    return privates.get(this).field1;
+  }
+
+  getField2(): string {
+    return privates.get(this).field2;
+  }
++
++  getPowField1(num: number) {
++    return powField1(this, num);
++  }
+}
+
++// Private method
++function powField1(instance: Sample, num: number) {
++  return Math.pow(privates.get(instance).field1, num);
++}
+```
+
+ただ、ESLintを併用していると、`no-use-before-define`に引っかかったりする。
+ちとまどろっこしいね。
+
+
+
+## 備考
+
+コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
+
+```typescript
+const sample = new Sample({
+  field1: 1234,
+  field2: "Text",
+});
+```
+
+ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。
+
+```typescript
+let param = {
+  field1: 1234,
+  field2: "Text",
+};
+const sample = new Sample(param);
+
+// non-immutable
+param.field1 = 2345;
+
+```
+
+コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。
+
+```typescript
+constructor(param: Param) {
+  // ES7の`object-rest-spread`を使うと楽
+  Sample.privates.set(this, { ...param });
+}
+```
+
+
 ## まとめ
 
-JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんと実現しやすくなったと思う。
+JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、TypeScriptを含め、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんとPrivateを実現しやすくなったと思う。
 
 > JavaScriptとprivateの見果てぬ夢  
 > http://blog.tojiru.net/article/238901975.html
