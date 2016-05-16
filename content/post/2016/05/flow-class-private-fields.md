@@ -204,7 +204,7 @@ export default class Sample {
 
 
 
-## 備考
+## 備考・注意点
 
 コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
 
