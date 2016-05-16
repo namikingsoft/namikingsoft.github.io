@@ -36,7 +36,7 @@ ESLintの`no-undef`ルールを有効にしていると、以下のエラーが�
 ```
 error| 'I' is not defined. (no-undef)
 ```
-ESLintの誤爆ではあるが、そもそも、`interface`なんて文法はECMAScriptにはないので、対応しとってのも無茶な話である。
+ESLintの誤爆ではあるが、そもそも、`interface`なんて文法はECMAScriptにはないので、対応しろっていうのも無茶な話。
 
 ESLintの`no-undef`まわりを無効にすればエラーは出ないが、有志の方が、flow用のBabelカスタムルールを実装してくれているので、ありがたく利用させていただく。
 
@@ -60,7 +60,7 @@ module.exports = {
 };
 ```
 
-その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。不具合があり次第、逐一有効にしていく必要があるかも。
+その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。何かflow+ESLintで不都合があり次第、逐一有効にしていく必要があるかも。
 
 <blockquote class="twitter-tweet" data-conversation="none" data-lang="ja"><p lang="ja" dir="ltr"><a href="https://twitter.com/namikingsoft">@namikingsoft</a> eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。<a href="https://t.co/CD5p5ejHIq">https://t.co/CD5p5ejHIq</a></p>&mdash; Toru Nagashima (@mysticatea) <a href="https://twitter.com/mysticatea/status/728262384771432448">2016年5月5日</a></blockquote>
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
