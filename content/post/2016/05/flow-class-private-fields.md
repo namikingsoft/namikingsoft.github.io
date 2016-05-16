@@ -209,6 +209,10 @@ assert(instance._param.field1 === 5) // NG
 error| property `_param` Property not found in (:0:1,0) Sample
 ```
 
+先頭に_(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
+
+### 継承元のクラスを直接インスタンス化すると使えちゃう
+
 ちなみに、継承元の`PrivateSample`を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは`export`しないほうが良さそう。
 
 ```
@@ -221,4 +225,3 @@ assert(instance._getField2() === "test") // NG
 assert(instance._param.field1 === 5) // NG
 ```
 
-先頭に_(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
