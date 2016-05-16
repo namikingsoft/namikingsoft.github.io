@@ -13,20 +13,96 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 
 [flow](http://flowtype.org/)はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。
 
-* [ES6のWeakMapを使う方法](#weakmap)
 * [flowのmunge_underscoresオプションを使う方法](#munge)
+* [ES6のWeakMapを使う方法](#weakmap)
 
 
 ### なんでPrivateフィールドが必要？
 
-インスタンス生成後に、外部からフィールド値を変更させたくない。**イミュータブル(不変)**なオブジェクトにしたいため。
+* インスタンス生成後に外部からフィールド値を変更させたくないため。
+  * **ドメイン駆動設計**(DDD)的なクラス設計をしていると、**イミュータブル(不変)**のエンティティや値オブジェクトのようなものを多用する。
+  * イミュータブルであることを保証できれば、安心してインスタンスを参照で保持できる。(DeepCopyをする必要がなくなる)
+* Public箇所(API)を最小限にしておおきたい。
+  * リファクタリングやテスト記述が楽になる。
 
-* **ドメイン駆動設計**(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。
-* 同じインスタンスを複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、**予期せぬ不具合が起こる**可能性がある。
-* だからといって、オブジェクトのDeepCopyはしたくない。
-* オブジェクトを参照で保持して、**負荷軽減＆メモリ効率向上**に期待。(アプリ構造にもよる)
+などなど。
 
-インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。
+
+
+<a name="munge"></a>
+## flowのmunge_underscoresオプションを使う方法
+
+flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-configuration.html)を有効にすると、先頭に`_`(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。
+
+### .flowconfig 追記
+
+```diff
+[options]
++ munge_underscores=true
+```
+
+### 実装例
+
+[GitHub上の使用例](https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js)を参考にして、Privateフィールドを実現してみる。
+
+```typescript
+// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+class PrivateSample {
+  _param: Param;
+
+  constructor(param: Param) {
+    this._param = param;
+  }
+
+  getField1(): number {
+    return this._param.field1;
+  }
+
+  _getField2(): string {
+    return this._param.field2;
+  }
+}
+
+export default class Sample extends PrivateSample {}
+```
+
+実際にflowをかけると、以下の様なエラーになる。
+
+```typescript
+const sample = new Sample({
+  field1: 5,
+  field2: "test",
+})
+assert(instance.getField1() === 5) // OK
+assert(instance._getField2() === "test") // NG
+assert(instance._param.field1 === 5) // NG
+```
+```
+error| property `_param` Property not found in (:0:1,0) Sample
+error| property `_getField2` Property not found in (:0:1,0) Sample
+```
+
+先頭に`_`(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
+
+### 継承元のクラスを直接インスタンス化すると使えちゃう
+
+ちなみに、継承元の`PrivateSample`を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは`export`しないほうが良さそう。
+
+```
+const sample = new PrivateSample({
+  field1: 5,
+  field2: "test",
+})
+assert(instance.getField1() === 5) // OK
+assert(instance._getField2() === "test") // OK
+assert(instance._param.field1 === 5) // OK
+```
 
 
 
@@ -67,38 +143,6 @@ export default class Sample {
   getField2(): string {
     return privates.get(this).field2;
   }
-}
-```
-
-コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
-
-```typescript
-const sample = new Sample({
-  field1: 1234,
-  field2: "Text",
-});
-```
-
-ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。
-
-```typescript
-let param = {
-  field1: 1234,
-  field2: "Text",
-};
-const sample = new Sample(param);
-
-// non-immutable
-param.field1 = 2345;
-
-```
-
-コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。
-
-```typescript
-constructor(param: Param) {
-  // ES7の`object-rest-spread`を使うと楽
-  Sample.privates.set(this, { ...param });
 }
 ```
 
@@ -160,77 +204,47 @@ export default class Sample {
 
 
 
-<a name="munge"></a>
-## flowのmunge_underscoresオプションを使う方法
+## 備考・注意点
 
-flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-configuration.html)を有効にすると、先頭に`_`(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。
-
-### .flowconfig 追記
-
-```diff
-[options]
-+ munge_underscores=true
-```
-
-### 実装例
-
-[GitHub上の使用例](https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js)を参考にして、Privateフィールドを実現してみる。
-
-```typescript
-// @flow
-
-type Param = {
-  field1: number,
-  field2: string,
-}
-
-class PrivateSample {
-  _param: Param;
-
-  constructor(param: Param) {
-    this._param = param;
-  }
-
-  getField1(): number {
-    return this._param.field1;
-  }
-
-  _getField2(): string {
-    return this._param.field2;
-  }
-}
-
-export default class Sample extends PrivateSample {}
-```
-
-実際にflowをかけると、以下の様なエラーになる。
+コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。
 
 ```typescript
 const sample = new Sample({
-  field1: 5,
-  field2: "test",
-})
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === "test") // NG
-assert(instance._param.field1 === 5) // NG
-```
-```
-error| property `_param` Property not found in (:0:1,0) Sample
+  field1: 1234,
+  field2: "Text",
+});
 ```
 
-先頭に`_`(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
+ただし、コンストラクタ引数へ渡すObjectを変更可能にしておくと、イミュータブルじゃなくなってしまうので、注意。
 
-### 継承元のクラスを直接インスタンス化すると使えちゃう
+```typescript
+let param = {
+  field1: 1234,
+  field2: "Text",
+};
+const sample = new Sample(param);
 
-ちなみに、継承元の`PrivateSample`を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは`export`しないほうが良さそう。
+// non-immutable
+param.field1 = 2345;
 
 ```
-const sample = new PrivateSample({
-  field1: 5,
-  field2: "test",
-})
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === "test") // NG
-assert(instance._param.field1 === 5) // NG
+
+コンストラクタ内で、ObjectのShallowCopyを行うなどして、対策すると良いかもしれない。
+
+```typescript
+constructor(param: Param) {
+  // ES7の`object-rest-spread`を使うと楽
+  Sample.privates.set(this, { ...param });
+}
 ```
+
+
+## まとめ
+
+JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、TypeScriptを含め、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんとPrivateを実現しやすくなったと思う。
+
+> JavaScriptとprivateの見果てぬ夢  
+> http://blog.tojiru.net/article/238901975.html
+
+言語仕様を超える夢を見て、戦い続けた男たちに敬意を表したい。
 
