@@ -85,6 +85,7 @@ assert(instance._param.field1 === 5) // NG
 ```
 ```
 error| property `_param` Property not found in (:0:1,0) Sample
+error| property `_getField2` Property not found in (:0:1,0) Sample
 ```
 
 先頭に`_`(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
