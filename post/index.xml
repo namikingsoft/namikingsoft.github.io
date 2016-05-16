@@ -30,7 +30,7 @@
 
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;ドメイン駆動設計&lt;/strong&gt;(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。&lt;/li&gt;
-&lt;li&gt;同じインスタンスの複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、&lt;strong&gt;予期せぬ不具合が起こる&lt;/strong&gt;可能性がある。&lt;/li&gt;
+&lt;li&gt;同じインスタンスを複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、&lt;strong&gt;予期せぬ不具合が起こる&lt;/strong&gt;可能性がある。&lt;/li&gt;
 &lt;li&gt;だからといって、オブジェクトのDeepCopyはしたくない。&lt;/li&gt;
 &lt;li&gt;オブジェクトを参照で保持して、&lt;strong&gt;負荷軽減＆メモリ効率向上&lt;/strong&gt;に期待。(アプリ構造にもよる)&lt;/li&gt;
 &lt;/ul&gt;
@@ -169,16 +169,15 @@ export default class Sample {
 
 &lt;p&gt;flowオプションの&lt;a href=&#34;http://flowtype.org/docs/advanced-configuration.html&#34;&gt;munge_underscores&lt;/a&gt;を有効にすると、先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;# .flowconfig
+&lt;h3 id=&#34;flowconfig-追記&#34;&gt;.flowconfig 追記&lt;/h3&gt;
 
-[options]
+&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;[options]
 + munge_underscores=true
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;これを利用して、Privateフィールドを実現してみる。
-&lt;a href=&#34;https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js&#34;&gt;GitHub上の使用例&lt;/a&gt;&lt;/p&gt;
-
 &lt;h3 id=&#34;実装例-1&#34;&gt;実装例&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js&#34;&gt;GitHub上の使用例&lt;/a&gt;を参考にして、Privateフィールドを実現してみる。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// @flow
 
@@ -220,7 +219,7 @@ assert(instance._param.field1 === 5) // NG
 &lt;pre&gt;&lt;code&gt;error| property `_param` Property not found in (:0:1,0) Sample
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;先頭に_(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。&lt;/p&gt;
+&lt;p&gt;先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。&lt;/p&gt;
 
 &lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
 
@@ -270,7 +269,7 @@ assert(instance._param.field1 === 5) // NG
 &lt;pre&gt;&lt;code&gt;error| &#39;I&#39; is not defined. (no-undef)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;ESLintの誤爆ではあるが、そもそも、&lt;code&gt;interface&lt;/code&gt;なんて文法はECMAScriptにはないので、対応しとってのも無茶な話である。&lt;/p&gt;
+&lt;p&gt;ESLintの誤爆ではあるが、そもそも、&lt;code&gt;interface&lt;/code&gt;なんて文法はECMAScriptにはないので、対応しろっていうのも無茶な話。&lt;/p&gt;
 
 &lt;p&gt;ESLintの&lt;code&gt;no-undef&lt;/code&gt;まわりを無効にすればエラーは出ないが、有志の方が、flow用のBabelカスタムルールを実装してくれているので、ありがたく利用させていただく。&lt;/p&gt;
 
@@ -295,7 +294,7 @@ module.exports = {
 };
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。不具合があり次第、逐一有効にしていく必要があるかも。&lt;/p&gt;
+&lt;p&gt;その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。何かflow+ESLintで不都合があり次第、逐一有効にしていく必要があるかも。&lt;/p&gt;
 
 &lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
 &lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;

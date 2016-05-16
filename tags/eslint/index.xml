@@ -42,7 +42,7 @@
 &lt;pre&gt;&lt;code&gt;error| &#39;I&#39; is not defined. (no-undef)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;ESLintの誤爆ではあるが、そもそも、&lt;code&gt;interface&lt;/code&gt;なんて文法はECMAScriptにはないので、対応しとってのも無茶な話である。&lt;/p&gt;
+&lt;p&gt;ESLintの誤爆ではあるが、そもそも、&lt;code&gt;interface&lt;/code&gt;なんて文法はECMAScriptにはないので、対応しろっていうのも無茶な話。&lt;/p&gt;
 
 &lt;p&gt;ESLintの&lt;code&gt;no-undef&lt;/code&gt;まわりを無効にすればエラーは出ないが、有志の方が、flow用のBabelカスタムルールを実装してくれているので、ありがたく利用させていただく。&lt;/p&gt;
 
@@ -67,7 +67,7 @@ module.exports = {
 };
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。不具合があり次第、逐一有効にしていく必要があるかも。&lt;/p&gt;
+&lt;p&gt;その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。何かflow+ESLintで不都合があり次第、逐一有効にしていく必要があるかも。&lt;/p&gt;
 
 &lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
 &lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;

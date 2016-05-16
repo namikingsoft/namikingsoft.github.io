@@ -25,7 +25,7 @@
 <pre><code>error| 'I' is not defined. (no-undef)
 </code></pre>
 
-<p>ESLintの誤爆ではあるが、そもそも、<code>interface</code>なんて文法はECMAScriptにはないので、対応しとってのも無茶な話である。</p>
+<p>ESLintの誤爆ではあるが、そもそも、<code>interface</code>なんて文法はECMAScriptにはないので、対応しろっていうのも無茶な話。</p>
 
 <p>ESLintの<code>no-undef</code>まわりを無効にすればエラーは出ないが、有志の方が、flow用のBabelカスタムルールを実装してくれているので、ありがたく利用させていただく。</p>
 
@@ -50,7 +50,7 @@ module.exports = {
 };
 </code></pre>
 
-<p>その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。不具合があり次第、逐一有効にしていく必要があるかも。</p>
+<p>その他、いろいろ試行錯誤している時にTwitter上でご教示いただいたPluginも、いくつかのflow用カスタムルールがあった。何かflow+ESLintで不都合があり次第、逐一有効にしていく必要があるかも。</p>
 
 <p><blockquote class="twitter-tweet" data-conversation="none" data-lang="ja"><p lang="ja" dir="ltr"><a href="https://twitter.com/namikingsoft">@namikingsoft</a> eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。<a href="https://t.co/CD5p5ejHIq">https://t.co/CD5p5ejHIq</a></p>&mdash; Toru Nagashima (@mysticatea) <a href="https://twitter.com/mysticatea/status/728262384771432448">2016年5月5日</a></blockquote>
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script></p>
