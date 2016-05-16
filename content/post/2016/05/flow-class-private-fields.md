@@ -172,10 +172,9 @@ flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-conf
 + munge_underscores=true
 ```
 
-これを利用して、Privateフィールドを実現してみる。
-[GitHub上の使用例](https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js)
-
 ### 実装例
+
+[GitHub上の使用例](https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js)を参考にして、Privateフィールドを実現してみる。
 
 ```typescript
 // @flow
