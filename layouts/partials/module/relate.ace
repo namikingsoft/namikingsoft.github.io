@@ -1,5 +1,5 @@
 .module-relate
-  {{ $permalink := .Permalink }}
+  {{ $permalink := .RelPermalink }}
   {{ $categories := .Params.categories }}
   {{ $pages := .Site.Pages }}
 
@@ -13,10 +13,10 @@
     {{ $hasCategory := intersect $categories .Params.categories | len | lt 0 }}
     {{ if $hasCategory }}
     li
-      {{ if eq $permalink .Permalink }}
+      {{ if eq $permalink .RelPermalink }}
       | {{ .Title }}
       {{ else }}
-      a href="{{ .Permalink }}" {{ .Title }}
+      a href="{{ .RelPermalink }}" {{ .Title }}
       {{ end }}
     {{ end }}
     {{ end }}

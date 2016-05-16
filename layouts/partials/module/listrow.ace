@@ -1,5 +1,5 @@
 .module-listrow
-  a href="{{ .Permalink }}"
+  a href="{{ .RelPermalink }}"
     article
       header
         .module-listrow__title
