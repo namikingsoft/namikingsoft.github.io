@@ -232,3 +232,14 @@ assert(instance._getField2() === "test") // NG
 assert(instance._param.field1 === 5) // NG
 ```
 
+
+
+## まとめ
+
+JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんと実現しやすくなったと思う。
+
+> JavaScriptとprivateの見果てぬ夢  
+> http://blog.tojiru.net/article/238901975.html
+
+言語仕様を超える夢を見て、戦い続けた男たちに敬意を表したい。
+
