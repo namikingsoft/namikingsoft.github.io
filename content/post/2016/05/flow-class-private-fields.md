@@ -79,9 +79,9 @@ const sample = new Sample({
   field1: 5,
   field2: "test",
 })
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === "test") // NG
-assert(instance._param.field1 === 5) // NG
+assert(sample.getField1() === 5) // OK
+assert(sample._getField2() === "test") // NG
+assert(sample._param.field1 === 5) // NG
 ```
 ```
 error| property `_param` Property not found in (:0:1,0) Sample
@@ -99,9 +99,9 @@ const sample = new PrivateSample({
   field1: 5,
   field2: "test",
 })
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === "test") // OK
-assert(instance._param.field1 === 5) // OK
+assert(sample.getField1() === 5) // OK
+assert(sample._getField2() === "test") // OK
+assert(sample._param.field1 === 5) // OK
 ```
 
 
