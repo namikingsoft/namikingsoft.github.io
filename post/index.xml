@@ -21,7 +21,7 @@
 
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;#weakmap&#34;&gt;ES6のWeakMapを使う方法&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;#munge&#34;&gt;flowのmunge_underscoresオプションを使う&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#munge&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h3 id=&#34;なんでprivateフィールドが必要&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
@@ -165,7 +165,7 @@ export default class Sample {
 
 &lt;p&gt;&lt;a name=&#34;munge&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う&#34;&gt;flowのmunge_underscoresオプションを使う&lt;/h2&gt;
+&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowオプションの&lt;a href=&#34;http://flowtype.org/docs/advanced-configuration.html&#34;&gt;munge_underscores&lt;/a&gt;を有効にすると、先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。&lt;/p&gt;
 
