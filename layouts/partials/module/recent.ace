@@ -5,5 +5,5 @@
     dt
       | {{ .Date.Format "2006-01-02 (Mon)" }}
     dd
-      a href="{{ .Permalink }}" {{ .Title }}
+      a href="{{ .RelPermalink }}" {{ .Title }}
     {{ end }}

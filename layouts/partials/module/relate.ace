@@ -16,7 +16,7 @@
       {{ if eq $permalink .Permalink }}
       | {{ .Title }}
       {{ else }}
-      a href="{{ .Permalink }}" {{ .Title }}
+      a href="{{ .RelPermalink }}" {{ .Title }}
       {{ end }}
     {{ end }}
     {{ end }}
