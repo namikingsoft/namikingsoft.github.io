@@ -13,8 +13,8 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 
 [flow](http://flowtype.org/)はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。
 
-* [ES6のWeakMapを使う方法](#weakmap)
 * [flowのmunge_underscoresオプションを使う方法](#munge)
+* [ES6のWeakMapを使う方法](#weakmap)
 
 
 ### なんでPrivateフィールドが必要？
