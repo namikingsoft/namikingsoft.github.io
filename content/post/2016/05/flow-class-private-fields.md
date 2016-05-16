@@ -170,7 +170,6 @@ flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-conf
 
 [options]
 + munge_underscores=true
-
 ```
 
 
