@@ -22,7 +22,7 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 インスタンス生成後に、外部からフィールド値を変更させたくない。**イミュータブル(不変)**なオブジェクトにしたいため。
 
 * **ドメイン駆動設計**(DDD)的なクラス設計をしていると、オブジェクトがネストするような構造を多用する。
-* 同じインスタンスの複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、**予期せぬ不具合が起こる**可能性がある。
+* 同じインスタンスを複数のオブジェクトが参照することもあり、フィールド値が変更可能だと、**予期せぬ不具合が起こる**可能性がある。
 * だからといって、オブジェクトのDeepCopyはしたくない。
 * オブジェクトを参照で保持して、**負荷軽減＆メモリ効率向上**に期待。(アプリ構造にもよる)
 
@@ -165,13 +165,12 @@ export default class Sample {
 
 flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-configuration.html)を有効にすると、先頭に`_`(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。
 
-```diff
-# .flowconfig
+### .flowconfig 追記
 
+```diff
 [options]
 + munge_underscores=true
 ```
-
 
 これを利用して、Privateフィールドを実現してみる。
 [GitHub上の使用例](https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js)
@@ -220,7 +219,7 @@ assert(instance._param.field1 === 5) // NG
 error| property `_param` Property not found in (:0:1,0) Sample
 ```
 
-先頭に_(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
+先頭に`_`(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。
 
 ### 継承元のクラスを直接インスタンス化すると使えちゃう
 
