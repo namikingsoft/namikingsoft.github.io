@@ -1,0 +1,23 @@
+{
+  "name": "namikingsoft.github.io",
+  "scripts": {},
+  "env": {
+    "NPM_CONFIG_PRODUCTION": {
+      "required": true
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  },
+  "addons": [],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "https://github.com/roperzh/heroku-buildpack-hugo"
+    }
+  ]
+}
