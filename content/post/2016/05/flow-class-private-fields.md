@@ -13,8 +13,8 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 
 [flow](http://flowtype.org/)はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。
 
-* [ES6のWeakMapを使う方法](#ES6のWeakMapが使う方法)
-* [flowのmunge_underscoresオプションを使う](#flowのmunge_underscoresオプションを使う)
+* [ES6のWeakMapを使う方法](#weakmap)
+* [flowのmunge_underscoresオプションを使う](#munge)
 
 
 ### なんでPrivateフィールドが必要？
@@ -29,6 +29,7 @@ title: 静的型チェッカーflowのクラスでPrivateなフィールドを�
 インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。
 
 
+<a name="weakmap"></a>
 ## ES6のWeakMapを使う方法
 
 flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。
@@ -158,6 +159,8 @@ export default class Sample {
 ちとまどろっこしいね。
 
 
+
+<a name="munge"></a>
 ## flowのmunge_underscoresオプションを使う
 
 flowオプションの[munge_underscores](http://flowtype.org/docs/advanced-configuration.html)を有効にすると、先頭に`_`(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。
