@@ -100,8 +100,8 @@ const sample = new PrivateSample({
   field2: "test",
 })
 assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === "test") // NG
-assert(instance._param.field1 === 5) // NG
+assert(instance._getField2() === "test") // OK
+assert(instance._param.field1 === 5) // OK
 ```
 
 
