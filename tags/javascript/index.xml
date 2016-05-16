@@ -90,9 +90,9 @@ export default class Sample extends PrivateSample {}
   field1: 5,
   field2: &amp;quot;test&amp;quot;,
 })
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === &amp;quot;test&amp;quot;) // NG
-assert(instance._param.field1 === 5) // NG
+assert(sample.getField1() === 5) // OK
+assert(sample._getField2() === &amp;quot;test&amp;quot;) // NG
+assert(sample._param.field1 === 5) // NG
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;pre&gt;&lt;code&gt;error| property `_param` Property not found in (:0:1,0) Sample
@@ -109,9 +109,9 @@ error| property `_getField2` Property not found in (:0:1,0) Sample
   field1: 5,
   field2: &amp;quot;test&amp;quot;,
 })
-assert(instance.getField1() === 5) // OK
-assert(instance._getField2() === &amp;quot;test&amp;quot;) // OK
-assert(instance._param.field1 === 5) // OK
+assert(sample.getField1() === 5) // OK
+assert(sample._getField2() === &amp;quot;test&amp;quot;) // OK
+assert(sample._param.field1 === 5) // OK
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;&lt;a name=&#34;weakmap&#34;&gt;&lt;/a&gt;&lt;/p&gt;
