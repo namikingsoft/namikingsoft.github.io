@@ -20,8 +20,8 @@
 &lt;p&gt;&lt;a href=&#34;http://flowtype.org/&#34;&gt;flow&lt;/a&gt;はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;#ES6のWeakMapが使う方法&#34;&gt;ES6のWeakMapを使う方法&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;#flowのmunge_underscoresオプションを使う&#34;&gt;flowのmunge_underscoresオプションを使う&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#weakmap&#34;&gt;ES6のWeakMapを使う方法&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#munge&#34;&gt;flowのmunge_underscoresオプションを使う&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h3 id=&#34;なんでprivateフィールドが必要&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
@@ -36,6 +36,8 @@
 &lt;/ul&gt;
 
 &lt;p&gt;インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。&lt;/p&gt;
+
+&lt;p&gt;&lt;a name=&#34;weakmap&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;es6のweakmapを使う方法&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
 
@@ -106,7 +108,7 @@ param.field1 = 2345;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンソールデバッグがしづらいデメリット&#34;&gt;コンソールデバッグがしづらいデメリット&lt;/h3&gt;
+&lt;h3 id=&#34;コンソールデバッグがしづらい&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
 
 &lt;p&gt;WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。&lt;/p&gt;
 
@@ -158,13 +160,20 @@ export default class Sample {
 +}
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;ただ、ESLintを併用していると、&lt;code&gt;no-use-before-define&lt;/code&gt;に引っかかったりする。&lt;/p&gt;
+&lt;p&gt;ただ、ESLintを併用していると、&lt;code&gt;no-use-before-define&lt;/code&gt;に引っかかったりする。
+ちとまどろっこしいね。&lt;/p&gt;
 
-&lt;p&gt;ちとまどろっこしいね。&lt;/p&gt;
+&lt;p&gt;&lt;a name=&#34;munge&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
 &lt;h2 id=&#34;flowのmunge-underscoresオプションを使う&#34;&gt;flowのmunge_underscoresオプションを使う&lt;/h2&gt;
 
 &lt;p&gt;flowオプションの&lt;a href=&#34;http://flowtype.org/docs/advanced-configuration.html&#34;&gt;munge_underscores&lt;/a&gt;を有効にすると、先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;# .flowconfig
+
+[options]
++ munge_underscores=true
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;これを利用して、Privateフィールドを実現してみる。
 &lt;a href=&#34;https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js&#34;&gt;GitHub上の使用例&lt;/a&gt;&lt;/p&gt;

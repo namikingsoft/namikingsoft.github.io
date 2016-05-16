@@ -3,8 +3,8 @@
 <p><a href="http://flowtype.org/">flow</a>はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。</p>
 
 <ul>
-<li><a href="#ES6のWeakMapが使う方法">ES6のWeakMapを使う方法</a></li>
-<li><a href="#flowのmunge_underscoresオプションを使う">flowのmunge_underscoresオプションを使う</a></li>
+<li><a href="#weakmap">ES6のWeakMapを使う方法</a></li>
+<li><a href="#munge">flowのmunge_underscoresオプションを使う</a></li>
 </ul>
 
 <h3 id="なんでprivateフィールドが必要">なんでPrivateフィールドが必要？</h3>
@@ -19,6 +19,8 @@
 </ul>
 
 <p>インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。</p>
+
+<p><a name="weakmap"></a></p>
 
 <h2 id="es6のweakmapを使う方法">ES6のWeakMapを使う方法</h2>
 
@@ -89,7 +91,7 @@ param.field1 = 2345;
 }
 </code></pre>
 
-<h3 id="コンソールデバッグがしづらいデメリット">コンソールデバッグがしづらいデメリット</h3>
+<h3 id="コンソールデバッグがしづらい">コンソールデバッグがしづらい</h3>
 
 <p>WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。</p>
 
@@ -141,13 +143,20 @@ export default class Sample {
 +}
 </code></pre>
 
-<p>ただ、ESLintを併用していると、<code>no-use-before-define</code>に引っかかったりする。</p>
+<p>ただ、ESLintを併用していると、<code>no-use-before-define</code>に引っかかったりする。
+ちとまどろっこしいね。</p>
 
-<p>ちとまどろっこしいね。</p>
+<p><a name="munge"></a></p>
 
 <h2 id="flowのmunge-underscoresオプションを使う">flowのmunge_underscoresオプションを使う</h2>
 
 <p>flowオプションの<a href="http://flowtype.org/docs/advanced-configuration.html">munge_underscores</a>を有効にすると、先頭に<code>_</code>(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。</p>
+
+<pre><code class="language-diff"># .flowconfig
+
+[options]
++ munge_underscores=true
+</code></pre>
 
 <p>これを利用して、Privateフィールドを実現してみる。
 <a href="https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js">GitHub上の使用例</a></p>
