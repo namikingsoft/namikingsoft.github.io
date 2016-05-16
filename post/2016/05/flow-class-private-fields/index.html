@@ -2,6 +2,11 @@
 
 <p><a href="http://flowtype.org/">flow</a>はJavaScriptの型チェッカーだが、TypeScriptみたくPrivateフィールドを定義できるわけではなく、ちょっとした工夫が必要だったので、メモ。</p>
 
+<ul>
+<li><a href="#ES6のWeakMapが使う方法">ES6のWeakMapを使う方法</a></li>
+<li><a href="#flowのmunge_underscoresオプションを使う">flowのmunge_underscoresオプションを使う</a></li>
+</ul>
+
 <h3 id="なんでprivateフィールドが必要">なんでPrivateフィールドが必要？</h3>
 
 <p>インスタンス生成後に、外部からフィールド値を変更させたくない。<strong>イミュータブル(不変)</strong>なオブジェクトにしたいため。</p>
@@ -15,7 +20,7 @@
 
 <p>インスタンス生成から値が変わらないことが保証できれば、クラスを使う側は安心してインスタンスを参照で保持できる。</p>
 
-<h3 id="方法としては-es6のweakmapが使える">方法としては、ES6のWeakMapが使える</h3>
+<h2 id="es6のweakmapを使う方法">ES6のWeakMapを使う方法</h2>
 
 <p>flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。</p>
 
@@ -28,7 +33,7 @@
 
 <p>WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。</p>
 
-<h3 id="flowでprivateフィールドを定義してみる">flowでPrivateフィールドを定義してみる</h3>
+<h3 id="実装例">実装例</h3>
 
 <pre><code class="language-typescript">// @flow
 
@@ -37,20 +42,20 @@ type Param = {
   field2: string,
 }
 
-const privates: WeakMap&lt;Object, Param&gt; = new WeakMap()
+const privates: WeakMap&lt;Object, Param&gt; = new WeakMap();
 
-class Sample {
+export default class Sample {
 
   constructor(param: Param) {
-    privates.set(this, param)
+    privates.set(this, param);
   }
 
   getField1(): number {
-    return privates.get(this).field1
+    return privates.get(this).field1;
   }
 
   getField2(): string {
-    return privates.get(this).field2
+    return privates.get(this).field2;
   }
 }
 </code></pre>
@@ -84,15 +89,15 @@ param.field1 = 2345;
 }
 </code></pre>
 
-<h3 id="コンソールデバッグがしづらいデメリットがある">コンソールデバッグがしづらいデメリットがある</h3>
+<h3 id="コンソールデバッグがしづらいデメリット">コンソールデバッグがしづらいデメリット</h3>
 
 <p>WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。</p>
 
 <pre><code class="language-typescript">const sample = new Sample({
   field1: 5,
   field2: &quot;test&quot;,
-})
-console.log(sample)
+});
+console.log(sample);
 </code></pre>
 
 <p>としても、フィールドの内容は表示されず、以下の様なダンプに。</p>
@@ -109,20 +114,20 @@ console.log(sample)
 
 <p>同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。</p>
 
-<pre><code class="language-diff">const privates: WeakMap&lt;Object, Param&gt; = new WeakMap()
+<pre><code class="language-diff">const privates: WeakMap&lt;Object, Param&gt; = new WeakMap();
 
-class Sample {
+export default class Sample {
 
   constructor(param: Param) {
-    privates.set(this, param)
+    privates.set(this, param);
   }
 
   getField1(): number {
-    return privates.get(this).field1
+    return privates.get(this).field1;
   }
 
   getField2(): string {
-    return privates.get(this).field2
+    return privates.get(this).field2;
   }
 +
 +  getPowField1(num: number) {
@@ -132,13 +137,77 @@ class Sample {
 
 +// Private method
 +function powField1(instance: Sample, num: number) {
-+  return Math.pow(privates.get(instance).field1, num)
++  return Math.pow(privates.get(instance).field1, num);
 +}
 </code></pre>
 
 <p>ただ、ESLintを併用していると、<code>no-use-before-define</code>に引っかかったりする。</p>
 
 <p>ちとまどろっこしいね。</p>
+
+<h2 id="flowのmunge-underscoresオプションを使う">flowのmunge_underscoresオプションを使う</h2>
+
+<p>flowオプションの<a href="http://flowtype.org/docs/advanced-configuration.html">munge_underscores</a>を有効にすると、先頭に<code>_</code>(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。</p>
+
+<p>これを利用して、Privateフィールドを実現してみる。
+<a href="https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js">GitHub上の使用例</a></p>
+
+<h3 id="実装例-1">実装例</h3>
+
+<pre><code class="language-typescript">// @flow
+
+type Param = {
+  field1: number,
+  field2: string,
+}
+
+class PrivateSample {
+  _param: Param;
+
+  constructor(param: Param) {
+    this._param = param;
+  }
+
+  getField1(): number {
+    return this._param.field1;
+  }
+
+  _getField2(): string {
+    return this._param.field2;
+  }
+}
+
+export default class Sample extends PrivateSample {}
+</code></pre>
+
+<p>実際にflowをかけると、以下の様なエラーになる。</p>
+
+<pre><code class="language-typescript">const sample = new Sample({
+  field1: 5,
+  field2: &quot;test&quot;,
+})
+assert(instance.getField1() === 5) // OK
+assert(instance._getField2() === &quot;test&quot;) // NG
+assert(instance._param.field1 === 5) // NG
+</code></pre>
+
+<pre><code>error| property `_param` Property not found in (:0:1,0) Sample
+</code></pre>
+
+<p>先頭に_(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。</p>
+
+<h3 id="継承元のクラスを直接インスタンス化すると使えちゃう">継承元のクラスを直接インスタンス化すると使えちゃう</h3>
+
+<p>ちなみに、継承元の<code>PrivateSample</code>を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは<code>export</code>しないほうが良さそう。</p>
+
+<pre><code>const sample = new PrivateSample({
+  field1: 5,
+  field2: &quot;test&quot;,
+})
+assert(instance.getField1() === 5) // OK
+assert(instance._getField2() === &quot;test&quot;) // NG
+assert(instance._param.field1 === 5) // NG
+</code></pre>
 </div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
 <script type="text/javascript">
     var disqus_shortname = 'namikingsoft';
