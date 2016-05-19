@@ -17,11 +17,11 @@
       | フロントエンドエンジニア
     ul
       li
-        a href="#"
+        a href="http://blog.namiking.net/about/"
           i.fa.fa-2x.fa-user
       li
-        a href="#"
+        a href="https://github.com/namikingsoft/"
           i.fa.fa-2x.fa-github
       li
-        a href="#"
+        a href="https://twitter.com/namikingsoft/"
           i.fa.fa-2x.fa-twitter
