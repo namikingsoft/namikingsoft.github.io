@@ -182,7 +182,7 @@ render() {
 ### コンポーネント内で使うActionはconnectしない
 `react-redux`のconnectで、Action関数をpropsに関連付けてしまうと、コンポーネントのPropsで、Action関数の型を再定義する必要があります。
 
-それは面倒＆冗長なので、直接Action関数を使い、その返り値をdispatchすれば、Action関数の元の型定義を使いまわせる。
+それは面倒＆冗長なので、直接Action関数を使い、その返り値をdispatchすれば、Action関数の元の型定義を使いまわせます。
 
 #### dispatch関数を直接propsに回す
 ```typescript
