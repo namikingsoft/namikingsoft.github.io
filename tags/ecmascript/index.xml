@@ -6,8 +6,227 @@
     <description>Recent content in Ecmascript on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Thu, 12 May 2016 08:00:00 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 22 May 2016 20:00:00 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/tags/ecmascript/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>静的型チェッカーflowでReact&#43;Reduxのサンプルアプリを組んでみた</title>
+      <link>http://blog.namiking.net/post/2016/05/react-redux-using-flow-example/</link>
+      <pubDate>Sun, 22 May 2016 20:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2016/05/react-redux-using-flow-example/</guid>
+      <description>
+
+&lt;p&gt;JavaScript型チェッカー&lt;a href=&#34;http://flowtype.org/&#34;&gt;flow&lt;/a&gt;を使って、React+Reduxで簡単なカウンターのサンプルアプリケーションを組んでみたので、その際のいくつかのポイントなどをまとめておきます。&lt;/p&gt;
+
+&lt;h3 id=&#34;サンプルアプリについて&#34;&gt;サンプルアプリについて&lt;/h3&gt;
+
+&lt;p&gt;ボタンを押したら数字がインクリメントされるタイプのよくあるサンプルプログラム。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/05/react-redux-flow-sample/preview.gif&#34; alt=&#34;サンプルアプリPreview&#34; /&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: namikingsoft/react-redux-using-flow-example
+&lt;a href=&#34;https://github.com/namikingsoft/react-redux-using-flow-example&#34;&gt;https://github.com/namikingsoft/react-redux-using-flow-example&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;非同期周りの処理に&lt;a href=&#34;https://github.com/yelouafi/redux-saga&#34;&gt;redux-saga&lt;/a&gt;を使ってますが、今回はその辺りの解説は省きます。&lt;/p&gt;
+
+&lt;h2 id=&#34;ポイントいくつか&#34;&gt;ポイントいくつか&lt;/h2&gt;
+
+&lt;p&gt;サンプルアプリ実装の際に、工夫した点/苦労した点を以下にまとめておきました。&lt;/p&gt;
+
+&lt;h3 id=&#34;stateやactionの型定義をする&#34;&gt;StateやActionの型定義をする&lt;/h3&gt;
+
+&lt;p&gt;ReduxのStateやActionのPayload値は、動的言語らしく何でも入れる事が可能です。一人で開発するのなら良いですが、複数人で開発する場合、&lt;strong&gt;Action-&amp;gt;Reducer-&amp;gt;Viewで引き回す型の認識が合わず、思わぬバグが発生&lt;/strong&gt;しかねません。&lt;/p&gt;
+
+&lt;p&gt;なるべく一つの型定義を使いまわし、値の引き回しに規約を与える必要があります。&lt;/p&gt;
+
+&lt;h4 id=&#34;fluxスタンダードなaction型の定義&#34;&gt;FluxスタンダードなAction型の定義&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/types/Action.js
+export interface Action {
+  type: string;
+  error?: boolean;
+  meta?: any;
+}
+
+export interface PayloadAction&amp;lt;T&amp;gt; extends Action {
+  payload: T;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Action関数が返すべきオブジェクトの型定義をします。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: acdlite/flux-standard-action&lt;br /&gt;
+&lt;a href=&#34;https://github.com/acdlite/flux-standard-action&#34;&gt;https://github.com/acdlite/flux-standard-action&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;非公式ではありますが、HumanフレンドリーなAction型として定評のあるFluxスタンダードに沿う形のAction型を組みました。&lt;/p&gt;
+
+&lt;p&gt;個人的に、PayloadがあるActionとないActionとで、型を分けたかったので、分離してあります。Payloadに使う型は以下項目のように、ジェネリクスで指定できます。&lt;/p&gt;
+
+&lt;h4 id=&#34;counter関連の型を定義する&#34;&gt;Counter関連の型を定義する&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/types/Counter.js
+import type { Action, PayloadAction } from &amp;quot;types/Action&amp;quot;
+
+export interface CounterState {
+  num: number;
+}
+
+export interface IncrementPayload {
+  num: number;
+}
+
+export interface IncrementAction extends PayloadAction&amp;lt;IncrementPayload&amp;gt; {}
+export interface ResetAction extends Action {}
+export type CounterAction = IncrementAction &amp;amp; ResetAction
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;StateやActionの型を一つのファイルに定義しておきます。&lt;/p&gt;
+
+&lt;h3 id=&#34;定義した型をactionやreducerで使い回す&#34;&gt;定義した型をActionやReducerで使い回す&lt;/h3&gt;
+
+&lt;p&gt;上で定義した共通の型設定をAction関数やReducer関数で読み込みます。&lt;/p&gt;
+
+&lt;h4 id=&#34;action関数の定義で使い回す&#34;&gt;Action関数の定義で使い回す&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/actions/counter.js
+import type { IncrementAction, ResetAction } from &amp;quot;types/Counter&amp;quot;
+
+export const REQUEST_INCREMENT = &amp;quot;COUNTER__REQUEST_INCREMENT&amp;quot;
+export const EXECUTE_INCREMENT = &amp;quot;COUNTER__EXECUTE_INCREMENT&amp;quot;
+export const RESET = &amp;quot;COUNTER__RESET&amp;quot;
+
+export function requestIncrement(num: number): IncrementAction {
+  return { type: REQUEST_INCREMENT, payload: { num } }
+}
+
+export function executeIncrement(num: number): IncrementAction {
+  return { type: EXECUTE_INCREMENT, payload: { num } }
+}
+
+export function reset(): ResetAction {
+  return { type: RESET }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;src/types/Counter.js&lt;/code&gt;で定義したものを返り値の型として使いまわしています。Action関数ごとに型定義をするかしないかは、個人の好みとなります。&lt;/p&gt;
+
+&lt;h4 id=&#34;reducer関数の定義で使い回す&#34;&gt;Reducer関数の定義で使い回す&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;import { EXECUTE_INCREMENT, RESET } from &amp;quot;actions/counter&amp;quot;
+import type { CounterState, CounterAction } from &amp;quot;types/Counter&amp;quot;
+
+export const initialState: CounterState = { num: 0 }
+
+export default function counter(
+  state: CounterState = initialState,
+  action: CounterAction,
+): CounterState {
+  switch (action.type) {
+    case EXECUTE_INCREMENT: {
+      return { num: state.num + action.payload.num }
+    }
+    case RESET: {
+      return { ...initialState }
+    }
+    default: {
+      return state
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Actionで使っている&lt;code&gt;CounterAction&lt;/code&gt;は全てのAction関数の返り値型をIntersectionした型です。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;export type CounterAction = IncrementAction &amp;amp; ResetAction
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;以下のように、Unionにしてもよいのですが、&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;export type CounterAction = IncrementAction | ResetAction
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;payloadキーが存在するかしないか、逐一チェックする必要があるため、めんどうです。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;case EXECUTE_INCREMENT: {
+  const incrementNum = action.payload ? action.payload.num || 0 : 0
+  return { num: state.num + incrementNum }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;コンポーネントのprops型はプロパティ変数で定義&#34;&gt;コンポーネントのProps型はプロパティ変数で定義&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;props&lt;/code&gt;というプロパティ変数に型をつけることで、ReactのPropTypesのようなチェックをできます。PropTypesは定義方法(isRequredとか)が独特な点、ランタイムエラーしかでない点で、個人的には使いづらい印象でした。&lt;/p&gt;
+
+&lt;p&gt;flowの&lt;code&gt;props&lt;/code&gt;プロパティを利用すれば、実行前の型チェック時にエラーが出るため、見逃しづらいのと、型定義もflowと同様な方法でできるので、統一感が出ます。&lt;/p&gt;
+
+&lt;h4 id=&#34;コンポーネントのプロパティ変数でpropsの型定義ができる&#34;&gt;コンポーネントのプロパティ変数でPropsの型定義ができる&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js を改変
+class CounterPage extends Component {
+  props: {
+    counter: CounterState, // クラス型やオブジェクト型も指定しやすい
+    dispatch: (action: Action) =&amp;gt; any, // 関数型も定義可能
+    num?: number, // 任意項目については、プロパティ名後ろに`?`をつける
+  };
+  // ...
+  render() {
+    const { counter } = this.props // connectしたCounterState型
+    const { hoge } = this.props // Err! 未定義のプロパティは取り出せない
+    // ...
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// 使う側の例
+render() {
+  return &amp;lt;CounterPage num=&amp;quot;String&amp;quot; /&amp;gt; // Err! 型に合わないプロパティは設定できない
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;コンポーネント内で使うactionはconnectしない&#34;&gt;コンポーネント内で使うActionはconnectしない&lt;/h3&gt;
+
+&lt;p&gt;&lt;code&gt;react-redux&lt;/code&gt;のconnectで、Action関数をpropsに関連付けてしまうと、コンポーネントのPropsで、Action関数の型を再定義する必要があります。&lt;/p&gt;
+
+&lt;p&gt;それは面倒＆冗長なので、直接Action関数を使い、その返り値をdispatchすれば、Action関数の元の型定義を使いまわせます。&lt;/p&gt;
+
+&lt;h4 id=&#34;dispatch関数を直接propsに回す&#34;&gt;dispatch関数を直接propsに回す&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js
+export default connect(
+  ({ counter }) =&amp;gt; ({ counter }),
+  dispatch =&amp;gt; ({ dispatch }), // ここ
+)(CounterPage)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;action関数をconnectを通さないことで-元の型定義のまま使える&#34;&gt;action関数をconnectを通さないことで、元の型定義のまま使える&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js
+import * as actions from &amp;quot;actions/counter&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;handlePressIncrement() {
+  const { dispatch } = this.props
+  dispatch(actions.executeIncrement(1)) // ここ
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;StateやActionの型定義をする&lt;/li&gt;
+&lt;li&gt;定義した型をActionやReducerで使い回す&lt;/li&gt;
+&lt;li&gt;コンポーネントのProps型はプロパティ変数で定義&lt;/li&gt;
+&lt;li&gt;コンポーネント内で使うActionはconnectしない&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;React+Reduxでflowを使った型定義の方法をまとめました。今回はあまり使いませんでしたが、業務ドメイン関係の型定義(ActionのPayloadやStateの中で使う型)は、Reduxなどのフレームワークに依存せず、別フレームワークでも使いまわせる可能性があるので、積極的に型定義をしていきたいです。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ</title>
