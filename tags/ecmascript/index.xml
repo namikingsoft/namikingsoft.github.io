@@ -30,6 +30,37 @@
 &lt;a href=&#34;https://github.com/namikingsoft/react-redux-using-flow-example&#34;&gt;https://github.com/namikingsoft/react-redux-using-flow-example&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
+&lt;h4 id=&#34;ソース周りのファイル構成&#34;&gt;ソース周りのファイル構成&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;react-redux-using-flow-example
+|-- src
+|   |-- actions
+|   |   `-- counter.js         # カウンターアクションの定義
+|   |-- components
+|   |   `-- Button.js          # ボタン用コンポーネント
+|   |-- containers
+|   |   `-- LayoutContainer.js # 各ページの側端コンテナ
+|   |-- declares               # 外部モジュールの型定義 (ほぼanyをexports)
+|   |   `-- ****.js
+|   |-- index.html             # ベースHTML
+|   |-- index.js               # フロント側エンドポイント
+|   |-- pages
+|   |   |-- CounterPage.js     # カウンターページ
+|   |   |-- HelloPage.js       # 挨拶用ページ
+|   |   `-- TopPage.js         # トップページ
+|   |-- reducers
+|   |   |-- counter.js         # カウンターReducer
+|   |   `-- index.js           # Reducerのインデックス
+|   |-- sagas
+|   |   |-- counter.js         # カウンターの非同期処理
+|   |   `-- index.js           # 非同期処理のインデックス
+|   |-- server.js              # サーバー側エンドポイント
+|   `-- types
+|       |-- Action.js          # Action(Fluxスタンダード)の型定義
+|       `-- Counter.js         # カウンター関連の型定義
+`-- package.json
+&lt;/code&gt;&lt;/pre&gt;
+
 &lt;p&gt;非同期周りの処理に&lt;a href=&#34;https://github.com/yelouafi/redux-saga&#34;&gt;redux-saga&lt;/a&gt;を使ってますが、今回はその辺りの解説は省きます。&lt;/p&gt;
 
 &lt;h2 id=&#34;ポイントいくつか&#34;&gt;ポイントいくつか&lt;/h2&gt;
@@ -217,6 +248,8 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 
 &lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
 
+&lt;p&gt;React+Reduxでflowを使った型定義の方法をまとめました。&lt;/p&gt;
+
 &lt;ul&gt;
 &lt;li&gt;StateやActionの型定義をする&lt;/li&gt;
 &lt;li&gt;定義した型をActionやReducerで使い回す&lt;/li&gt;
@@ -224,7 +257,7 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 &lt;li&gt;コンポーネント内で使うActionはconnectしない&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;React+Reduxでflowを使った型定義の方法をまとめました。今回はあまり使いませんでしたが、業務ドメイン関係の型定義(ActionのPayloadやStateの中で使う型)は、Reduxなどのフレームワークに依存せず、別フレームワークでも使いまわせる可能性があるので、積極的に型定義をしていきたいです。&lt;/p&gt;
+&lt;p&gt;今回はあまり使いませんでしたが、業務ドメイン関係の型定義(ActionのPayloadやStateの中で使う型)は、Reduxなどのフレームワークに依存せず、別フレームワークでも使いまわせる可能性があるので、積極的に型定義をしていきたいです。&lt;/p&gt;
 </description>
     </item>
     
