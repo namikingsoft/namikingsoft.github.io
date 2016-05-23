@@ -24,6 +24,37 @@ JavaScript型チェッカー[flow](http://flowtype.org/)を使って、React+Red
 > GitHub: namikingsoft/react-redux-using-flow-example
 > https://github.com/namikingsoft/react-redux-using-flow-example
 
+#### ソース周りのファイル構成
+```sh
+react-redux-using-flow-example
+|-- src
+|   |-- actions
+|   |   `-- counter.js         # カウンターアクションの定義
+|   |-- components
+|   |   `-- Button.js          # ボタン用コンポーネント
+|   |-- containers
+|   |   `-- LayoutContainer.js # 各ページの側端コンテナ
+|   |-- declares               # 外部モジュールの型定義 (ほぼanyをexports)
+|   |   `-- ****.js
+|   |-- index.html             # ベースHTML
+|   |-- index.js               # フロント側エンドポイント
+|   |-- pages
+|   |   |-- CounterPage.js     # カウンターページ
+|   |   |-- HelloPage.js       # 挨拶用ページ
+|   |   `-- TopPage.js         # トップページ
+|   |-- reducers
+|   |   |-- counter.js         # カウンターReducer
+|   |   `-- index.js           # Reducerのインデックス
+|   |-- sagas
+|   |   |-- counter.js         # カウンターの非同期処理
+|   |   `-- index.js           # 非同期処理のインデックス
+|   |-- server.js              # サーバー側エンドポイント
+|   `-- types
+|       |-- Action.js          # Action(Fluxスタンダード)の型定義
+|       `-- Counter.js         # カウンター関連の型定義
+`-- package.json
+```
+
 非同期周りの処理に[redux-saga](https://github.com/yelouafi/redux-saga)を使ってますが、今回はその辺りの解説は省きます。
 
 
@@ -208,9 +239,12 @@ handlePressIncrement() {
 
 
 ## まとめ
+
+React+Reduxでflowを使った型定義の方法をまとめました。
+
 * StateやActionの型定義をする
 * 定義した型をActionやReducerで使い回す
 * コンポーネントのProps型はプロパティ変数で定義
 * コンポーネント内で使うActionはconnectしない
 
-React+Reduxでflowを使った型定義の方法をまとめました。今回はあまり使いませんでしたが、業務ドメイン関係の型定義(ActionのPayloadやStateの中で使う型)は、Reduxなどのフレームワークに依存せず、別フレームワークでも使いまわせる可能性があるので、積極的に型定義をしていきたいです。
+今回はあまり使いませんでしたが、業務ドメイン関係の型定義(ActionのPayloadやStateの中で使う型)は、Reduxなどのフレームワークに依存せず、別フレームワークでも使いまわせる可能性があるので、積極的に型定義をしていきたいです。
