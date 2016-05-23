@@ -25,7 +25,7 @@ JavaScript型チェッカー[flow](http://flowtype.org/)を使って、React+Red
 > https://github.com/namikingsoft/react-redux-using-flow-example
 
 #### ソース周りのファイル構成
-```
+```sh
 react-redux-using-flow-example
 |-- src
 |   |-- actions
