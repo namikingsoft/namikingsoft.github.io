@@ -211,7 +211,7 @@ render() {
 
 
 ### コンポーネント内で使うActionはconnectしない
-`react-redux`のconnectで、Action関数をpropsに関連付けてしまうと、コンポーネントのPropsで、Action関数の型を再定義する必要があります。
+`react-redux`のconnectで、Action関数をpropsに関連付けてしまうと、自分で定義した型情報が消し飛んでしまうので、コンポーネントのPropsで、Action関数の型を再定義する必要があります。
 
 それは面倒＆冗長なので、直接Action関数を使い、その返り値をdispatchすれば、Action関数の元の型定義を使いまわせます。
 
@@ -220,8 +220,8 @@ render() {
 // src/pages/CounterPage.js
 export default connect(
   ({ counter }) => ({ counter }),
-  dispatch => ({ dispatch }), // ここ
 )(CounterPage)
+// 第二引数に何も書かなければ、dispatch関数が直接、propsに渡される
 ```
 
 #### action関数をconnectを通さないことで、元の型定義のまま使える
