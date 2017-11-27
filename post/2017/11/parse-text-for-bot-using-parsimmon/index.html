@@ -1,0 +1,239 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=0.9"><title>パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する - Namiking.net</title><link rel="stylesheet" href="/css/bundle.css"><script src="/js/bundle.js"></script></head><body><div class="layout-sitenavi"><div class="container"><div class="layout-sitenavi__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="layout-sitenavi__menu"><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li></ul></div></div></div><div class="layout-headline-single"><div class="container"><header><div class="layout-headline-single__title"><h1>パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する</h1></div><div class="lead"><div class="layout-headline-single__meta"><ul><li><i class="fa fa-calendar"></i>2017-11-27 (Mon)</li><li><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=27&r=g">namikingsoft</li></ul></div><div class="layout-headline-single__taxonomies"><ul><li><a class="label label-success" href="/categories/%E5%B0%8F%E3%83%8D%E3%82%BF">小ネタ</a></li><li><a class="label label-default" href="/tags/%E3%83%91%E3%83%BC%E3%82%B5%E3%83%BC%E3%82%B3%E3%83%B3%E3%83%93%E3%83%8D%E3%83%BC%E3%82%BF%E3%83%BC">パーサーコンビネーター</a></li><li><a class="label label-default" href="/tags/ecmascript">ECMAScript</a></li><li><a class="label label-default" href="/tags/javascript">JavaScript</a></li><li><a class="label label-default" href="/tags/npm">npm</a></li><li><a class="label label-default" href="/tags/bot">Bot</a></li></ul></div></div></header></div></div><div class="layout-content"><div class="container"><article><div class="layout-content__body"><div class="module-markdown">
+
+<p>CLI と違い、引数を渡す方法が標準化しておらず、パースを実装する必要があった。Slack の <code>/remind</code> スラッシュコマンドのように、自然言語風に Bot へのパラメーターを抽出したい。</p>
+
+<pre><code>/remind me to drink water at 3pm every day
+/remind me on June 1st to wish Linda happy birthday
+/remind #team-alpha to update the project status every Monday at 9am
+/remind @jessica about the interview in 3 hours
+</code></pre>
+
+<p>正規表現を使うと複雑になりがちな上のようなパラメーター抽出のため、パーサーコンビネーターを使って、パーサーを実装してみる。</p>
+
+<h3 id="実装したいこと:7121f45fda8b34b5935206c9ca0a9e6f">実装したいこと</h3>
+
+<p>例えば、CircleCI の特定のジョブを Bot を通じて Slack から起動するために、自然言語風のテキストからパラメーターを抽出したい。</p>
+
+<pre><code>post build to (username)/(reponame) [on (ブランチ名)] [at (コミットハッシュ)] [for (ジョブ名)]
+</code></pre>
+
+<h4 id="パラメーター抽出例:7121f45fda8b34b5935206c9ca0a9e6f">パラメーター抽出例</h4>
+
+<pre><code>post build to namikingsoft/namikingsoft.github.io on master for deploy
+</code></pre>
+
+<pre><code class="language-json">{
+  &quot;repo&quot;: &quot;namikingsoft/namikingsoft.github.io&quot;,
+  &quot;branch&quot;: &quot;master&quot;,
+  &quot;job&quot;: &quot;deploy&quot;
+}
+</code></pre>
+
+<h3 id="実装してみる:7121f45fda8b34b5935206c9ca0a9e6f">実装してみる</h3>
+
+<p>上の要件を実装したコード例と軽い解説。</p>
+
+<h4 id="00-ソースコード全体:7121f45fda8b34b5935206c9ca0a9e6f">00. ソースコード全体</h4>
+
+<pre><code class="language-typescript">const P = require('parsimmon');
+const R = require('ramda');
+
+// map functions
+const mapToThirdArg = (_1, _2, _3) =&gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string('to');
+const on = P.string('on');
+const at = P.string('at');
+const fr = P.string('for'); // TODO: alt `for`
+const slash = P.string('/');
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range('a', 'z');
+const letterLarge = P.range('A', 'Z');
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range('a', 'f'), digit);
+const symbolForSep = P.oneOf('._-');
+const symbolForBranch = P.oneOf('._-/#+');
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node('repo');
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node('job');
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node('branch');
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node('revision');
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+
+// parse
+const text1 =
+  'post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy';
+const text2 =
+  'pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io';
+
+sentence.tryParse(text1);
+// {
+//   &quot;job&quot;: &quot;deploy&quot;,
+//   &quot;revision&quot;: &quot;abcd1234&quot;,
+//   &quot;branch&quot;: &quot;master&quot;,
+//   &quot;repo&quot;:&quot;namikingsoft/namikingsoft.github.io&quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &quot;job&quot;: &quot;deploy&quot;,
+//   &quot;branch&quot;: &quot;master&quot;,
+//   &quot;repo&quot;:&quot;namikingsoft/namikingsoft.github.io&quot;
+// }
+
+sentence.tryParse('illegal text example');
+// -&gt; Exception!
+</code></pre>
+
+<blockquote>
+<p>RunKit でコードを実行する<br />
+<a href="https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon">https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon</a></p>
+</blockquote>
+
+<h4 id="01-使っている-npm-モジュール:7121f45fda8b34b5935206c9ca0a9e6f">01. 使っている npm モジュール</h4>
+
+<pre><code class="language-typescript">const P = require('parsimmon');
+const R = require('ramda');
+</code></pre>
+
+<h5 id="parsimmon-パーサーコンビネーターライブラリ:7121f45fda8b34b5935206c9ca0a9e6f">Parsimmon - パーサーコンビネーターライブラリ</h5>
+
+<p>JS のパーサーコンビネーターライブラリの１つ。Haskell の <code>Parserc</code> ライクに使える。</p>
+
+<blockquote>
+<p>GitHub: jneen/parsimmon<br />
+<a href="https://github.com/jneen/parsimmon">https://github.com/jneen/parsimmon</a></p>
+</blockquote>
+
+<h5 id="ramda-関数型プログラミング支援ライブラリ:7121f45fda8b34b5935206c9ca0a9e6f">Ramda - 関数型プログラミング支援ライブラリ</h5>
+
+<p>関数型プログラミングライブラリの１つ。今回はパーサーの戻り値調整のみに使った。</p>
+
+<blockquote>
+<p>Ramda Documentation<br />
+<a href="http://ramdajs.com/">http://ramdajs.com/</a></p>
+</blockquote>
+
+<h4 id="02-字句の定義:7121f45fda8b34b5935206c9ca0a9e6f">02. 字句の定義</h4>
+
+<p>入力文を構成する要素を BNF のような感覚で字句の定義を行っていく。</p>
+
+<pre><code class="language-typescript">// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string('to');
+const on = P.string('on');
+const at = P.string('at');
+const fr = P.string('for'); // TODO: alt `for`
+const slash = P.string('/');
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range('a', 'z');
+const letterLarge = P.range('A', 'Z');
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range('a', 'f'), digit);
+const symbolForSep = P.oneOf('._-');
+const symbolForBranch = P.oneOf('._-/#+');
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+</code></pre>
+
+<h4 id="03-パーサーの構築:7121f45fda8b34b5935206c9ca0a9e6f">03. パーサーの構築</h4>
+
+<p>パーサーを構成する字句を組み合わせたり、関数出力の調整を行う。ノード定義は <code>alt</code> を使っても、どの要素が該当したか識別できるするために <code>node</code> で名前をつけていくイメージ。</p>
+
+<pre><code class="language-typescript">// map functions
+const mapToThirdArg = (_1, _2, _3) =&gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node('repo');
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node('job');
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node('branch');
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node('revision');
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+</code></pre>
+
+<h4 id="04-パーサーを使う:7121f45fda8b34b5935206c9ca0a9e6f">04. パーサーを使う</h4>
+
+<p>定義した構文に沿ったテキストが入力された場合は、ノードの名前をキーとしたオブジェクトとして返され、そうでない場合は<strong>例外が発生</strong>する。</p>
+
+<pre><code class="language-typescript">// parse
+const text1 =
+  'post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy';
+const text2 =
+  'pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io';
+
+sentence.tryParse(text1);
+// {
+//   &quot;job&quot;: &quot;deploy&quot;,
+//   &quot;revision&quot;: &quot;abcd1234&quot;,
+//   &quot;branch&quot;: &quot;master&quot;,
+//   &quot;repo&quot;:&quot;namikingsoft/namikingsoft.github.io&quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &quot;job&quot;: &quot;deploy&quot;,
+//   &quot;branch&quot;: &quot;master&quot;,
+//   &quot;repo&quot;:&quot;namikingsoft/namikingsoft.github.io&quot;
+// }
+
+sentence.tryParse('illegal text example');
+// -&gt; Exception!
+</code></pre>
+
+<h3 id="まとめ:7121f45fda8b34b5935206c9ca0a9e6f">まとめ</h3>
+
+<p>頑張れば正規表現で書けなくもなさそうなテキストパースを、パーサーコンビネーターで書いてみて、思ったこといくつか。</p>
+
+<h4 id="各要素に名前を付けられる-組み合わせることができる:7121f45fda8b34b5935206c9ca0a9e6f">各要素に名前を付けられる ＆ 組み合わせることができる</h4>
+
+<p>正規表現で複雑なパーサーを書くと、意味不明な文字列の羅列になりやすく、リーダブルに書くことが難しいが、字句レベルから変数にできて、再利用もしやすい点が良いと感じた。</p>
+
+<h4 id="parsimmon-ドキュメントが-parsec-より簡潔でわかりやすい:7121f45fda8b34b5935206c9ca0a9e6f">Parsimmon ドキュメントが Parsec より簡潔でわかりやすい</h4>
+
+<p>Haskell の Parsec でパーサーを実装していたときは、<a href="https://hackage.haskell.org/package/parsec">Hackage</a> を見ても、<a href="https://www.google.com/search?q=haskell+parsec+documentation">ググっても</a>、いまいち使い方がわからず、入門用にまとまっているドキュメントを探すのに苦労したが、<a href="https://github.com/jneen/parsimmon/blob/master/API.md">Parsimmon ドキュメント</a>はコード例とともに簡潔にまとまっていて、実装がしやすかった。Parsec の練習用にも良いかもしれない。</p>
+
+<p><a href="https://github.com/jneen/parsimmon/tree/master/examples">Examples</a> には、軽量スクリプト言語のパーサーや JS Linter の実装例もあったので、より複雑なパーサーを構築したくなったときに参照したい。</p>
+</div></div><div class="layout-content__comment"><div class="module-comment"><div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'namikingsoft';
+    var disqus_identifier = 'http:\/\/blog.namiking.net\/post\/2017\/11\/parse-text-for-bot-using-parsimmon\/';
+    var disqus_title = 'パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する';
+    var disqus_url = 'http:\/\/blog.namiking.net\/post\/2017\/11\/parse-text-for-bot-using-parsimmon\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a></div></div></article></div></div><div class="layout-pagenavi"><div class="container"><div class="layout-pagenavi__relate"><div class="module-relate"></div></div><div class="layout-pagenavi__paging"><div class="module-paging"><div class="module-paging__prev col-xs-6"></div><div class="module-paging__next col-xs-6"><a href="/post/2016/05/react-redux-using-flow-example/" title="静的型チェッカーflowでReact&#43;Reduxのサンプルアプリを組んでみた"><i class="fa fa-arrow-circle-o-right"></i><p class="hidden-xs">2016-05-22 (Sun)</p></a></div></div></div></div></div><div class="layout-sharenavi"><div class="container"><h4>この記事について</h4><div class="layout-sharenavi__profile"><div class="module-profile"><div class="module-profile__avatar"><img src="https://s.gravatar.com/avatar/3706c1a344dc2282c6683b6c6d0926f2?s=80&r=g"><small>書いた人<br>Written by</small></div><div class="module-profile__text"><h3>namikingsoft</h3><p>何かを残して逝きたい<br>フロントエンドエンジニア</p><ul><li><a href="http://blog.namiking.net/about/"><i class="fa fa-2x fa-user"></i></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-2x fa-github"></i></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-2x fa-twitter"></i></a></li></ul></div></div></div><div class="layout-sharenavi__sharelink"><div class="module-sharelink"><ul class="module-sharelink__list"><li class="module-sharelink__list-twitter"><a class="twitter-share-button" data-url="http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/" href="https://twitter.com/share" data-lang="ja" data-count="vertical" data-dnt="true">ツイート</a></li><li class="module-sharelink__list-facebook"><div class="fb-like" data-href="http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/" data-layout="box_count" data-action="like" data-show-faces="true" data-share="false"></div></li><li class="module-sharelink__list-google"><div class="g-plusone" data-href="http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/" data-size="tall"></div></li><li class="module-sharelink__list-hatena"><a class="hatena-bookmark-button" href="http://b.hatena.ne.jp/entry/http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/" data-hatena-bookmark-layout="vertical-balloon" data-hatena-bookmark-lang="ja" title="このエントリーをはてなブックマークに追加"><img src="https://b.st-hatena.com/images/entry-button/button-only@2x.png" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border:none;"></a></li><li class="module-sharelink__list-pocket"><a class="pocket-btn" data-save-url="http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/" data-pocket-label="pocket" data-pocket-count="vertical" data-lang="en"></a></li><li class="module-sharelink__list-line"><a href="http://line.me/R/msg/text/?http%3a%2f%2fblog.namiking.net%2fpost%2f2017%2f11%2fparse-text-for-bot-using-parsimmon%2f"><img src="/images/button/linebutton_36x60.png" width="36" height="60" alt="LINEに送る"></a></li></ul><div id="fb-root"></div></div></div></div></div><div class="layout-footer"><div class="container"><div class="layout-footer__poweredby col-sm-4"><div class="module-poweredby"><div class="module-poweredby__title"><a href="http://blog.namiking.net/"><strong>Namiking.net</strong><p>Web系エンジニアの技術ブログ</p></a></div><div class="module-poweredby__menu"><ul><li><a href="http://blog.namiking.net/"><i class="fa fa-lg fa-home"></i><span>HOME</span></a></li><li><a href="http://blog.namiking.net/about/"><i class="fa fa-lg fa-user"></i><span>ABOUT</span></a></li><li><a href="https://github.com/namikingsoft/"><i class="fa fa-lg fa-github"></i><span>GITHUB</span></a></li><li><a href="https://twitter.com/namikingsoft/"><i class="fa fa-lg fa-twitter"></i><span>TWITTER</span></a></li><li><a href="http://blog.namiking.net/index.xml"><i class="fa fa-lg fa-rss"></i><span>RSS</span></a></li></ul></div><div class="module-poweredby__hugo"><p>Designed &amp; Written by <a href="/about">@namikingsoft</a></p><p>Powered by <a href="http://gohugo.io">HUGO</a></p></div></div></div><div class="layout-footer__recent col-sm-4"><div class="module-recent"><h3>Recent Post</h3><dl><dt>2017-11-27 (Mon)</dt><dd><a href="/post/2017/11/parse-text-for-bot-using-parsimmon/">パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する</a></dd><dt>2016-05-22 (Sun)</dt><dd><a href="/post/2016/05/react-redux-using-flow-example/">静的型チェッカーflowでReact&#43;Reduxのサンプルアプリを組んでみた</a></dd><dt>2016-05-12 (Thu)</dt><dd><a href="/post/2016/05/flow-class-private-fields/">静的型チェッカーflowのクラスでPrivateなフィールドを定義するメモ</a></dd><dt>2016-05-12 (Thu)</dt><dd><a href="/post/2016/05/flow-disadvantage/">静的型チェッカーflowを使ってみて、微妙に気になったこと４つ</a></dd><dt>2016-02-13 (Sat)</dt><dd><a href="/post/2016/02/react-server-using-webpack/">サーバーサイドReactをwebpackを使って最小構成で試す (ES6 ＆ TypeScript)</a></dd></dl></div></div><div class="layout-footer__tagcloud col-sm-4"><div class="module-tagcloud"><h3>Tags</h3><ul><li><a href="/tags/bot">bot(1)</a></li><li><a href="/tags/ddd">ddd(1)</a></li><li><a href="/tags/digitalocean">digitalocean(1)</a></li><li><a href="/tags/docker">docker(9)</a></li><li><a href="/tags/docker-compose">docker-compose(1)</a></li><li><a href="/tags/ecmascript">ecmascript(5)</a></li><li><a href="/tags/eslint">eslint(1)</a></li><li><a href="/tags/express">express(1)</a></li><li><a href="/tags/flow">flow(3)</a></li><li><a href="/tags/flowtype">flowtype(3)</a></li><li><a href="/tags/javascript">javascript(4)</a></li><li><a href="/tags/libreboard">libreboard(1)</a></li><li><a href="/tags/mocha">mocha(1)</a></li><li><a href="/tags/npm">npm(1)</a></li><li><a href="/tags/oss">oss(4)</a></li><li><a href="/tags/react">react(2)</a></li><li><a href="/tags/redux">redux(1)</a></li><li><a href="/tags/restyaboard">restyaboard(2)</a></li><li><a href="/tags/softether">softether(1)</a></li><li><a href="/tags/spark">spark(2)</a></li><li><a href="/tags/swarm">swarm(4)</a></li><li><a href="/tags/taiga">taiga(2)</a></li><li><a href="/tags/terraform">terraform(1)</a></li><li><a href="/tags/tls">tls(1)</a></li><li><a href="/tags/typescript">typescript(1)</a></li><li><a href="/tags/vpn">vpn(1)</a></li><li><a href="/tags/webpack">webpack(2)</a></li><li><a href="/tags/webpack-dev-server">webpack-dev-server(1)</a></li><li><a href="/tags/wekan">wekan(2)</a></li><li><a href="/tags/zeppelin">zeppelin(1)</a></li><li><a href="/tags/%E3%82%A4%E3%83%B3%E3%83%95%E3%83%A9">インフラ(2)</a></li><li><a href="/tags/%E3%83%91%E3%83%BC%E3%82%B5%E3%83%BC%E3%82%B3%E3%83%B3%E3%83%93%E3%83%8D%E3%83%BC%E3%82%BF%E3%83%BC">パーサーコンビネーター(1)</a></li><li><a href="/tags/%E6%A9%9F%E6%A2%B0%E5%AD%A6%E7%BF%92">機械学習(1)</a></li><li><a href="/tags/%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%9B%9E%E5%B8%B0">決定木回帰(1)</a></li><li><a href="/tags/%E7%B7%9A%E5%BD%A2%E5%9B%9E%E5%B8%B0">線形回帰(1)</a></li></ul></div></div></div></div></body></html>

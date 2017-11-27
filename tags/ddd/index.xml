@@ -24,7 +24,7 @@
 &lt;li&gt;&lt;a href=&#34;#weakmap&#34;&gt;ES6のWeakMapを使う方法&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;なんでprivateフィールドが必要&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
+&lt;h3 id=&#34;なんでprivateフィールドが必要:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;インスタンス生成後に外部からフィールド値を変更させたくないため。
@@ -44,17 +44,17 @@
 
 &lt;p&gt;&lt;a name=&#34;munge&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
+&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowオプションの&lt;a href=&#34;http://flowtype.org/docs/advanced-configuration.html&#34;&gt;munge_underscores&lt;/a&gt;を有効にすると、先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。&lt;/p&gt;
 
-&lt;h3 id=&#34;flowconfig-追記&#34;&gt;.flowconfig 追記&lt;/h3&gt;
+&lt;h3 id=&#34;flowconfig-追記:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;.flowconfig 追記&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;[options]
 + munge_underscores=true
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;実装例&#34;&gt;実装例&lt;/h3&gt;
+&lt;h3 id=&#34;実装例:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;実装例&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js&#34;&gt;GitHub上の使用例&lt;/a&gt;を参考にして、Privateフィールドを実現してみる。&lt;/p&gt;
 
@@ -101,7 +101,7 @@ error| property `_getField2` Property not found in (:0:1,0) Sample
 
 &lt;p&gt;先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。&lt;/p&gt;
 
-&lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
+&lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
 
 &lt;p&gt;ちなみに、継承元の&lt;code&gt;PrivateSample&lt;/code&gt;を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは&lt;code&gt;export&lt;/code&gt;しないほうが良さそう。&lt;/p&gt;
 
@@ -116,7 +116,7 @@ assert(sample._param.field1 === 5) // OK
 
 &lt;p&gt;&lt;a name=&#34;weakmap&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;es6のweakmapを使う方法&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
+&lt;h2 id=&#34;es6のweakmapを使う方法:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。&lt;/p&gt;
 
@@ -129,7 +129,7 @@ assert(sample._param.field1 === 5) // OK
 
 &lt;p&gt;WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。&lt;/p&gt;
 
-&lt;h3 id=&#34;実装例-1&#34;&gt;実装例&lt;/h3&gt;
+&lt;h3 id=&#34;実装例-1:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;実装例&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// @flow
 
@@ -156,7 +156,7 @@ export default class Sample {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンソールデバッグがしづらい&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
+&lt;h3 id=&#34;コンソールデバッグがしづらい:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
 
 &lt;p&gt;WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。&lt;/p&gt;
 
@@ -177,7 +177,7 @@ console.log(sample);
 &lt;pre&gt;&lt;code&gt;WeakMap {Sample {} =&amp;gt; Object {field1: 1234, field2: &amp;quot;test&amp;quot;}}
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
+&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
 
 &lt;p&gt;同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。&lt;/p&gt;
 
@@ -211,7 +211,7 @@ export default class Sample {
 &lt;p&gt;ただ、ESLintを併用していると、&lt;code&gt;no-use-before-define&lt;/code&gt;に引っかかったりする。
 ちとまどろっこしいね。&lt;/p&gt;
 
-&lt;h2 id=&#34;備考-注意点&#34;&gt;備考・注意点&lt;/h2&gt;
+&lt;h2 id=&#34;備考-注意点:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;備考・注意点&lt;/h2&gt;
 
 &lt;p&gt;コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。&lt;/p&gt;
 
@@ -242,7 +242,7 @@ param.field1 = 2345;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、TypeScriptを含め、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんとPrivateを実現しやすくなったと思う。&lt;/p&gt;
 

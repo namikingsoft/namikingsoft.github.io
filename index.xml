@@ -6,8 +6,241 @@
     <description>Recent content on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Sun, 22 May 2016 20:00:00 +0900</lastBuildDate>
+    <lastBuildDate>Mon, 27 Nov 2017 18:00:00 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する</title>
+      <link>http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/</link>
+      <pubDate>Mon, 27 Nov 2017 18:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/</guid>
+      <description>
+
+&lt;p&gt;CLI と違い、引数を渡す方法が標準化しておらず、パースを実装する必要があった。Slack の &lt;code&gt;/remind&lt;/code&gt; スラッシュコマンドのように、自然言語風に Bot へのパラメーターを抽出したい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/remind me to drink water at 3pm every day
+/remind me on June 1st to wish Linda happy birthday
+/remind #team-alpha to update the project status every Monday at 9am
+/remind @jessica about the interview in 3 hours
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;正規表現を使うと複雑になりがちな上のようなパラメーター抽出のため、パーサーコンビネーターを使って、パーサーを実装してみる。&lt;/p&gt;
+
+&lt;h3 id=&#34;実装したいこと:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;実装したいこと&lt;/h3&gt;
+
+&lt;p&gt;例えば、CircleCI の特定のジョブを Bot を通じて Slack から起動するために、自然言語風のテキストからパラメーターを抽出したい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;post build to (username)/(reponame) [on (ブランチ名)] [at (コミットハッシュ)] [for (ジョブ名)]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;パラメーター抽出例:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;パラメーター抽出例&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;post build to namikingsoft/namikingsoft.github.io on master for deploy
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;{
+  &amp;quot;repo&amp;quot;: &amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;,
+  &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+  &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;実装してみる:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;実装してみる&lt;/h3&gt;
+
+&lt;p&gt;上の要件を実装したコード例と軽い解説。&lt;/p&gt;
+
+&lt;h4 id=&#34;00-ソースコード全体:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;00. ソースコード全体&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const P = require(&#39;parsimmon&#39;);
+const R = require(&#39;ramda&#39;);
+
+// map functions
+const mapToThirdArg = (_1, _2, _3) =&amp;gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&amp;gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&amp;gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string(&#39;to&#39;);
+const on = P.string(&#39;on&#39;);
+const at = P.string(&#39;at&#39;);
+const fr = P.string(&#39;for&#39;); // TODO: alt `for`
+const slash = P.string(&#39;/&#39;);
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range(&#39;a&#39;, &#39;z&#39;);
+const letterLarge = P.range(&#39;A&#39;, &#39;Z&#39;);
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range(&#39;a&#39;, &#39;f&#39;), digit);
+const symbolForSep = P.oneOf(&#39;._-&#39;);
+const symbolForBranch = P.oneOf(&#39;._-/#+&#39;);
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node(&#39;repo&#39;);
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node(&#39;job&#39;);
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node(&#39;branch&#39;);
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node(&#39;revision&#39;);
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+
+// parse
+const text1 =
+  &#39;post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy&#39;;
+const text2 =
+  &#39;pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io&#39;;
+
+sentence.tryParse(text1);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;revision&amp;quot;: &amp;quot;abcd1234&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(&#39;illegal text example&#39;);
+// -&amp;gt; Exception!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;RunKit でコードを実行する&lt;br /&gt;
+&lt;a href=&#34;https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon&#34;&gt;https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;01-使っている-npm-モジュール:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;01. 使っている npm モジュール&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const P = require(&#39;parsimmon&#39;);
+const R = require(&#39;ramda&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;parsimmon-パーサーコンビネーターライブラリ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Parsimmon - パーサーコンビネーターライブラリ&lt;/h5&gt;
+
+&lt;p&gt;JS のパーサーコンビネーターライブラリの１つ。Haskell の &lt;code&gt;Parserc&lt;/code&gt; ライクに使える。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: jneen/parsimmon&lt;br /&gt;
+&lt;a href=&#34;https://github.com/jneen/parsimmon&#34;&gt;https://github.com/jneen/parsimmon&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h5 id=&#34;ramda-関数型プログラミング支援ライブラリ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Ramda - 関数型プログラミング支援ライブラリ&lt;/h5&gt;
+
+&lt;p&gt;関数型プログラミングライブラリの１つ。今回はパーサーの戻り値調整のみに使った。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Ramda Documentation&lt;br /&gt;
+&lt;a href=&#34;http://ramdajs.com/&#34;&gt;http://ramdajs.com/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;02-字句の定義:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;02. 字句の定義&lt;/h4&gt;
+
+&lt;p&gt;入力文を構成する要素を BNF のような感覚で字句の定義を行っていく。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string(&#39;to&#39;);
+const on = P.string(&#39;on&#39;);
+const at = P.string(&#39;at&#39;);
+const fr = P.string(&#39;for&#39;); // TODO: alt `for`
+const slash = P.string(&#39;/&#39;);
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range(&#39;a&#39;, &#39;z&#39;);
+const letterLarge = P.range(&#39;A&#39;, &#39;Z&#39;);
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range(&#39;a&#39;, &#39;f&#39;), digit);
+const symbolForSep = P.oneOf(&#39;._-&#39;);
+const symbolForBranch = P.oneOf(&#39;._-/#+&#39;);
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;03-パーサーの構築:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;03. パーサーの構築&lt;/h4&gt;
+
+&lt;p&gt;パーサーを構成する字句を組み合わせたり、関数出力の調整を行う。ノード定義は &lt;code&gt;alt&lt;/code&gt; を使っても、どの要素が該当したか識別できるするために &lt;code&gt;node&lt;/code&gt; で名前をつけていくイメージ。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// map functions
+const mapToThirdArg = (_1, _2, _3) =&amp;gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&amp;gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&amp;gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node(&#39;repo&#39;);
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node(&#39;job&#39;);
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node(&#39;branch&#39;);
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node(&#39;revision&#39;);
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;04-パーサーを使う:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;04. パーサーを使う&lt;/h4&gt;
+
+&lt;p&gt;定義した構文に沿ったテキストが入力された場合は、ノードの名前をキーとしたオブジェクトとして返され、そうでない場合は&lt;strong&gt;例外が発生&lt;/strong&gt;する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// parse
+const text1 =
+  &#39;post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy&#39;;
+const text2 =
+  &#39;pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io&#39;;
+
+sentence.tryParse(text1);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;revision&amp;quot;: &amp;quot;abcd1234&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(&#39;illegal text example&#39;);
+// -&amp;gt; Exception!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;まとめ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;まとめ&lt;/h3&gt;
+
+&lt;p&gt;頑張れば正規表現で書けなくもなさそうなテキストパースを、パーサーコンビネーターで書いてみて、思ったこといくつか。&lt;/p&gt;
+
+&lt;h4 id=&#34;各要素に名前を付けられる-組み合わせることができる:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;各要素に名前を付けられる ＆ 組み合わせることができる&lt;/h4&gt;
+
+&lt;p&gt;正規表現で複雑なパーサーを書くと、意味不明な文字列の羅列になりやすく、リーダブルに書くことが難しいが、字句レベルから変数にできて、再利用もしやすい点が良いと感じた。&lt;/p&gt;
+
+&lt;h4 id=&#34;parsimmon-ドキュメントが-parsec-より簡潔でわかりやすい:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Parsimmon ドキュメントが Parsec より簡潔でわかりやすい&lt;/h4&gt;
+
+&lt;p&gt;Haskell の Parsec でパーサーを実装していたときは、&lt;a href=&#34;https://hackage.haskell.org/package/parsec&#34;&gt;Hackage&lt;/a&gt; を見ても、&lt;a href=&#34;https://www.google.com/search?q=haskell+parsec+documentation&#34;&gt;ググっても&lt;/a&gt;、いまいち使い方がわからず、入門用にまとまっているドキュメントを探すのに苦労したが、&lt;a href=&#34;https://github.com/jneen/parsimmon/blob/master/API.md&#34;&gt;Parsimmon ドキュメント&lt;/a&gt;はコード例とともに簡潔にまとまっていて、実装がしやすかった。Parsec の練習用にも良いかもしれない。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/jneen/parsimmon/tree/master/examples&#34;&gt;Examples&lt;/a&gt; には、軽量スクリプト言語のパーサーや JS Linter の実装例もあったので、より複雑なパーサーを構築したくなったときに参照したい。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>静的型チェッカーflowでReact&#43;Reduxのサンプルアプリを組んでみた</title>
@@ -19,7 +252,7 @@
 
 &lt;p&gt;JavaScript型チェッカー&lt;a href=&#34;http://flowtype.org/&#34;&gt;flow&lt;/a&gt;を使って、React+Reduxで簡単なカウンターのサンプルアプリケーションを組んでみたので、その際のいくつかのポイントなどをまとめておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;サンプルアプリについて&#34;&gt;サンプルアプリについて&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルアプリについて:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;サンプルアプリについて&lt;/h3&gt;
 
 &lt;p&gt;ボタンを押したら数字がインクリメントされるタイプのよくあるサンプルプログラム。&lt;/p&gt;
 
@@ -30,7 +263,7 @@
 &lt;a href=&#34;https://github.com/namikingsoft/react-redux-using-flow-example&#34;&gt;https://github.com/namikingsoft/react-redux-using-flow-example&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;ソース周りのファイル構成&#34;&gt;ソース周りのファイル構成&lt;/h4&gt;
+&lt;h4 id=&#34;ソース周りのファイル構成:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;ソース周りのファイル構成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;react-redux-using-flow-example
 |-- src
@@ -63,17 +296,17 @@
 
 &lt;p&gt;非同期周りの処理に&lt;a href=&#34;https://github.com/yelouafi/redux-saga&#34;&gt;redux-saga&lt;/a&gt;を使ってますが、今回はその辺りの解説は省きます。&lt;/p&gt;
 
-&lt;h2 id=&#34;ポイントいくつか&#34;&gt;ポイントいくつか&lt;/h2&gt;
+&lt;h2 id=&#34;ポイントいくつか:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;ポイントいくつか&lt;/h2&gt;
 
 &lt;p&gt;サンプルアプリ実装の際に、工夫した点/苦労した点を以下にまとめておきました。&lt;/p&gt;
 
-&lt;h3 id=&#34;stateやactionの型定義をする&#34;&gt;StateやActionの型定義をする&lt;/h3&gt;
+&lt;h3 id=&#34;stateやactionの型定義をする:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;StateやActionの型定義をする&lt;/h3&gt;
 
 &lt;p&gt;ReduxのStateやActionのPayload値は、動的言語らしく何でも入れる事が可能です。一人で開発するのなら良いですが、複数人で開発する場合、&lt;strong&gt;Action-&amp;gt;Reducer-&amp;gt;Viewで引き回す型の認識が合わず、思わぬバグが発生&lt;/strong&gt;しかねません。&lt;/p&gt;
 
 &lt;p&gt;なるべく一つの型定義を使いまわし、値の引き回しに規約を与える必要があります。&lt;/p&gt;
 
-&lt;h4 id=&#34;fluxスタンダードなaction型の定義&#34;&gt;FluxスタンダードなAction型の定義&lt;/h4&gt;
+&lt;h4 id=&#34;fluxスタンダードなaction型の定義:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;FluxスタンダードなAction型の定義&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/types/Action.js
 export interface Action {
@@ -98,7 +331,7 @@ export interface PayloadAction&amp;lt;T&amp;gt; extends Action {
 
 &lt;p&gt;個人的に、PayloadがあるActionとないActionとで、型を分けたかったので、分離してあります。Payloadに使う型は以下項目のように、ジェネリクスで指定できます。&lt;/p&gt;
 
-&lt;h4 id=&#34;counter関連の型を定義する&#34;&gt;Counter関連の型を定義する&lt;/h4&gt;
+&lt;h4 id=&#34;counter関連の型を定義する:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;Counter関連の型を定義する&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/types/Counter.js
 import type { Action, PayloadAction } from &amp;quot;types/Action&amp;quot;
@@ -118,11 +351,11 @@ export type CounterAction = IncrementAction &amp;amp; ResetAction
 
 &lt;p&gt;StateやActionの型を一つのファイルに定義しておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;定義した型をactionやreducerで使い回す&#34;&gt;定義した型をActionやReducerで使い回す&lt;/h3&gt;
+&lt;h3 id=&#34;定義した型をactionやreducerで使い回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;定義した型をActionやReducerで使い回す&lt;/h3&gt;
 
 &lt;p&gt;上で定義した共通の型設定をAction関数やReducer関数で読み込みます。&lt;/p&gt;
 
-&lt;h4 id=&#34;action関数の定義で使い回す&#34;&gt;Action関数の定義で使い回す&lt;/h4&gt;
+&lt;h4 id=&#34;action関数の定義で使い回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;Action関数の定義で使い回す&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/actions/counter.js
 import type { IncrementAction, ResetAction } from &amp;quot;types/Counter&amp;quot;
@@ -146,7 +379,7 @@ export function reset(): ResetAction {
 
 &lt;p&gt;&lt;code&gt;src/types/Counter.js&lt;/code&gt;で定義したものを返り値の型として使いまわしています。Action関数ごとに型定義をするかしないかは、個人の好みとなります。&lt;/p&gt;
 
-&lt;h4 id=&#34;reducer関数の定義で使い回す&#34;&gt;Reducer関数の定義で使い回す&lt;/h4&gt;
+&lt;h4 id=&#34;reducer関数の定義で使い回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;Reducer関数の定義で使い回す&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;import { EXECUTE_INCREMENT, RESET } from &amp;quot;actions/counter&amp;quot;
 import type { CounterState, CounterAction } from &amp;quot;types/Counter&amp;quot;
@@ -189,13 +422,13 @@ export default function counter(
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンポーネントのprops型はプロパティ変数で定義&#34;&gt;コンポーネントのProps型はプロパティ変数で定義&lt;/h3&gt;
+&lt;h3 id=&#34;コンポーネントのprops型はプロパティ変数で定義:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;コンポーネントのProps型はプロパティ変数で定義&lt;/h3&gt;
 
 &lt;p&gt;&lt;code&gt;props&lt;/code&gt;というプロパティ変数に型をつけることで、ReactのPropTypesのようなチェックをできます。PropTypesは定義方法(isRequredとか)が独特な点、ランタイムエラーしかでない点で、個人的には使いづらい印象でした。&lt;/p&gt;
 
 &lt;p&gt;flowの&lt;code&gt;props&lt;/code&gt;プロパティを利用すれば、実行前の型チェック時にエラーが出るため、見逃しづらいのと、型定義もflowと同様な方法でできるので、統一感が出ます。&lt;/p&gt;
 
-&lt;h4 id=&#34;コンポーネントのプロパティ変数でpropsの型定義ができる&#34;&gt;コンポーネントのプロパティ変数でPropsの型定義ができる&lt;/h4&gt;
+&lt;h4 id=&#34;コンポーネントのプロパティ変数でpropsの型定義ができる:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;コンポーネントのプロパティ変数でPropsの型定義ができる&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js を改変
 class CounterPage extends Component {
@@ -219,13 +452,13 @@ render() {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンポーネント内で使うactionはconnectしない&#34;&gt;コンポーネント内で使うActionはconnectしない&lt;/h3&gt;
+&lt;h3 id=&#34;コンポーネント内で使うactionはconnectしない:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;コンポーネント内で使うActionはconnectしない&lt;/h3&gt;
 
 &lt;p&gt;&lt;code&gt;react-redux&lt;/code&gt;のconnectで、Action関数をpropsに関連付けてしまうと、自分で定義した型情報が消し飛んでしまうので、コンポーネントのPropsで、Action関数の型を再定義する必要があります。&lt;/p&gt;
 
 &lt;p&gt;それは面倒＆冗長なので、直接Action関数を使い、その返り値をdispatchすれば、Action関数の元の型定義を使いまわせます。&lt;/p&gt;
 
-&lt;h4 id=&#34;dispatch関数を直接propsに回す&#34;&gt;dispatch関数を直接propsに回す&lt;/h4&gt;
+&lt;h4 id=&#34;dispatch関数を直接propsに回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;dispatch関数を直接propsに回す&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js
 export default connect(
@@ -234,7 +467,7 @@ export default connect(
 // 第二引数に何も書かなければ、dispatch関数が直接、propsに渡される
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;action関数をconnectを通さないことで-元の型定義のまま使える&#34;&gt;action関数をconnectを通さないことで、元の型定義のまま使える&lt;/h4&gt;
+&lt;h4 id=&#34;action関数をconnectを通さないことで-元の型定義のまま使える:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;action関数をconnectを通さないことで、元の型定義のまま使える&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js
 import * as actions from &amp;quot;actions/counter&amp;quot;
@@ -246,7 +479,7 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;React+Reduxでflowを使った型定義の方法をまとめました。&lt;/p&gt;
 
@@ -276,7 +509,7 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 &lt;li&gt;&lt;a href=&#34;#weakmap&#34;&gt;ES6のWeakMapを使う方法&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;なんでprivateフィールドが必要&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
+&lt;h3 id=&#34;なんでprivateフィールドが必要:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;インスタンス生成後に外部からフィールド値を変更させたくないため。
@@ -296,17 +529,17 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 
 &lt;p&gt;&lt;a name=&#34;munge&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
+&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowオプションの&lt;a href=&#34;http://flowtype.org/docs/advanced-configuration.html&#34;&gt;munge_underscores&lt;/a&gt;を有効にすると、先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。&lt;/p&gt;
 
-&lt;h3 id=&#34;flowconfig-追記&#34;&gt;.flowconfig 追記&lt;/h3&gt;
+&lt;h3 id=&#34;flowconfig-追記:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;.flowconfig 追記&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;[options]
 + munge_underscores=true
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;実装例&#34;&gt;実装例&lt;/h3&gt;
+&lt;h3 id=&#34;実装例:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;実装例&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js&#34;&gt;GitHub上の使用例&lt;/a&gt;を参考にして、Privateフィールドを実現してみる。&lt;/p&gt;
 
@@ -353,7 +586,7 @@ error| property `_getField2` Property not found in (:0:1,0) Sample
 
 &lt;p&gt;先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。&lt;/p&gt;
 
-&lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
+&lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
 
 &lt;p&gt;ちなみに、継承元の&lt;code&gt;PrivateSample&lt;/code&gt;を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは&lt;code&gt;export&lt;/code&gt;しないほうが良さそう。&lt;/p&gt;
 
@@ -368,7 +601,7 @@ assert(sample._param.field1 === 5) // OK
 
 &lt;p&gt;&lt;a name=&#34;weakmap&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;es6のweakmapを使う方法&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
+&lt;h2 id=&#34;es6のweakmapを使う方法:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。&lt;/p&gt;
 
@@ -381,7 +614,7 @@ assert(sample._param.field1 === 5) // OK
 
 &lt;p&gt;WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。&lt;/p&gt;
 
-&lt;h3 id=&#34;実装例-1&#34;&gt;実装例&lt;/h3&gt;
+&lt;h3 id=&#34;実装例-1:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;実装例&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// @flow
 
@@ -408,7 +641,7 @@ export default class Sample {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンソールデバッグがしづらい&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
+&lt;h3 id=&#34;コンソールデバッグがしづらい:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
 
 &lt;p&gt;WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。&lt;/p&gt;
 
@@ -429,7 +662,7 @@ console.log(sample);
 &lt;pre&gt;&lt;code&gt;WeakMap {Sample {} =&amp;gt; Object {field1: 1234, field2: &amp;quot;test&amp;quot;}}
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
+&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
 
 &lt;p&gt;同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。&lt;/p&gt;
 
@@ -463,7 +696,7 @@ export default class Sample {
 &lt;p&gt;ただ、ESLintを併用していると、&lt;code&gt;no-use-before-define&lt;/code&gt;に引っかかったりする。
 ちとまどろっこしいね。&lt;/p&gt;
 
-&lt;h2 id=&#34;備考-注意点&#34;&gt;備考・注意点&lt;/h2&gt;
+&lt;h2 id=&#34;備考-注意点:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;備考・注意点&lt;/h2&gt;
 
 &lt;p&gt;コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。&lt;/p&gt;
 
@@ -494,7 +727,7 @@ param.field1 = 2345;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、TypeScriptを含め、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんとPrivateを実現しやすくなったと思う。&lt;/p&gt;
 
@@ -521,9 +754,9 @@ param.field1 = 2345;
 
 &lt;p&gt;が、使っていて「おやっ？」っと思う点もいくつかあったので、まとめてみた。&lt;/p&gt;
 
-&lt;h2 id=&#34;気になったこと４つ&#34;&gt;気になったこと４つ&lt;/h2&gt;
+&lt;h2 id=&#34;気になったこと４つ:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;気になったこと４つ&lt;/h2&gt;
 
-&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
+&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://github.com/babel/babel-eslint&#34;&gt;babel-eslint&lt;/a&gt;というBabelパーサーを用いれば、概ねのESLintルールがflow文法でも適応できるが、例外もあった。&lt;/p&gt;
 
@@ -570,7 +803,7 @@ module.exports = {
 &lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
 &lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
+&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
 
 &lt;p&gt;例えば、&lt;strong&gt;ES6のget/setプロパティ&lt;/strong&gt;が使えなかった。&lt;/p&gt;
 
@@ -593,7 +826,7 @@ console.log(a.field)
 
 &lt;p&gt;&lt;code&gt;yet&lt;/code&gt;ってあるので、いずれサポートされるのだろうか。&lt;/p&gt;
 
-&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
+&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
 
 &lt;p&gt;flow的には&lt;strong&gt;Polymorphism&lt;/strong&gt;というのかな？&lt;br /&gt;
 TypeScriptやJava感覚で以下のように書くと、flowだとSyntaxエラーになった。&lt;/p&gt;
@@ -626,7 +859,7 @@ const map = (new WeakMap(): WeakMap&amp;lt;string, number&amp;gt;)
 const nums = toArray(2)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
+&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
 
 &lt;p&gt;クラスやインタフェースの定義などで、以下のように書くと、&lt;/p&gt;
 
@@ -659,7 +892,7 @@ const nums = toArray(2)
 &lt;p&gt;アンチ・セミコロン派には吐きそうなほどキツイ仕様。&lt;br /&gt;
 &lt;a href=&#34;https://github.com/facebook/flow/issues/825&#34;&gt;https://github.com/facebook/flow/issues/825&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;flowを使ってみて、以下４つの気になったことをまとめてみた。&lt;/p&gt;
 
@@ -684,7 +917,7 @@ const nums = toArray(2)
 
 &lt;p&gt;サーバーサイドのReactに触れたことがなかったので、React+Express+webpackで試してみた。今回試行した手順をチュートリアル的にまとめておく。まずは、シンプルにできそうなECMAScript6で試して、後半にTypeScriptで組んだソースも、おまけ的に載せておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;この記事の方針&#34;&gt;この記事の方針&lt;/h3&gt;
+&lt;h3 id=&#34;この記事の方針:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;この記事の方針&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;クライアント -&amp;gt; サーバーサイド -&amp;gt; 結びつける。の順に実装を行う&lt;/li&gt;
@@ -696,12 +929,12 @@ const nums = toArray(2)
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;実装するサンプルアプリの内容&#34;&gt;実装するサンプルアプリの内容&lt;/h4&gt;
+&lt;h4 id=&#34;実装するサンプルアプリの内容:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;実装するサンプルアプリの内容&lt;/h4&gt;
 
 &lt;p&gt;チュートリアルでよくありそうな、シンプルなカウンターアプリを動かす。
 &lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/sample.png&#34; alt=&#34;Sample&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;事前に必要なソフトウェア&#34;&gt;事前に必要なソフトウェア&lt;/h4&gt;
+&lt;h4 id=&#34;事前に必要なソフトウェア:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;事前に必要なソフトウェア&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;node.js (v5.6.0)&lt;/li&gt;
@@ -710,7 +943,7 @@ const nums = toArray(2)
 
 &lt;p&gt;現時点の安定版を使ってみたが、そこまで新しくなくても問題ない。&lt;/p&gt;
 
-&lt;h4 id=&#34;memo-利用したnpmパッケージのバージョン&#34;&gt;[Memo] 利用したnpmパッケージのバージョン&lt;/h4&gt;
+&lt;h4 id=&#34;memo-利用したnpmパッケージのバージョン:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;[Memo] 利用したnpmパッケージのバージョン&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;&amp;quot;dependencies&amp;quot;: {
   &amp;quot;express&amp;quot;: &amp;quot;^4.13.4&amp;quot;,
@@ -731,7 +964,7 @@ const nums = toArray(2)
 
 &lt;p&gt;バージョンが新しくなったりすると、この記事の書き方と変わってくる可能性があるので、注意。&lt;/p&gt;
 
-&lt;h2 id=&#34;ecmascript6-版-チュートリアル&#34;&gt;ECMAScript6 版 (チュートリアル)&lt;/h2&gt;
+&lt;h2 id=&#34;ecmascript6-版-チュートリアル:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;ECMAScript6 版 (チュートリアル)&lt;/h2&gt;
 
 &lt;p&gt;Reactドキュメントの&lt;a href=&#34;https://facebook.github.io/react/docs/getting-started.html&#34;&gt;Getting Started&lt;/a&gt;でも、Babelを利用しているようなので、まずは、Babelを使って、ECMAScript6で記述できるようにしてみる。なお、サンプルソースの完成版を以下のリポジトリに置いといたので、参考にされたい。&lt;/p&gt;
 
@@ -740,7 +973,7 @@ const nums = toArray(2)
 &lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/tree/typescript&#34;&gt;https://github.com/namikingsoft/sample-react-server/tree/typescript&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;まずはクライアント側で動かしてみる&#34;&gt;まずはクライアント側で動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;まずはクライアント側で動かしてみる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;まずはクライアント側で動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;ファイル構成は以下の様な感じになるように、作業をすすめる。&lt;/p&gt;
 
@@ -757,7 +990,7 @@ const nums = toArray(2)
 `-- webpack.config.js   # webpack設定
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;npm-init&#34;&gt;npm init&lt;/h4&gt;
+&lt;h4 id=&#34;npm-init:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;npm init&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;mkdir react-server
 cd react-server
@@ -767,7 +1000,7 @@ npm init
 
 &lt;p&gt;適当なディレクトリを作り、package.jsonのテンプレートを作っておく。&lt;code&gt;npm init&lt;/code&gt;の選択肢も全て空Enterで問題ない。&lt;/p&gt;
 
-&lt;h4 id=&#34;必要なnpmパッケージをインストール&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なnpmパッケージをインストール:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm install --save react react-dom
 npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-react
@@ -775,7 +1008,7 @@ npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-rea
 
 &lt;p&gt;モダンブラウザによっては、&lt;code&gt;babel-preset-es2015&lt;/code&gt;はいらないかもだが、一応。&lt;/p&gt;
 
-&lt;h4 id=&#34;webpack-config-js&#34;&gt;webpack.config.js&lt;/h4&gt;
+&lt;h4 id=&#34;webpack-config-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;webpack.config.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;var webpack = require(&#39;webpack&#39;);
 
@@ -805,7 +1038,7 @@ module.exports = {
 
 &lt;p&gt;なるべくシンプルにするため、HotLoaderなど記述は入れていない。&lt;/p&gt;
 
-&lt;h4 id=&#34;babelrc&#34;&gt;.babelrc&lt;/h4&gt;
+&lt;h4 id=&#34;babelrc:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;.babelrc&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;{
   &amp;quot;presets&amp;quot;: [&amp;quot;es2015&amp;quot;, &amp;quot;react&amp;quot;],
@@ -814,7 +1047,7 @@ module.exports = {
 
 &lt;p&gt;Babelの設定ファイル。&lt;code&gt;React -&amp;gt; ES6 -&amp;gt; ES5&lt;/code&gt;のような感じで、どのブラウザでも割りかし動作するように変換する。&lt;/p&gt;
 
-&lt;h4 id=&#34;public-test-html&#34;&gt;public/test.html&lt;/h4&gt;
+&lt;h4 id=&#34;public-test-html:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;public/test.html&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;!DOCTYPE html&amp;gt;
 &amp;lt;html&amp;gt;
@@ -830,7 +1063,7 @@ module.exports = {
 
 &lt;p&gt;クライアントJSの動作確認用HTML。&lt;code&gt;app.js&lt;/code&gt;が実行された後に、&lt;code&gt;&amp;lt;div id=&amp;quot;app&amp;quot;&amp;gt;&amp;lt;/div&amp;gt;&lt;/code&gt;の中身がCounterコンポーネントに置き換わる。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-client-js&#34;&gt;src/client.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-client-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/client.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import React from &#39;react&#39;
 import ReactDOM from &#39;react-dom&#39;
@@ -844,7 +1077,7 @@ ReactDOM.render(
 
 &lt;p&gt;Counterコンポーネントを&lt;code&gt;&amp;lt;div id=&amp;quot;app&amp;quot; /&amp;gt;&lt;/code&gt;に表示する。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-components-counter-js&#34;&gt;src/components/Counter.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-components-counter-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/components/Counter.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import React, {Component} from &#39;react&#39;
 
@@ -876,7 +1109,7 @@ export default class Counter extends Component {
 
 &lt;p&gt;Incrementボタンを押したら、内部Stateが変化して、コンポーネントを再描写される。&lt;/p&gt;
 
-&lt;h4 id=&#34;webpack実行&#34;&gt;webpack実行&lt;/h4&gt;
+&lt;h4 id=&#34;webpack実行:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;webpack実行&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;./node_modules/.bin/webpack
 &lt;/code&gt;&lt;/pre&gt;
@@ -893,12 +1126,12 @@ export default class Counter extends Component {
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm run build
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作確認&#34;&gt;動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;動作確認:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;動作確認&lt;/h4&gt;
 
 &lt;p&gt;Incrementボタンを押して、Stateの変動やコンポーネントの再描写が確認できる。
 &lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/client-result.png&#34; alt=&#34;Client Result&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;サーバーサイドからコンポーネントを描写する&#34;&gt;サーバーサイドからコンポーネントを描写する&lt;/h3&gt;
+&lt;h3 id=&#34;サーバーサイドからコンポーネントを描写する:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドからコンポーネントを描写する&lt;/h3&gt;
 
 &lt;p&gt;ファイル構成としては以下。&lt;code&gt;src/server.js&lt;/code&gt;が追加されただけ。&lt;/p&gt;
 
@@ -915,7 +1148,7 @@ export default class Counter extends Component {
 `-- webpack.config.js
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;必要なnpmパッケージをインストール-1&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なnpmパッケージをインストール-1:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm install --save express
 npm install --save-dev babel-cli
@@ -923,7 +1156,7 @@ npm install --save-dev babel-cli
 
 &lt;p&gt;軽量Webフレームワークの&lt;code&gt;express&lt;/code&gt;と、node.jsの実行をbabelに通すための&lt;code&gt;babel-cli&lt;/code&gt;をインストールする。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-server-js&#34;&gt;src/server.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-server-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/server.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import express from &#39;express&#39;
 import React from &#39;react&#39;
@@ -951,7 +1184,7 @@ app.listen(3000, () =&amp;gt; {
 &lt;p&gt;&lt;code&gt;ReactDOMServer.renderToString()&lt;/code&gt;を使って、コンポーネントをプリレンダリングできる。&lt;br /&gt;
 (HTMLの側端は端折ってます)&lt;/p&gt;
 
-&lt;h4 id=&#34;サーバー起動&#34;&gt;サーバー起動&lt;/h4&gt;
+&lt;h4 id=&#34;サーバー起動:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバー起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;node_modules/.bin/babel-node src/server.js
 &lt;/code&gt;&lt;/pre&gt;
@@ -969,7 +1202,7 @@ app.listen(3000, () =&amp;gt; {
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm start
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作確認-1&#34;&gt;動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;動作確認-1:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://localhost:3000
 &lt;/code&gt;&lt;/pre&gt;
@@ -982,11 +1215,11 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないため、と思われる。&lt;/p&gt;
 
-&lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
+&lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
 
 &lt;p&gt;Fluxフレームワークで有名なReduxのドキュメントの&lt;a href=&#34;https://github.com/rackt/redux/blob/master/docs/recipes/ServerRendering.md&#34;&gt;Server Rendering&lt;/a&gt;を見るに、サーバーサイドでプリレンダした要素に、再度クライアントからレンダリングをかけている様な処理になっていたので、試してみる。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-server-js-の修正&#34;&gt;src/server.js の修正&lt;/h4&gt;
+&lt;h4 id=&#34;src-server-js-の修正:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/server.js の修正&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;import express from &#39;express&#39;
 import React from &#39;react&#39;
@@ -1022,7 +1255,7 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;&lt;code&gt;app.use(express.static(&#39;public&#39;))&lt;/code&gt;で、publicディレクトリ以下のファイルを静的ファイルとして、読み込み可能として、プリレンダする内容をクライアント側の時に試した&lt;code&gt;test.html&lt;/code&gt;と同じような記述に変更する。&lt;/p&gt;
 
-&lt;h4 id=&#34;再度-動作確認&#34;&gt;再度、動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;再度-動作確認:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;再度、動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm start
 open http://localhost:3000
@@ -1030,7 +1263,7 @@ open http://localhost:3000
 
 &lt;p&gt;今度は、Incrementボタン押下で、正常動作を確認できるはず。&lt;/p&gt;
 
-&lt;h2 id=&#34;typescript-版-要約&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
+&lt;h2 id=&#34;typescript-版-要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
 
 &lt;p&gt;型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は&lt;code&gt;ts-loader&lt;/code&gt;を挟むぐらいで概ね対応できるが、サーバーサイドは&lt;code&gt;babel-node&lt;/code&gt;に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。&lt;/p&gt;
 
@@ -1042,11 +1275,11 @@ open http://localhost:3000
 &lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/compare/typescript&#34;&gt;https://github.com/namikingsoft/sample-react-server/compare/typescript&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;要約&#34;&gt;要約&lt;/h3&gt;
+&lt;h3 id=&#34;要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;要約&lt;/h3&gt;
 
 &lt;p&gt;TypeScript版については、上のようにチュートリアル形式にはせず、要約解説にしたい。詳しくは上の&lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/compare/typescript&#34;&gt;ECMAScript6版との差分&lt;/a&gt;を見ていただいたほうが、早いかもしれない。&lt;/p&gt;
 
-&lt;h4 id=&#34;型定義ファイルマネージャにはdtsmを使った&#34;&gt;型定義ファイルマネージャにはdtsmを使った。&lt;/h4&gt;
+&lt;h4 id=&#34;型定義ファイルマネージャにはdtsmを使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;型定義ファイルマネージャにはdtsmを使った。&lt;/h4&gt;
 
 &lt;p&gt;npmとほぼ同じインタフェースなので使いやすい。以下コマンド例。&lt;/p&gt;
 
@@ -1059,7 +1292,7 @@ dtsm install --save react-dom.d.ts
 dtsm install --save express.d.ts
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サーバーサイドのコンパイルはtscを直接使った&#34;&gt;サーバーサイドのコンパイルはtscを直接使った。&lt;/h4&gt;
+&lt;h4 id=&#34;サーバーサイドのコンパイルはtscを直接使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドのコンパイルはtscを直接使った。&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;babel-node&lt;/code&gt;のようなラッパーコマンドがあることを期待したが、観測内ではなさそうなので、通常通り、&lt;code&gt;dist&lt;/code&gt;ディレクトリあたりに、コンパイル済みのJSを展開して、&lt;code&gt;node dist/server.js&lt;/code&gt;みたいにする作戦にした。&lt;/p&gt;
 
@@ -1096,7 +1329,7 @@ dtsm install --save express.d.ts
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm run build
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;クライアントのコンパイルにはwebpackのts-loaderを使った&#34;&gt;クライアントのコンパイルにはwebpackのts-loaderを使った。&lt;/h4&gt;
+&lt;h4 id=&#34;クライアントのコンパイルにはwebpackのts-loaderを使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;クライアントのコンパイルにはwebpackのts-loaderを使った。&lt;/h4&gt;
 
 &lt;p&gt;webpack.config.jsの修正差分は以下の様な感じになる。なお、TypeScript自体が、&lt;code&gt;React -&amp;gt; ES6 -&amp;gt; ES5&lt;/code&gt;変換機能を備えているので、無理にBabelに通さなくてもよい。&lt;/p&gt;
 
@@ -1133,7 +1366,7 @@ module.exports = {
 };
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;あとがき&#34;&gt;あとがき&lt;/h2&gt;
+&lt;h2 id=&#34;あとがき:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;あとがき&lt;/h2&gt;
 
 &lt;p&gt;なるべくシンプルな構成で、サーバーサイドReactを試してみた。&lt;/p&gt;
 
@@ -1161,7 +1394,7 @@ module.exports = {
 
 &lt;p&gt;Apache Spark上にて、簡単なCSVのサンプルデータを取り込み、線形回帰や決定木回帰を利用して、穴が空いた項目を予測するサンプルプログラムを書いてみる。&lt;/p&gt;
 
-&lt;h3 id=&#34;サンプルデータ-身体情報から結婚時期を予測する&#34;&gt;サンプルデータ (身体情報から結婚時期を予測する)&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルデータ-身体情報から結婚時期を予測する:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータ (身体情報から結婚時期を予測する)&lt;/h3&gt;
 
 &lt;p&gt;実データではありません。入門用にシンプルで法則性のあるデータを探したのですが、なかなか見つからなかったので、自分で訓練用のデータを作ってみた。&lt;/p&gt;
 
@@ -1258,7 +1491,7 @@ module.exports = {
 &lt;a href=&#34;http://blog.namiking.net/files/post/2016/01/spark-mllib-regression/training.csv&#34;&gt;CSV形式のダウンロード&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;データの傾向&#34;&gt;データの傾向&lt;/h4&gt;
+&lt;h4 id=&#34;データの傾向:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;データの傾向&lt;/h4&gt;
 
 &lt;p&gt;ただ無差別にデータを作っても、予測が合ってるかどうかの判断がつかないため、&lt;br /&gt;
 以下の様な&lt;strong&gt;事実無根&lt;/strong&gt;な法則で値をでっちあげてみた。&lt;/p&gt;
@@ -1272,22 +1505,22 @@ module.exports = {
 &lt;li&gt;男性の高身長はとても晩婚&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;コーディング前の準備&#34;&gt;コーディング前の準備&lt;/h3&gt;
+&lt;h3 id=&#34;コーディング前の準備:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;コーディング前の準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;apache-zeppelinのインストール&#34;&gt;Apache Zeppelinのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;apache-zeppelinのインストール:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;Apache Zeppelinのインストール&lt;/h4&gt;
 
-&lt;p&gt;Spark(ScalaやPython)の記述やその他細かいシェルスクリプトなどの操作をWeb上でインタラクティブに行えるノートブック系OSS&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;。この記事では、Sparkの操作は基本的にこのソフトを用いてコーディングを行っている。Sparkも一緒に含まれているので、これをローカルにインストールするだけで概ね動くはず。&lt;/p&gt;
+&lt;p&gt;Spark(ScalaやPython)の記述やその他細かいシェルスクリプトなどの操作をWeb上でインタラクティブに行えるノートブック系OSS&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;。この記事では、Sparkの操作は基本的にこのソフトを用いてコーディングを行っている。Sparkも一緒に含まれているので、これをローカルにインストールするだけで概ね動くはず。&lt;/p&gt;
 
 &lt;blockquote&gt;
 &lt;p&gt;Apache Zeppelin (incubating)&lt;br /&gt;
 &lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;https://zeppelin.incubator.apache.org/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;サンプルデータの取り込み&#34;&gt;サンプルデータの取り込み&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルデータの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータの取り込み&lt;/h3&gt;
 
 &lt;p&gt;ここからは、Zeppelin上での作業となる。事前にZeppelinを起動して、適当な新しいノートブックを作成しておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;サンプルデータのダウンロード&#34;&gt;サンプルデータのダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;サンプルデータのダウンロード:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータのダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;%sh
 curl -Lo /tmp/training.csv \
@@ -1296,7 +1529,7 @@ curl -Lo /tmp/training.csv \
 
 &lt;p&gt;先ほどのCSV形式のサンプルデータを一時保存領域にダウンロードするシェルスクリプトを記述する。&lt;/p&gt;
 
-&lt;h4 id=&#34;１レコード毎のcaseクラスを作成&#34;&gt;１レコード毎のCaseクラスを作成&lt;/h4&gt;
+&lt;h4 id=&#34;１レコード毎のcaseクラスを作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;１レコード毎のCaseクラスを作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;case class Profile(
   marriedAge: Option[Double],
@@ -1310,7 +1543,7 @@ curl -Lo /tmp/training.csv \
 &lt;p&gt;CSVデータなどをDataFrame形式に変換する際に必要になる。
 &lt;code&gt;marriedAge&lt;/code&gt;をOption型にしているのは、テストデータを取り込む際に入れる値が無いため。&lt;/p&gt;
 
-&lt;h4 id=&#34;csvをパースして-dataframe形式に変換&#34;&gt;CSVをパースして、DataFrame形式に変換&lt;/h4&gt;
+&lt;h4 id=&#34;csvをパースして-dataframe形式に変換:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;CSVをパースして、DataFrame形式に変換&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;var csvRDD = sc.textFile(&amp;quot;/tmp/training.csv&amp;quot;)
 var csvHeadRDD = sc.parallelize(Array(csvRDD.first))
@@ -1330,7 +1563,7 @@ var training = csvRDD
 
 &lt;p&gt;RDDだと、&lt;code&gt;tail&lt;/code&gt;や&lt;code&gt;slice&lt;/code&gt;関数みたいなものがなくて、ヘッダ除去程度でもちょっとまどろっこしい。分散処理を考えるとしかたないのだろうか。&lt;/p&gt;
 
-&lt;h4 id=&#34;おまけ-spark-csvモジュールを使ったサンプルデータの取り込み&#34;&gt;[おまけ] spark-csvモジュールを使ったサンプルデータの取り込み&lt;/h4&gt;
+&lt;h4 id=&#34;おまけ-spark-csvモジュールを使ったサンプルデータの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;[おまけ] spark-csvモジュールを使ったサンプルデータの取り込み&lt;/h4&gt;
 
 &lt;p&gt;先ほどの手順で、サンプルデータの取り込みは完了だが、もう１パターン、CSVのパースやDataFrame変換を手伝ってくれるspark-csvモジュールを使ったCSV取り込みを書いておく。&lt;/p&gt;
 
@@ -1338,7 +1571,7 @@ var training = csvRDD
 &lt;p&gt;Zeppelinはパラグラフごとに実行するしないを制御できるので、別パターンのコードや使わなくなったコードも、そのまま残しておいても支障はない。後になって再利用できたりするので、残しておくと便利かも。&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h5 id=&#34;依存モジュールロード&#34;&gt;依存モジュールロード&lt;/h5&gt;
+&lt;h5 id=&#34;依存モジュールロード:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;依存モジュールロード&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;%dep
 z.reset()
@@ -1353,7 +1586,7 @@ Hint: put this paragraph before any Spark code and restart Zeppelin/Interpreter
 
 &lt;p&gt;既に起動してしまっている場合は、Zeppelinを再起動するか、InterpreterページのSpark欄の&lt;code&gt;restart&lt;/code&gt;ボタンを押下する。&lt;/p&gt;
 
-&lt;h5 id=&#34;spark-csvを使ったcsvの取り込み&#34;&gt;spark-csvを使ったCSVの取り込み&lt;/h5&gt;
+&lt;h5 id=&#34;spark-csvを使ったcsvの取り込み:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;spark-csvを使ったCSVの取り込み&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.sql.types.{
   StructType,
@@ -1377,13 +1610,13 @@ val training = sqlContext.read
 
 &lt;p&gt;CSVのパースやヘッダ除去(項目名に利用)まで自動で行ってくれる。型指定まで自動で行うオプション(inferSchema)もあるが、Double型がInteger型になってしまったので、今回は手動で指定した。&lt;/p&gt;
 
-&lt;h3 id=&#34;サンプルデータの前処理&#34;&gt;サンプルデータの前処理&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルデータの前処理:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;サンプルデータの前処理&lt;/h3&gt;
 
 &lt;p&gt;Sparkの機械学習ライブラリでは、各分析アルゴリズムにデータを引き渡す前処理として、特徴データ(血液型、性別、身長、体重)を、まとめてベクトル形式に変換する必要がある。&lt;/p&gt;
 
 &lt;p&gt;そういった前処理を楽にするために、前処理や回帰モデル設定、訓練データ取り込みを一貫して行えるspark.mlのPipelineを利用してみる。Pipelineについては、&lt;a href=&#34;https://spark.apache.org/docs/1.6.0/ml-guide.html&#34;&gt;公式のドキュメント&lt;/a&gt;が詳しい。別サイトに&lt;a href=&#34;http://mogile.web.fc2.com/spark/ml-guide.html&#34;&gt;日本語訳&lt;/a&gt;もあった。&lt;/p&gt;
 
-&lt;h4 id=&#34;文字列インデクサ&#34;&gt;文字列インデクサ&lt;/h4&gt;
+&lt;h4 id=&#34;文字列インデクサ:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;文字列インデクサ&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.StringIndexer
 
@@ -1397,7 +1630,7 @@ val sexIndexer = new StringIndexer()
 
 &lt;p&gt;StringIndexerはパイプラインをつなぐための部品の一つ。&lt;code&gt;A&lt;/code&gt;,&lt;code&gt;B&lt;/code&gt;,&lt;code&gt;O&lt;/code&gt;,&lt;code&gt;AB&lt;/code&gt;といった文字列のカテゴリデータを&lt;code&gt;0.0&lt;/code&gt;,&lt;code&gt;1.0&lt;/code&gt;,&lt;code&gt;2.0&lt;/code&gt;,&lt;code&gt;3.0&lt;/code&gt;みたいに実数のインデックスに変換してくれる。&lt;/p&gt;
 
-&lt;h4 id=&#34;複数項目のベクトル化&#34;&gt;複数項目のベクトル化&lt;/h4&gt;
+&lt;h4 id=&#34;複数項目のベクトル化:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;複数項目のベクトル化&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.VectorAssembler
 
@@ -1413,7 +1646,7 @@ val assembler = new VectorAssembler()
 
 &lt;p&gt;VectorAssemblerはパイプラインをつなぐための部品の一つ。複数項目の実数データを一つの特徴ベクトルデータに変換してくれる。&lt;/p&gt;
 
-&lt;h4 id=&#34;ベクトル標準化&#34;&gt;ベクトル標準化&lt;/h4&gt;
+&lt;h4 id=&#34;ベクトル標準化:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;ベクトル標準化&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.feature.StandardScaler
 
@@ -1426,11 +1659,11 @@ val scaler = new StandardScaler()
 
 &lt;p&gt;これで前処理のためのパイプライン部品は揃った。&lt;/p&gt;
 
-&lt;h3 id=&#34;線形回帰モデルの作成して-予測値を得る&#34;&gt;線形回帰モデルの作成して、予測値を得る&lt;/h3&gt;
+&lt;h3 id=&#34;線形回帰モデルの作成して-予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰モデルの作成して、予測値を得る&lt;/h3&gt;
 
 &lt;p&gt;まずは線形回帰を用いて、値の予測を行うためのモデルを作成する。&lt;/p&gt;
 
-&lt;h4 id=&#34;線形回帰&#34;&gt;線形回帰&lt;/h4&gt;
+&lt;h4 id=&#34;線形回帰:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.regression.LinearRegression
 
@@ -1441,7 +1674,7 @@ val regression = new LinearRegression()
 
 &lt;p&gt;パイプライン部品の一つ。&lt;code&gt;setLabelCol&lt;/code&gt;には、予想したい項目を指定する。&lt;/p&gt;
 
-&lt;h4 id=&#34;パイプライン作成&#34;&gt;パイプライン作成&lt;/h4&gt;
+&lt;h4 id=&#34;パイプライン作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;パイプライン作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.Pipeline
 
@@ -1457,7 +1690,7 @@ val pipeline = new Pipeline()
 
 &lt;p&gt;今までのパイプライン部品を繋げて、パイプラインを作成する。&lt;/p&gt;
 
-&lt;h4 id=&#34;クロス検証でチューニング設定をして-モデルを作成&#34;&gt;クロス検証でチューニング設定をして、モデルを作成&lt;/h4&gt;
+&lt;h4 id=&#34;クロス検証でチューニング設定をして-モデルを作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;クロス検証でチューニング設定をして、モデルを作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.tuning.{
@@ -1492,14 +1725,14 @@ val model = cross.fit(training)
 
 &lt;p&gt;最終的には&lt;code&gt;model&lt;/code&gt;変数に最適なモデルが束縛される。&lt;/p&gt;
 
-&lt;h5 id=&#34;ちなみに-クロス検証を行わない場合は&#34;&gt;ちなみに、クロス検証を行わない場合は&lt;/h5&gt;
+&lt;h5 id=&#34;ちなみに-クロス検証を行わない場合は:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;ちなみに、クロス検証を行わない場合は&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;val model = pipeline.fit(training)
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;パイプラインに直接学習データを突っ込む。&lt;/p&gt;
 
-&lt;h4 id=&#34;テストデータ作成&#34;&gt;テストデータ作成&lt;/h4&gt;
+&lt;h4 id=&#34;テストデータ作成:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;テストデータ作成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;var test = sc.parallelize(Seq(
   // A型標準体型男
@@ -1537,7 +1770,7 @@ val model = cross.fit(training)
 
 &lt;p&gt;学習データの特徴データから大幅に外れるデータの予測も下の方に入れてみた。&lt;/p&gt;
 
-&lt;h4 id=&#34;モデルから予測値を得る&#34;&gt;モデルから予測値を得る&lt;/h4&gt;
+&lt;h4 id=&#34;モデルから予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;モデルから予測値を得る&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;model.transform(test)
   .select(&amp;quot;blood&amp;quot;, &amp;quot;sex&amp;quot;, &amp;quot;height&amp;quot;, &amp;quot;weight&amp;quot;, &amp;quot;prediction&amp;quot;).show
@@ -1564,7 +1797,7 @@ val model = cross.fit(training)
 +-----+---+-------+------+------------------+
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;結果考察&#34;&gt;結果考察&lt;/h5&gt;
+&lt;h5 id=&#34;結果考察:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;結果考察&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;男性/女性の結婚時期の違いは、うまいこと現れた。&lt;/li&gt;
@@ -1575,14 +1808,14 @@ val model = cross.fit(training)
 
 &lt;p&gt;ちなみに、南くんの恋人は生まれる50年前に結婚しており、巨神兵は結婚までに100世紀かかるらしい。突拍子もない結果に見えるが、&lt;code&gt;身長が高いほど結婚が遅い&lt;/code&gt;というルールを線形的に捉えてくれているようにも見える。&lt;/p&gt;
 
-&lt;h3 id=&#34;決定木回帰モデルを作成して-予測値を得る&#34;&gt;決定木回帰モデルを作成して、予測値を得る&lt;/h3&gt;
+&lt;h3 id=&#34;決定木回帰モデルを作成して-予測値を得る:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;決定木回帰モデルを作成して、予測値を得る&lt;/h3&gt;
 
 &lt;p&gt;決定木はクラス分類が得意な手法なので、今回のような細かいルールの設定でも、うまく予測してくれるかもしれない。&lt;/p&gt;
 
 &lt;p&gt;解析手法を変わるとはいえ、インタフェースが変わるわけではないので、
 大幅にコードを変える必要はなく、試行錯誤が楽。&lt;/p&gt;
 
-&lt;h4 id=&#34;クロス検証からモデルの作成まで&#34;&gt;クロス検証からモデルの作成まで&lt;/h4&gt;
+&lt;h4 id=&#34;クロス検証からモデルの作成まで:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;クロス検証からモデルの作成まで&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;import org.apache.spark.ml.regression.DecisionTreeRegressor
 import org.apache.spark.ml.Pipeline
@@ -1625,7 +1858,7 @@ val model = cross.fit(training)
 
 &lt;p&gt;Regressorクラスの種類、paramGridで設定する項目が変わるぐらいで、その他は線形回帰のコードと変わらない。&lt;/p&gt;
 
-&lt;h5 id=&#34;評価実行&#34;&gt;評価実行&lt;/h5&gt;
+&lt;h5 id=&#34;評価実行:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;評価実行&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-scala&#34;&gt;model.transform(test)
   .select(&amp;quot;blood&amp;quot;, &amp;quot;sex&amp;quot;, &amp;quot;height&amp;quot;, &amp;quot;weight&amp;quot;, &amp;quot;prediction&amp;quot;).show
@@ -1652,22 +1885,22 @@ val model = cross.fit(training)
 +-----+---+-------+------+------------------+
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;結果考察-1&#34;&gt;結果考察&lt;/h5&gt;
+&lt;h5 id=&#34;結果考察-1:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;結果考察&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;どのルールも学習データの値に近い形で、うまいこと予測された。&lt;/li&gt;
 &lt;li&gt;ただ、下２つの人外データに関しても、学習データに近い値が出てしまっているので、学習データの特徴値から大きくハズレるレコードの予測値は大味になってしまう？&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;まとめ&#34;&gt;まとめ&lt;/h3&gt;
+&lt;h3 id=&#34;まとめ:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;まとめ&lt;/h3&gt;
 
 &lt;p&gt;今回は、CSV形式のサンプルデータを線形回帰と決定木回帰を用いて、値の予測を行った。&lt;/p&gt;
 
-&lt;h5 id=&#34;線形回帰-1&#34;&gt;線形回帰&lt;/h5&gt;
+&lt;h5 id=&#34;線形回帰-1:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;線形回帰&lt;/h5&gt;
 
 &lt;p&gt;細かいルールまでは予測しきれなかったが、学習データにない特徴を持つデータでも、うまく特徴を捉えようと、努力していた感があった。&lt;/p&gt;
 
-&lt;h5 id=&#34;決定木回帰&#34;&gt;決定木回帰&lt;/h5&gt;
+&lt;h5 id=&#34;決定木回帰:c26ed1f8424ab1bb2406ee54bb00b33a&#34;&gt;決定木回帰&lt;/h5&gt;
 
 &lt;p&gt;細かいルールに基づいた値をうまく予測してくれていたが、学習データにない特徴を持つデータに関しては、諦めていた感があった。&lt;/p&gt;
 
@@ -1677,8 +1910,8 @@ val model = cross.fit(training)
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;類似のOSSに、Jupyter(iPython Notebook)やspark-notebookがある。データの加工やモデルのチューニングで試行錯誤することが多いので、こういうソフトはかなり重宝する。
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;類似のOSSに、Jupyter(iPython Notebook)やspark-notebookがある。データの加工やモデルのチューニングで試行錯誤することが多いので、こういうソフトはかなり重宝する。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c26ed1f8424ab1bb2406ee54bb00b33a:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -1694,9 +1927,9 @@ val model = cross.fit(training)
 
 &lt;p&gt;クラウド上で組んだDockerのオーバーレイネットワークの中に、屋内ファイアウォール内のマシンで組んでたDockerを参加させることができないか、試してみた。&lt;/p&gt;
 
-&lt;h3 id=&#34;なぜに-余談&#34;&gt;なぜに？ (余談)&lt;/h3&gt;
+&lt;h3 id=&#34;なぜに-余談:de820086aea356a53ede32388b7ce8bb&#34;&gt;なぜに？ (余談)&lt;/h3&gt;
 
-&lt;p&gt;例えば、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-spark/&#34;&gt;以前の記事&lt;/a&gt;のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。&lt;/p&gt;
+&lt;p&gt;例えば、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-spark/&#34;&gt;以前の記事&lt;/a&gt;のようにクラウドで組んだSparkクラスタを利用するために、Apache Zeppelin&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を使ってみたい。最初は、SSHトンネルやSocksプロキシで手軽にできないだろうかと色々やってみたが、Sparkは一方通行な通信ではなく、双方向な通信を行うため、クラウドからローカルのネットワークに直接アクセス(pingなど)できる必要があるようで、動作するには至らなかった。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local.svg&#34; alt=&#34;Zeppelin on Local&#34; /&gt;&lt;/p&gt;
 
@@ -1711,17 +1944,17 @@ val model = cross.fit(training)
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/zeppelin-local-ideal.svg&#34; alt=&#34;Zeppelin on Local Ideal&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;この記事でやること&#34;&gt;この記事でやること&lt;/h3&gt;
+&lt;h3 id=&#34;この記事でやること:de820086aea356a53ede32388b7ce8bb&#34;&gt;この記事でやること&lt;/h3&gt;
 
 &lt;p&gt;上のApache Sparkの例は置いといて、今回は取り急ぎクラウドとローカルを跨いだSwarmクラスタを構築して、Dockerオーバーレイネットワークの疎通確認を行いたい。検証のため、以下の図の様な構成を準備して、オーバーレイネットワークの疎通を確認する。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-over-vpn/docker-swarm-over-vpn.svg&#34; alt=&#34;Zeppelin on Local Ideal&#34; /&gt;&lt;/p&gt;
 
-&lt;h5 id=&#34;要点&#34;&gt;要点&lt;/h5&gt;
+&lt;h5 id=&#34;要点:de820086aea356a53ede32388b7ce8bb&#34;&gt;要点&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;ローカル環境とクラウドのDockerをVPNを用いて、オーバーレイネットワークで繋ぎたい。&lt;/li&gt;
-&lt;li&gt;VPN接続には、SoftEther VPN&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;を使ってみる。&lt;/li&gt;
+&lt;li&gt;VPN接続には、SoftEther VPN&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;を使ってみる。&lt;/li&gt;
 &lt;li&gt;ローカル側とクラウド側１台ずつ、Swarm Masterをレプリケーションした。
 
 &lt;ul&gt;
@@ -1730,9 +1963,9 @@ val model = cross.fit(training)
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備:de820086aea356a53ede32388b7ce8bb&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のソフトウェアをインストールしておく。&lt;/p&gt;
 
@@ -1742,13 +1975,13 @@ val model = cross.fit(training)
 &lt;li&gt;Virtualbox (vagrantを併用してもよい)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:de820086aea356a53ede32388b7ce8bb&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ノード用のホストを用意する&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
+&lt;h3 id=&#34;ノード用のホストを用意する:de820086aea356a53ede32388b7ce8bb&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
 
 &lt;p&gt;今回の例では、DigitalOceanでノードを２台とローカルでVirtualbox１台を用意する。&lt;/p&gt;
 
@@ -1790,7 +2023,7 @@ val model = cross.fit(training)
 &lt;/tbody&gt;
 &lt;/table&gt;
 
-&lt;h5 id=&#34;備考&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考:de820086aea356a53ede32388b7ce8bb&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0はマスターノードとして使う&lt;/li&gt;
@@ -1799,13 +2032,13 @@ val model = cross.fit(training)
 &lt;li&gt;VPNのIPについては、VPN接続後に割り当てる。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;softether-vpn-serverを動かす&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-serverを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Serverを動かす&lt;/h3&gt;
 
 &lt;p&gt;swarm-node0にSSHなどでログインして、作業を行う。&lt;/p&gt;
 
 &lt;p&gt;Linux版については、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。後で自動化しやすいように、GUIやインタラクティブCUIを使わないように書いておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;ダウンロード&#34;&gt;ダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;ダウンロード:de820086aea356a53ede32388b7ce8bb&#34;&gt;ダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -1816,7 +2049,7 @@ curl -LO http://jp.softether-download.com/files/softether/v4.19-9599-beta-2015.1
 tar xzf softether-vpnserver-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンパイルとインストール&#34;&gt;コンパイルとインストール&lt;/h4&gt;
+&lt;h4 id=&#34;コンパイルとインストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンパイルとインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# コンパイル
 cd vpnserver
@@ -1827,7 +2060,7 @@ export PATH=&amp;quot;/usr/local/src/vpnserver:$PATH&amp;quot;
 echo &#39;export PATH=&amp;quot;/usr/local/src/vpnserver:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; /etc/profile
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サービス登録と起動-systemd&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
+&lt;h4 id=&#34;サービス登録と起動-systemd:de820086aea356a53ede32388b7ce8bb&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# サービス登録
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/vpnserver.service
@@ -1849,7 +2082,7 @@ systemctl enable vpnserver
 systemctl start vpnserver
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;vpnサーバー設定&#34;&gt;VPNサーバー設定&lt;/h4&gt;
+&lt;h4 id=&#34;vpnサーバー設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPNサーバー設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 各種設定項目 (値は任意で決める)
 export HUBNAME=cluster
@@ -1891,12 +2124,12 @@ vpncmd localhost /SERVER /CMD \
 &lt;p&gt;VPN設定のリファレンスは以下を参照。&lt;br /&gt;
 &lt;a href=&#34;https://ja.softether.org/4-docs/1-manual/6/6.4&#34;&gt;https://ja.softether.org/4-docs/1-manual/6/6.4&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;softether-vpn-clientを動かす&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;softether-vpn-clientを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;SoftEther VPN Clientを動かす&lt;/h3&gt;
 
 &lt;p&gt;全てのノードにSSHなどでログインして、作業を行う。&lt;br /&gt;
 Serverと同じく、&lt;a href=&#34;https://ja.softether.org/&#34;&gt;SoftEther VPNのサイト&lt;/a&gt;からソースコードをダウンロードして、コンパイルする。&lt;/p&gt;
 
-&lt;h4 id=&#34;ダウンロード-1&#34;&gt;ダウンロード&lt;/h4&gt;
+&lt;h4 id=&#34;ダウンロード-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;ダウンロード&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl gcc make
@@ -1908,7 +2141,7 @@ tar xzf softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 rm softether-vpnclient-v4.19-9599-beta-2015.10.19-linux-x64-64bit.tar.gz
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンパイルとインストール-1&#34;&gt;コンパイルとインストール&lt;/h4&gt;
+&lt;h4 id=&#34;コンパイルとインストール-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンパイルとインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# コンパイル
 cd vpnclient
@@ -1919,7 +2152,7 @@ export PATH=&amp;quot;/usr/local/src/vpnclient:$PATH&amp;quot;
 echo &#39;export PATH=&amp;quot;/usr/local/src/vpnclient:$PATH&amp;quot;&#39; &amp;gt;&amp;gt; /etc/profile
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サービス登録と起動-systemd-1&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
+&lt;h4 id=&#34;サービス登録と起動-systemd-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;サービス登録と起動 (systemd)&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# サービス登録
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/vpnclient.service
@@ -1941,7 +2174,7 @@ systemctl enable vpnclient
 systemctl start vpnclient
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;vpnサーバー設定-1&#34;&gt;VPNサーバー設定&lt;/h4&gt;
+&lt;h4 id=&#34;vpnサーバー設定-1:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPNサーバー設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 各種設定項目 (基本的にはServerの値と合わせる)
 ACCOUNT=private
@@ -1984,7 +2217,7 @@ dhclient vpn_$NICNAME
 
 &lt;p&gt;swarm-node0だけは、DHCPでIPを振らずに固定IPを設定する。&lt;/p&gt;
 
-&lt;h4 id=&#34;vpn接続確認&#34;&gt;VPN接続確認&lt;/h4&gt;
+&lt;h4 id=&#34;vpn接続確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;VPN接続確認&lt;/h4&gt;
 
 &lt;p&gt;SoftEther VPNのClientのセッティングが完了すると、以下の様な成果が出る。&lt;/p&gt;
 
@@ -2004,11 +2237,11 @@ dhclient vpn_$NICNAME
 
 &lt;p&gt;これから設置するConsulやDockerは、このネットワークにのせるように設定する。&lt;/p&gt;
 
-&lt;h3 id=&#34;各ノードでconsulを動かす&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでconsulを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
 
 &lt;p&gt;インストールとサービス登録手順については、&lt;a href=&#34;http://blog.namiking.net/post/2016/01/docker-swarm-build-using-tls#各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;以前の記事&lt;/a&gt;にまとめてあるので参照されたい。ここではConsulサーバーの設定手順を示す。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0にてサーバーモードで動かす設定&#34;&gt;swarm-node0にてサーバーモードで動かす設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0にてサーバーモードで動かす設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node0にてサーバーモードで動かす設定&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして、作業を行う。&lt;/p&gt;
 
@@ -2041,7 +2274,7 @@ EOS
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1とswarm-localにてクライアントモードで動かす設定&#34;&gt;swarm-node1とswarm-localにてクライアントモードで動かす設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1とswarm-localにてクライアントモードで動かす設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node1とswarm-localにてクライアントモードで動かす設定&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして、作業を行う。&lt;/p&gt;
 
@@ -2074,7 +2307,7 @@ EOS
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;メンバー確認&#34;&gt;メンバー確認&lt;/h4&gt;
+&lt;h4 id=&#34;メンバー確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;メンバー確認&lt;/h4&gt;
 
 &lt;p&gt;各ノードのConsulが連携できているかを確認する。&lt;/p&gt;
 
@@ -2091,7 +2324,7 @@ Node     Address            Status  Type    Build  Protocol  DC
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://192.168.30.2:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードでdockerを動かす&#34;&gt;各ノードでDockerを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでdockerを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでDockerを動かす&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;全3ノードに対して、SSHでログインして作業を行う。&lt;/li&gt;
@@ -2101,12 +2334,12 @@ Node     Address            Status  Type    Build  Protocol  DC
 &lt;li&gt;ただし、&lt;code&gt;vpn_vlan0&lt;/code&gt;以外はポートをファイアウォールで閉じておく。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;インストール&#34;&gt;インストール&lt;/h4&gt;
+&lt;h4 id=&#34;インストール:de820086aea356a53ede32388b7ce8bb&#34;&gt;インストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;wget -qO- https://get.docker.com/ | sh
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;ファイアウォール設定&#34;&gt;ファイアウォール設定&lt;/h4&gt;
+&lt;h4 id=&#34;ファイアウォール設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;ファイアウォール設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;iptables -A INPUT -i eth0 -p tcp -m tcp --dport 2375 -j DROP
 iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
@@ -2114,7 +2347,7 @@ iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3375 -j DROP
 
 &lt;p&gt;DigitalOceanのノードのみでよい。&lt;/p&gt;
 
-&lt;h4 id=&#34;dockerデーモン起動時の引数設定&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
+&lt;h4 id=&#34;dockerデーモン起動時の引数設定:de820086aea356a53ede32388b7ce8bb&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -2130,16 +2363,16 @@ ExecStart=/usr/bin/docker daemon \
 
 &lt;p&gt;変更後は見やすさのため複数行で書いているが、&lt;code&gt;\&lt;/code&gt;を消して1行ぶっ続けで記述する。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker再起動&#34;&gt;Docker再起動&lt;/h4&gt;
+&lt;h4 id=&#34;docker再起動:de820086aea356a53ede32388b7ce8bb&#34;&gt;Docker再起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;service docker restart
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードでswarmコンテナを動かす&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでswarmコンテナを動かす:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、Swarmコンテナを起動させる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-swarm-local&#34;&gt;swarm-node0, swarm-local&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-swarm-local:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node0, swarm-local&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -2154,7 +2387,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;Swarm Managerについては、双方レプリケーションするために&lt;code&gt;--replication&lt;/code&gt;引数をつける。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node1&#34;&gt;swarm-node1&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-node1&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
 docker run -d --name=swarm-agent --net=host --restart=always \
@@ -2163,7 +2396,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;&lt;code&gt;192.168.30.x&lt;/code&gt;のところには、swarm-node1がVPNのDHCPに割り当てられたのIPを入れる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-local&#34;&gt;swarm-local&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-local:de820086aea356a53ede32388b7ce8bb&#34;&gt;swarm-local&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -2178,9 +2411,9 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 
 &lt;p&gt;&lt;code&gt;192.168.30.y&lt;/code&gt;のところには、swarm-localがVPNのDHCPに割り当てられたIPを入れる。&lt;/p&gt;
 
-&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;動作確認&lt;/h3&gt;
 
-&lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcのos設定にて-vpn接続を行う:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCのOS設定にて、VPN接続を行う&lt;/h4&gt;
 
 &lt;p&gt;Macであれば、&lt;a href=&#34;http://ja.softether.org/4-docs/2-howto/L2TP_IPsec_Setup_Guide/5&#34;&gt;SoftEther VPNのドキュメント&lt;/a&gt;を参考にして、設定を行う。入力値に関しては、この記事の通りにやった場合は以下のようになる。&lt;/p&gt;
 
@@ -2191,7 +2424,7 @@ docker run -d --name=swarm-agent --net=host --restart=always \
 &lt;li&gt;共有シークレット： sharedkey&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;ローカルpcから-swarmマスターに接続してみる&#34;&gt;ローカルPCから、Swarmマスターに接続してみる&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcから-swarmマスターに接続してみる:de820086aea356a53ede32388b7ce8bb&#34;&gt;ローカルPCから、Swarmマスターに接続してみる&lt;/h4&gt;
 
 &lt;p&gt;ターミナルなどから以下のコマンドを入力して、Swarmクラスタの接続状況を確認してみる。&lt;/p&gt;
 
@@ -2230,9 +2463,9 @@ Name: swarm-node0
 
 &lt;p&gt;ちなみに、&lt;code&gt;-H=192.168.30.2:3375&lt;/code&gt;の部分は、環境変数&lt;code&gt;DOCKER_HOST&lt;/code&gt;に&lt;code&gt;192.168.30.2:3375&lt;/code&gt;と設定しておけば省略できる。&lt;/p&gt;
 
-&lt;h4 id=&#34;各ノードにコンテナを置いてみる&#34;&gt;各ノードにコンテナを置いてみる&lt;/h4&gt;
+&lt;h4 id=&#34;各ノードにコンテナを置いてみる:de820086aea356a53ede32388b7ce8bb&#34;&gt;各ノードにコンテナを置いてみる&lt;/h4&gt;
 
-&lt;h5 id=&#34;オーバーレイネットワークの作成&#34;&gt;オーバーレイネットワークの作成&lt;/h5&gt;
+&lt;h5 id=&#34;オーバーレイネットワークの作成:de820086aea356a53ede32388b7ce8bb&#34;&gt;オーバーレイネットワークの作成&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_HOST=&amp;quot;192.168.30.2:3375&amp;quot;
 docker network create testnet
@@ -2240,7 +2473,7 @@ docker network create testnet
 
 &lt;p&gt;Swarmマスターへの接続であれば、デフォルトでドライバが&lt;code&gt;overlay&lt;/code&gt;に設定される。&lt;/p&gt;
 
-&lt;h5 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-yml:de820086aea356a53ede32388b7ce8bb&#34;&gt;docker-compose.yml&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;nginx:
   image: nginx
@@ -2251,13 +2484,13 @@ docker network create testnet
 
 &lt;p&gt;portsを設定しておけば、コンフリクトを防ぐため、コンテナ配置が自然とバラける。&lt;/p&gt;
 
-&lt;h5 id=&#34;docker-compose-up-scale&#34;&gt;docker-compose up &amp;amp; scale&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-up-scale:de820086aea356a53ede32388b7ce8bb&#34;&gt;docker-compose up &amp;amp; scale&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose up -d
 docker-compose scale nginx=3
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;コンテナ配置確認&#34;&gt;コンテナ配置確認&lt;/h5&gt;
+&lt;h5 id=&#34;コンテナ配置確認:de820086aea356a53ede32388b7ce8bb&#34;&gt;コンテナ配置確認&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker ps --format &amp;quot;{{.Names}}&amp;quot;
 
@@ -2274,10 +2507,10 @@ swarm-local/****_nginx_1
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;Zeppelin&lt;/a&gt;はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:2&#34;&gt;TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、&lt;a href=&#34;http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15&#34;&gt;Ubuntu15.10で上手く動作しなかった&lt;/a&gt;ので、見送り
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;a href=&#34;https://zeppelin.incubator.apache.org/&#34;&gt;Zeppelin&lt;/a&gt;はWeb上からSparkの操作をインタラクティブに行えたり、結果をビジュアライズできたりする、ノートブック系Webアプリ
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:de820086aea356a53ede32388b7ce8bb:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;TCP/IPベースのVPNで、動かしてみたら割とすんなり動作したので、これを使ってみた。PPTPdも試したが、&lt;a href=&#34;http://askubuntu.com/questions/621820/pptpd-failed-after-upgrading-ubuntu-server-to-15&#34;&gt;Ubuntu15.10で上手く動作しなかった&lt;/a&gt;ので、見送り
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:de820086aea356a53ede32388b7ce8bb:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -2297,13 +2530,13 @@ swarm-local/****_nginx_1
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/eyecatch.png&#34; alt=&#34;Docker Swarm using TLS&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;作業の流れ&#34;&gt;作業の流れ&lt;/h3&gt;
+&lt;h3 id=&#34;作業の流れ:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;作業の流れ&lt;/h3&gt;
 
 &lt;p&gt;概ね以下の様な流れでSwarmクラスタの構築を行う。基本的には、docker-machineで行われていることを模倣している。docker-machine自体ではサービスディスカバリの準備は行わないので、そこら辺の手順も残しておく。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/overview.svg&#34; alt=&#34;Overview&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;付録-swarmクラスタをterraformで構築するサンプル&#34;&gt;[付録] SwarmクラスタをTerraformで構築するサンプル&lt;/h4&gt;
+&lt;h4 id=&#34;付録-swarmクラスタをterraformで構築するサンプル:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;[付録] SwarmクラスタをTerraformで構築するサンプル&lt;/h4&gt;
 
 &lt;p&gt;今回の記事で行う作業をTerraformで自動化したものを、以下のリポジトリに置いておくので、ご参考までに。terraform.tfの&lt;code&gt;count&lt;/code&gt;の値を弄ることで、指定数のノードを自動で作成するので、大量にノードが必要な場合に便利かも。&lt;/p&gt;
 
@@ -2312,9 +2545,9 @@ swarm-local/****_nginx_1
 &lt;a href=&#34;https://github.com/namikingsoft/sample-terraform-docker-swarm-over-tls&#34;&gt;https://github.com/namikingsoft/sample-terraform-docker-swarm-over-tls&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。&lt;/p&gt;
 
@@ -2323,14 +2556,14 @@ swarm-local/****_nginx_1
 &lt;li&gt;OpenSSL (Linux系やOSXなら、デフォルトで入っているはず)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;この記事の例では、ホストにDigitalOceanを使うが、AWSとかでも可能と思います。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;br /&gt;
 登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
-&lt;h3 id=&#34;ノード用のホストを用意する&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
+&lt;h3 id=&#34;ノード用のホストを用意する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;ノード用のホストを用意する&lt;/h3&gt;
 
 &lt;p&gt;今回の例では、DigitalOceanでノードを２台用意して、Swarmクラスタの連携を確認した。&lt;/p&gt;
 
@@ -2364,7 +2597,7 @@ swarm-local/****_nginx_1
 &lt;/tbody&gt;
 &lt;/table&gt;
 
-&lt;h5 id=&#34;備考&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0はマスターノードとして使う&lt;/li&gt;
@@ -2374,17 +2607,17 @@ swarm-local/****_nginx_1
 &lt;li&gt;eth1はプライベートネットワークに繋がるインタフェース&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;各ノードでconsulを動かす&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでconsulを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードでConsulを動かす&lt;/h3&gt;
 
 &lt;p&gt;Swarmクラスタのサービスディスカバリー(分散KVS)であるConsulを各ノードにインストールする。使わないでもSwarmクラスタは構築できるが、マルチホスト間でオーバーレイ・ネットワークを作れるようになったりと色々利点が多いので。(etcdやZookeeperでも構築可能)&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-build-using-tls/consul.svg&#34; alt=&#34;Swarm Structure&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0にてconsulをサーバーモードで動かす&#34;&gt;swarm-node0にてConsulをサーバーモードで動かす&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0にてconsulをサーバーモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0にてConsulをサーバーモードで動かす&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして作業を行う。&lt;/p&gt;
 
-&lt;h5 id=&#34;インストール&#34;&gt;インストール&lt;/h5&gt;
+&lt;h5 id=&#34;インストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;インストール&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 必要なパッケージのインストール
 apt-get install -y curl zip
@@ -2400,7 +2633,7 @@ curl -LO https://releases.hashicorp.com/consul/0.6.1/consul_0.6.1_web_ui.zip
 unzip consul_0.6.1_web_ui.zip -d consul-webui
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;サービス登録&#34;&gt;サービス登録&lt;/h5&gt;
+&lt;h5 id=&#34;サービス登録:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;サービス登録&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# service
 cat &amp;lt;&amp;lt; EOS &amp;gt; /lib/systemd/system/consul.service
@@ -2418,7 +2651,7 @@ WantedBy=multi-user.target
 EOS
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;設定&#34;&gt;設定&lt;/h5&gt;
+&lt;h5 id=&#34;設定:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;設定&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 自分自身のプライベートIPを取得
 export MY_PRIVATE_IP=$(
@@ -2445,17 +2678,17 @@ EOS
 
 &lt;p&gt;１台構成のサーバーモードをWebUI付き(任意)で起動する。プライベートネットワークであるeth1のIPにバインドする。&lt;/p&gt;
 
-&lt;h5 id=&#34;自動起動設定-起動&#34;&gt;自動起動設定＆起動&lt;/h5&gt;
+&lt;h5 id=&#34;自動起動設定-起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;自動起動設定＆起動&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;systemctl enable consul
 systemctl start consul
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1にてconsulをクライアントモードで動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1にてConsulをクライアントモードで動かす&lt;/h4&gt;
 
 &lt;p&gt;SSHでログインして作業を行う。設定以外は同じなので割愛。&lt;/p&gt;
 
-&lt;h5 id=&#34;設定-1&#34;&gt;設定&lt;/h5&gt;
+&lt;h5 id=&#34;設定-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;設定&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# 自分自身のプライベートIPを取得
 export MY_PRIVATE_IP=$(
@@ -2482,7 +2715,7 @@ EOS
 &lt;p&gt;swarm-node0のプライベートIPにジョインする。&lt;br /&gt;
 設定が終わったら、自動起動設定と起動を行っておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;メンバー確認&#34;&gt;メンバー確認&lt;/h4&gt;
+&lt;h4 id=&#34;メンバー確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;メンバー確認&lt;/h4&gt;
 
 &lt;p&gt;各ノードのConsulが連携できているかを確認する。&lt;/p&gt;
 
@@ -2501,7 +2734,7 @@ consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;各ノードにdockerをインストール&#34;&gt;各ノードにDockerをインストール&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードにdockerをインストール:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードにDockerをインストール&lt;/h3&gt;
 
 &lt;p&gt;各ノードのSSHにて、以下のコマンドを実行する。&lt;/p&gt;
 
@@ -2510,11 +2743,11 @@ consul1  y.y.y.2:8301   alive   client  0.6.1  2         dc1
 
 &lt;p&gt;デーモン起動時の引数設定などは後ほど行う。&lt;/p&gt;
 
-&lt;h3 id=&#34;tls認証用の鍵を生成する&#34;&gt;TLS認証用の鍵を生成する&lt;/h3&gt;
+&lt;h3 id=&#34;tls認証用の鍵を生成する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS認証用の鍵を生成する&lt;/h3&gt;
 
 &lt;p&gt;クライアント側(ローカルPC)で生成する。後ほど各ノードに必要なファイルを転送する。&lt;/p&gt;
 
-&lt;h4 id=&#34;caの証明書を生成&#34;&gt;CAの証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;caの証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;CAの証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;openssl genrsa -out ca-key.pem 4096
 openssl req -subj &amp;quot;/CN=ca&amp;quot; -new -x509 -days 365 -key ca-key.pem -out ca.pem
@@ -2522,7 +2755,7 @@ openssl req -subj &amp;quot;/CN=ca&amp;quot; -new -x509 -days 365 -key ca-key.pe
 
 &lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
-&lt;h4 id=&#34;クライアントの秘密鍵と証明書を生成&#34;&gt;クライアントの秘密鍵と証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;クライアントの秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;クライアントの秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
 echo &amp;quot;extendedKeyUsage = clientAuth&amp;quot; &amp;gt;&amp;gt; extfile-client.cnf
@@ -2536,7 +2769,7 @@ openssl x509 -req -days 365 -sha256 -in client.csr -out cert.pem \
 
 &lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-master-の秘密鍵と証明書を生成&#34;&gt;swarm-node0(master)の秘密鍵と証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-master-の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0(master)の秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
 echo &amp;quot;subjectAltName = IP:x.x.x.1&amp;quot; &amp;gt; extfile.cnf
@@ -2551,7 +2784,7 @@ openssl x509 -req -days 365 -sha256 -in node0.csr -out node0-cert.pem \
 
 &lt;p&gt;Swarm Managerを動かすノードなので、clientAuthも設定しておく。subjectAltNameにグローバルIPを設定するので、CommonName(CN)は割と何でもよいが、ドメイン名があれば、それを設定するとよい。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node1の秘密鍵と証明書を生成&#34;&gt;swarm-node1の秘密鍵と証明書を生成&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1の秘密鍵と証明書を生成:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1の秘密鍵と証明書を生成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# extfile
 echo &amp;quot;subjectAltName = IP:x.x.x.2&amp;quot; &amp;gt; extfile.cnf
@@ -2565,9 +2798,9 @@ openssl x509 -req -days 365 -sha256 -in node1.csr -out node1-cert.pem \
 
 &lt;p&gt;CommonName(CN)は任意。&lt;/p&gt;
 
-&lt;h4 id=&#34;tls認証鍵を各ノードへアップロード&#34;&gt;TLS認証鍵を各ノードへアップロード&lt;/h4&gt;
+&lt;h4 id=&#34;tls認証鍵を各ノードへアップロード:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS認証鍵を各ノードへアップロード&lt;/h4&gt;
 
-&lt;p&gt;SFTPやSCPなどを使って、各ノードの&lt;code&gt;/etc/docker&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;あたりにアップロードする。&lt;/p&gt;
+&lt;p&gt;SFTPやSCPなどを使って、各ノードの&lt;code&gt;/etc/docker&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;あたりにアップロードする。&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;swarm-node0
@@ -2586,13 +2819,13 @@ openssl x509 -req -days 365 -sha256 -in node1.csr -out node1-cert.pem \
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;各ノードのdockerの設定を変更する&#34;&gt;各ノードのDockerの設定を変更する&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードのdockerの設定を変更する:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードのDockerの設定を変更する&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、設定を行う。&lt;/p&gt;
 
-&lt;h4 id=&#34;dockerデーモン起動時の引数設定&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
+&lt;h4 id=&#34;dockerデーモン起動時の引数設定:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Dockerデーモン起動時の引数設定&lt;/h4&gt;
 
-&lt;h5 id=&#34;swarm-node0&#34;&gt;swarm-node0&lt;/h5&gt;
+&lt;h5 id=&#34;swarm-node0:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -2610,7 +2843,7 @@ ExecStart=/usr/bin/docker daemon \
   -H fd://
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;swarm-node1&#34;&gt;swarm-node1&lt;/h5&gt;
+&lt;h5 id=&#34;swarm-node1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;vi /lib/systemd/system/docker.service
 
@@ -2628,7 +2861,7 @@ ExecStart=/usr/bin/docker daemon \
   -H fd://
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;備考-1&#34;&gt;備考&lt;/h5&gt;
+&lt;h5 id=&#34;備考-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;変更後は見やすさのため複数行で書いているが、&lt;code&gt;\&lt;/code&gt;を消して1行ぶっ続けで記述する。&lt;/li&gt;
@@ -2636,12 +2869,12 @@ ExecStart=/usr/bin/docker daemon \
 &lt;li&gt;cluster-storeとcluster-advertiseの指定は、オーバーレイ・ネットワーク機能のためなので、使わない場合は特に指定しなくても、Swarmクラスタの動作は可能。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;docker再起動&#34;&gt;Docker再起動&lt;/h4&gt;
+&lt;h4 id=&#34;docker再起動:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Docker再起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;service docker restart
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;tls接続確認&#34;&gt;TLS接続確認&lt;/h4&gt;
+&lt;h4 id=&#34;tls接続確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;TLS接続確認&lt;/h4&gt;
 
 &lt;p&gt;ローカルPCから、TLS(TCP)でホストのDockerを利用できるか確認してみる。&lt;/p&gt;
 
@@ -2671,11 +2904,11 @@ docker version
 
 &lt;p&gt;&lt;code&gt;DOCKER_CERT_PATH&lt;/code&gt;については、&lt;code&gt;~/.docker/&lt;/code&gt;にクライアント認証鍵(ca.pem, cert.pem, key.pem)を設置すれば、省略可能。&lt;/p&gt;
 
-&lt;h3 id=&#34;各ノードでswarmコンテナを動かす&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
+&lt;h3 id=&#34;各ノードでswarmコンテナを動かす:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;各ノードでSwarmコンテナを動かす&lt;/h3&gt;
 
 &lt;p&gt;各ノードにSSHでログインして、Swarmコンテナを起動させる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-node0-1&#34;&gt;swarm-node0&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node0-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node0&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Manager
 docker run -d --name=swarm-agent-master \
@@ -2692,25 +2925,25 @@ docker run -d --name=swarm-agent --net=host --restart=always \
   swarm join --advertise=x.x.x.1:2376 consul://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;swarm-node1-1&#34;&gt;swarm-node1&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-node1-1:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;swarm-node1&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# Swarm Agent
 docker run -d --name swarm-agent --net=host --restart=always \
   swarm join --advertise=x.x.x.2:2376 consul://localhost:8500
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;備考-2&#34;&gt;備考&lt;/h4&gt;
+&lt;h4 id=&#34;備考-2:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;備考&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;ネットワークのホストと共有する必要があるので、&lt;code&gt;--net=host&lt;/code&gt;を指定している。&lt;/li&gt;
 &lt;li&gt;Swarm Managerで&lt;code&gt;/etc/docker&lt;/code&gt;を共有Volume指定しているのは、TLS認証鍵の共有だけではなく、&lt;code&gt;/etc/docker/key.json&lt;/code&gt;の共有のため。DockerユニークIDの識別に必要とのこと。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;動作確認&lt;/h3&gt;
 
 &lt;p&gt;クライアント側(ローカルPC)から、Swarmクラスタへの接続を試みる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-masterにtls接続&#34;&gt;Swarm MasterにTLS接続&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-masterにtls接続:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Swarm MasterにTLS接続&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;export DOCKER_TLS_VERIFY=&amp;quot;1&amp;quot;
 export DOCKER_HOST=&amp;quot;tcp://x.x.x.1:3376&amp;quot;
@@ -2744,7 +2977,7 @@ Name: swarm-node0
 
 &lt;p&gt;上のように、ノードが2つ接続されていることが確認できれば、Swarmクラスタの構築がうまく行えている。&lt;code&gt;DOCKER_HOST&lt;/code&gt;のポート指定を&lt;code&gt;2376&lt;/code&gt;ではなく、&lt;code&gt;3376&lt;/code&gt;にすることで、dockerコマンドでSwarm関連の操作を行うことができる。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarmクラスタにコンテナを配置してみる&#34;&gt;Swarmクラスタにコンテナを配置してみる&lt;/h4&gt;
+&lt;h4 id=&#34;swarmクラスタにコンテナを配置してみる:357fa4bd2e644c21db7997b0a9ea5cf8&#34;&gt;Swarmクラスタにコンテナを配置してみる&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker run -d --name container1 nginx
 $ docker run -d --name container2 nginx
@@ -2760,8 +2993,8 @@ swarm-node2/container2
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;TLS認証鍵の置き場所は任意。Dockerデーモン起動時の引数で指定する。
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;TLS認証鍵の置き場所は任意。Dockerデーモン起動時の引数で指定する。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:357fa4bd2e644c21db7997b0a9ea5cf8:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -2781,9 +3014,9 @@ swarm-node2/container2
 
 &lt;p&gt;まずはシンプルに、Standaloneモードから動かしてみたい。&lt;/p&gt;
 
-&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備:27882acbebbf2525e531e2163851a874&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;マルチホスト同士の通信が可能なswarmクラスタを構築しておく&#34;&gt;マルチホスト同士の通信が可能なSwarmクラスタを構築しておく&lt;/h4&gt;
+&lt;h4 id=&#34;マルチホスト同士の通信が可能なswarmクラスタを構築しておく:27882acbebbf2525e531e2163851a874&#34;&gt;マルチホスト同士の通信が可能なSwarmクラスタを構築しておく&lt;/h4&gt;
 
 &lt;p&gt;Sparkのクラスタ同士は、一方通行な通信ではなく、割りと親密な双方向通信をするため、オーバーレイ・ネットワーク上に構築しないとうまく動作しない。&lt;/p&gt;
 
@@ -2792,13 +3025,13 @@ swarm-node2/container2
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/structure-swarm.svg&#34; alt=&#34;Swarm Structure&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;sparkクラスタをコンテナで構築する&#34;&gt;Sparkクラスタをコンテナで構築する&lt;/h3&gt;
+&lt;h3 id=&#34;sparkクラスタをコンテナで構築する:27882acbebbf2525e531e2163851a874&#34;&gt;Sparkクラスタをコンテナで構築する&lt;/h3&gt;
 
 &lt;p&gt;docker-composeを用いて、各ノードにSparkクラスタを構築する。&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/spark-containers.svg&#34; alt=&#34;Spark Containers&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;apache-sparkのdockerイメージ&#34;&gt;Apache SparkのDockerイメージ&lt;/h4&gt;
+&lt;h4 id=&#34;apache-sparkのdockerイメージ:27882acbebbf2525e531e2163851a874&#34;&gt;Apache SparkのDockerイメージ&lt;/h4&gt;
 
 &lt;p&gt;Standaloneモードで動くシンプルなものが使いたかったので、SparkのDockerイメージは自前で用意したものを使った。&lt;/p&gt;
 
@@ -2809,7 +3042,7 @@ swarm-node2/container2
 
 &lt;p&gt;masterなら&lt;code&gt;bin/start-master.sh&lt;/code&gt;を実行し、workerなら&lt;code&gt;bin/start-slave.sh ${MASTER_HOSTNAME}:7077&lt;/code&gt;を実行するだけのシンプルなもの。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h4&gt;
+&lt;h4 id=&#34;docker-compose-yml:27882acbebbf2525e531e2163851a874&#34;&gt;docker-compose.yml&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;master:
   image: namikingsoft/spark
@@ -2836,12 +3069,12 @@ worker:
 &lt;p&gt;イメージ各コンテナはDockerのオーバーレイネットワークで繋がるので、
 ポートも特に指定しなくてもよい。WebUIなどは後ほど、Socksプロキシ経由で確認する。&lt;/p&gt;
 
-&lt;h4 id=&#34;swarm-masterの環境変数を設定&#34;&gt;Swarm Masterの環境変数を設定&lt;/h4&gt;
+&lt;h4 id=&#34;swarm-masterの環境変数を設定:27882acbebbf2525e531e2163851a874&#34;&gt;Swarm Masterの環境変数を設定&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;eval &amp;quot;$(docker-machine env --swarm swarm-node0)&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;docker-compose-up&#34;&gt;docker-compose up&lt;/h4&gt;
+&lt;h4 id=&#34;docker-compose-up:27882acbebbf2525e531e2163851a874&#34;&gt;docker-compose up&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose --x-networking up -d
 &lt;/code&gt;&lt;/pre&gt;
@@ -2852,14 +3085,14 @@ worker:
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/spark-containers-progress.svg&#34; alt=&#34;Spark Containers Progress&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;ワーカーをスケールしてみる&#34;&gt;ワーカーをスケールしてみる&lt;/h4&gt;
+&lt;h4 id=&#34;ワーカーをスケールしてみる:27882acbebbf2525e531e2163851a874&#34;&gt;ワーカーをスケールしてみる&lt;/h4&gt;
 
 &lt;p&gt;docker-composeのscaleコマンドでワーカーノードを指定数分スケールすることができる。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose scale worker=2
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;コンテナ配置の確認&#34;&gt;コンテナ配置の確認&lt;/h4&gt;
+&lt;h4 id=&#34;コンテナ配置の確認:27882acbebbf2525e531e2163851a874&#34;&gt;コンテナ配置の確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker ps --format &amp;quot;{{.Names}}&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
@@ -2877,7 +3110,7 @@ spark-shell起動時に&lt;code&gt;Cannot allocate memory&lt;/code&gt;的なエ�
 チューニング次第かもだが、DigitalOcean 2GBだとリソース的には厳しそう。&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;sparkシェルを動かしてみる&#34;&gt;Sparkシェルを動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;sparkシェルを動かしてみる:27882acbebbf2525e531e2163851a874&#34;&gt;Sparkシェルを動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;仮にSparkマスターコンテナをドライバーとして、動かしてみる。
 (ワーカーでも動作可能)&lt;/p&gt;
@@ -2890,7 +3123,7 @@ spark-shell --master spark://master:7077
 res0: Int = 50005000
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;spark-uiを確認&#34;&gt;Spark UIを確認&lt;/h3&gt;
+&lt;h3 id=&#34;spark-uiを確認:27882acbebbf2525e531e2163851a874&#34;&gt;Spark UIを確認&lt;/h3&gt;
 
 &lt;p&gt;SparkのWebUIから、ワーカーが接続されているか確認したいが、docker-compose.ymlではポートを開けていない。(本来閉じたネットワークで動かすので、ポートを開放するのはあまりよろしくない)&lt;/p&gt;
 
@@ -2898,7 +3131,7 @@ res0: Int = 50005000
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-spark/spark-sshsocks.svg&#34; alt=&#34;Sparkマスター WebUI&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;sshdコンテナを追加&#34;&gt;SSHdコンテナを追加&lt;/h4&gt;
+&lt;h4 id=&#34;sshdコンテナを追加:27882acbebbf2525e531e2163851a874&#34;&gt;SSHdコンテナを追加&lt;/h4&gt;
 
 &lt;p&gt;先ほどのdocker-compose.ymlに追加する。&lt;/p&gt;
 
@@ -2935,7 +3168,7 @@ sshd:
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;docker-compose --x-networking up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;ローカルpcでsocksプロキシを起動&#34;&gt;ローカルPCでSocksプロキシを起動&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcでsocksプロキシを起動:27882acbebbf2525e531e2163851a874&#34;&gt;ローカルPCでSocksプロキシを起動&lt;/h4&gt;
 
 &lt;p&gt;swarm-masterのIPを確認。&lt;/p&gt;
 
@@ -2950,7 +3183,7 @@ Password: something
 
 &lt;p&gt;Socksプロキシを止めるときは&lt;code&gt;Ctrl-c&lt;/code&gt;を押下。&lt;/p&gt;
 
-&lt;h4 id=&#34;ローカルpcにてsocksプロキシを設定&#34;&gt;ローカルPCにてSocksプロキシを設定&lt;/h4&gt;
+&lt;h4 id=&#34;ローカルpcにてsocksプロキシを設定:27882acbebbf2525e531e2163851a874&#34;&gt;ローカルPCにてSocksプロキシを設定&lt;/h4&gt;
 
 &lt;p&gt;ローカルPCのSocksプロキシ設定を&lt;code&gt;localhost:1080&lt;/code&gt;に設定する。
 SSHのSocks周りについては以下のページが参考になった。&lt;/p&gt;
@@ -2958,7 +3191,7 @@ SSHのSocks周りについては以下のページが参考になった。&lt;/p
 &lt;p&gt;&lt;a href=&#34;http://blog.wktk.co.jp/ja/entry/2014/03/11/ssh-socks-proxy-mac-chrome&#34;&gt;ssh経由のSOCKSプロキシを通じてMac上のGoogle Chromeでブラウジング&lt;/a&gt;&lt;br /&gt;
 &lt;a href=&#34;https://www.kmc.gr.jp/advent-calendar/ssh/2013/12/14/tsocks.html&#34;&gt;ssh -D と tsocks -  京大マイコンクラブ (KMC)&lt;/a&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;ブラウザで確認&#34;&gt;ブラウザで確認&lt;/h4&gt;
+&lt;h4 id=&#34;ブラウザで確認:27882acbebbf2525e531e2163851a874&#34;&gt;ブラウザで確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://(swarm-masterのIP):8080
 &lt;/code&gt;&lt;/pre&gt;
@@ -2984,9 +3217,9 @@ IPや名前解決はSSH接続先のものを参照してくれて便利。(OSX10
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/logos.png&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;事前準備&#34;&gt;事前準備&lt;/h3&gt;
+&lt;h3 id=&#34;事前準備:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;事前準備&lt;/h3&gt;
 
-&lt;h4 id=&#34;必要なソフトウェアのインストール&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なソフトウェアのインストール:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;必要なソフトウェアのインストール&lt;/h4&gt;
 
 &lt;p&gt;作業で使うPC(またはホスト)に以下のDocker関連のソフトウェアをインストールしておく。Dockerのオーバーレイネットワーク機能を使うので、それを利用できるバージョンを入れる。&lt;/p&gt;
 
@@ -2996,15 +3229,15 @@ IPや名前解決はSSH接続先のものを参照してくれて便利。(OSX10
 &lt;li&gt;docker-machine&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
+&lt;h4 id=&#34;digitaloceanの登録とアクセストークンの取得:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;DigitalOceanの登録とアクセストークンの取得&lt;/h4&gt;
 
 &lt;p&gt;登録後、管理画面からdocker-machineとの連携に必要なアクセストークンを発行できる。&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;https://www.digitalocean.com/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;気をつけたいポイント４つ&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
+&lt;h3 id=&#34;気をつけたいポイント４つ:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;気をつけたいポイント４つ&lt;/h3&gt;
 
-&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
+&lt;h4 id=&#34;01-ホストosはkernel3-16以上のものを使う:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;01. ホストOSはKernel3.16以上のものを使う&lt;/h4&gt;
 
 &lt;p&gt;例えば、ホストOSにUbuntu14.04を選んでいると、オーバーレイ・ネットワーク上にのコンテナを立ち上げる時にエラーが出る。&lt;/p&gt;
 
@@ -3021,7 +3254,7 @@ ERROR: Cannot start container (container_id):
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;によると、「A host with a 3.16 kernel version or higher.」とのこと。DigitalOceanのUbuntu14.04はカーネルが古いようなので、14.10とか15.04以上を使う必要がある。&lt;/p&gt;
 
-&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
+&lt;h4 id=&#34;02-cluster-advertiseはeth0にするか-privatenetworkを有効にする:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;02. cluster-advertiseはeth0にするか、PrivateNetworkを有効にする&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;Get started with multi-host networking&lt;/a&gt;のサンプルをそのまま使うと、&lt;code&gt;docker-machine create&lt;/code&gt;時に概ね次のようなエラーに遭遇する。&lt;/p&gt;
 
@@ -3051,7 +3284,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
   ...
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
+&lt;h4 id=&#34;03-consulはswarmクラスタ上に置いて節約する:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;03. ConsulはSwarmクラスタ上に置いて節約する&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;のサンプルでは、Consulキーストアで専用のホストを用意しているが、安いとはいえ、DigitalOceanでConsulキーストア専用にもつのは守銭奴らしからぬので、Swarmクラスタのノードに含めてしまおう。&lt;/p&gt;
 
@@ -3063,7 +3296,7 @@ Unable to verify the Docker daemon is listening: Maximum number of retries (10) 
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2016/01/docker-swarm-digitalocean/structure.svg&#34; alt=&#34;Docker Swarm + DigitalOcean&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;04-consulはプライベートネットワークに置く&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
+&lt;h4 id=&#34;04-consulはプライベートネットワークに置く:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;04. Consulはプライベートネットワークに置く&lt;/h4&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://docs.docker.com/engine/userguide/networking/get-started-overlay/&#34;&gt;公式ドキュメント&lt;/a&gt;の感覚で、DigitalOceanにConsulキーストアを導入すると、グローバルにWebUIが公開されてしまい、精神的によろしくない。&lt;/p&gt;
 
@@ -3089,7 +3322,7 @@ open http://localhost:8500
 &lt;a href=&#34;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&#34;&gt;http://pocketstudio.jp/log3/2015/04/13/digitalocean_introduction/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;具体的な実行手順&#34;&gt;具体的な実行手順&lt;/h3&gt;
+&lt;h3 id=&#34;具体的な実行手順:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;具体的な実行手順&lt;/h3&gt;
 
 &lt;p&gt;自動化しやすいように、上のポイント４つを踏まえたシェルの実行手順を以下にまとめる。&lt;/p&gt;
 
@@ -3180,7 +3413,7 @@ docker-machine ssh swarm-node1 &amp;quot;
 &amp;quot;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;注記いくつか&#34;&gt;注記いくつか&lt;/h4&gt;
+&lt;h4 id=&#34;注記いくつか:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;注記いくつか&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;シェル中の&lt;code&gt;${DIGITALOCEAN_TOKEN}&lt;/code&gt;はDigitalOceanの管理画面から取得したアクセストークンに置き換える。&lt;/li&gt;
@@ -3189,9 +3422,9 @@ docker-machine ssh swarm-node1 &amp;quot;
 &lt;li&gt;途中で、マスターのプライベートIPを取得しているのは、各ノードに設置したConsulクライアントをサーバーにJOINさせるため。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;動作確認&#34;&gt;動作確認&lt;/h3&gt;
+&lt;h3 id=&#34;動作確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;動作確認&lt;/h3&gt;
 
-&lt;h4 id=&#34;swarmクラスタ確認&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
+&lt;h4 id=&#34;swarmクラスタ確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;Swarmクラスタ確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ eval $(docker-machine env --swarm swarm-node0)
 $ docker info
@@ -3221,9 +3454,9 @@ Name: swarm-node0
 
 &lt;p&gt;ノードが２つあることが確認できる。&lt;/p&gt;
 
-&lt;h4 id=&#34;オーバーレイ-ネットワークの確認&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
+&lt;h4 id=&#34;オーバーレイ-ネットワークの確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;オーバーレイ・ネットワークの確認&lt;/h4&gt;
 
-&lt;h5 id=&#34;docker-compose-yml&#34;&gt;docker-compose.yml&lt;/h5&gt;
+&lt;h5 id=&#34;docker-compose-yml:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;docker-compose.yml&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;container1:
   image: busybox
@@ -3240,7 +3473,7 @@ container2:
   command: tail -f /dev/null
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
+&lt;h5 id=&#34;ネットワークモードでコンテナを立ち上げる:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;ネットワークモードでコンテナを立ち上げる&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker-compose --x-networking up -d
 $ docker ps --format &amp;quot;{{.Names}}&amp;quot;
@@ -3251,7 +3484,7 @@ swarm-node1/container2
 
 &lt;p&gt;それぞれのノードにコンテナが作られた。&lt;/p&gt;
 
-&lt;h5 id=&#34;疎通確認&#34;&gt;疎通確認&lt;/h5&gt;
+&lt;h5 id=&#34;疎通確認:fa799c0a70e6a2da19a2eb6d62e423f4&#34;&gt;疎通確認&lt;/h5&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker exec -it container1 ping container2 -c4
 
@@ -3293,7 +3526,7 @@ round-trip min/avg/max = 0.847/0.985/1.379 ms
 
 &lt;p&gt;長めのansible-playbookをRUNしてる途中でエラーが出た時に役立ったので、まとめておく。&lt;/p&gt;
 
-&lt;h3 id=&#34;どういう時に使う&#34;&gt;どういう時に使う？&lt;/h3&gt;
+&lt;h3 id=&#34;どういう時に使う:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;どういう時に使う？&lt;/h3&gt;
 
 &lt;p&gt;例えば、&lt;code&gt;docker build&lt;/code&gt;途中によくわからない理由でエラー落ちした時、
 直前状態のコンテナに入ってデバッグしたい事がある。&lt;/p&gt;
@@ -3309,7 +3542,7 @@ Dockerコマンド単位でコミットされるため、
 大幅にロールバックしていることがある。&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;ビルド途中にエラーで落ちるdockerfileの例&#34;&gt;ビルド途中にエラーで落ちるDockerfileの例&lt;/h4&gt;
+&lt;h4 id=&#34;ビルド途中にエラーで落ちるdockerfileの例:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;ビルド途中にエラーで落ちるDockerfileの例&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-docker&#34;&gt;FROM busybox
 
@@ -3320,7 +3553,7 @@ RUN touch /step4
 
 &lt;p&gt;&lt;code&gt;errcmd&lt;/code&gt;という架空のコマンドで、わざとエラーを起こしてみる。&lt;/p&gt;
 
-&lt;h4 id=&#34;docker-build-の途中で落ちる&#34;&gt;docker build の途中で落ちる&lt;/h4&gt;
+&lt;h4 id=&#34;docker-build-の途中で落ちる:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;docker build の途中で落ちる&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker build . -t tset
 
@@ -3354,7 +3587,7 @@ d117aa39bacd
 &lt;p&gt;&lt;code&gt;d117aa39bacd&lt;/code&gt;コンテナが消されずに残っている。&lt;br /&gt;
 これが直近の作業コンテナで&lt;code&gt;touch /step2&lt;/code&gt;までのコマンドを実行されているはず。&lt;/p&gt;
 
-&lt;h4 id=&#34;exitedなコンテナには入れない&#34;&gt;Exitedなコンテナには入れない？&lt;/h4&gt;
+&lt;h4 id=&#34;exitedなコンテナには入れない:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;Exitedなコンテナには入れない？&lt;/h4&gt;
 
 &lt;p&gt;生きているコンテナであれば、&lt;code&gt;docker exec&lt;/code&gt;+シェルでコンテナの中に入れるが、
 Exitedしていると、以下の様なエラーが出る。&lt;/p&gt;
@@ -3364,9 +3597,9 @@ Exitedしていると、以下の様なエラーが出る。&lt;/p&gt;
 Error response from daemon: Container d117aa39bacd is not running
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;解決手順&#34;&gt;解決手順&lt;/h3&gt;
+&lt;h3 id=&#34;解決手順:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;解決手順&lt;/h3&gt;
 
-&lt;h4 id=&#34;１-exitedコンテナを一旦コミットして-イメージ化する&#34;&gt;１．Exitedコンテナを一旦コミットして、イメージ化する&lt;/h4&gt;
+&lt;h4 id=&#34;１-exitedコンテナを一旦コミットして-イメージ化する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;１．Exitedコンテナを一旦コミットして、イメージ化する&lt;/h4&gt;
 
 &lt;p&gt;死んでいるコンテナをコミットするという機会があまりなかったので、
 ちょっと戸惑ったが、以下のコマンドでイメージ化できる。&lt;/p&gt;
@@ -3374,7 +3607,7 @@ Error response from daemon: Container d117aa39bacd is not running
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ docker commit -t exited d117aa39bacd
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;２-インタラクティブ-ttyモードで実行する&#34;&gt;２．インタラクティブ+TTYモードで実行する&lt;/h4&gt;
+&lt;h4 id=&#34;２-インタラクティブ-ttyモードで実行する:f5fa53b0fb4decf6fe205e1fa30242da&#34;&gt;２．インタラクティブ+TTYモードで実行する&lt;/h4&gt;
 
 &lt;p&gt;そのまま&lt;code&gt;docker run&lt;/code&gt;しても速攻で死ぬので、&lt;code&gt;-it bash&lt;/code&gt;をつけて実行。&lt;/p&gt;
 
@@ -3410,7 +3643,7 @@ step2
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/index.jpg&#34; alt=&#34;ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;動作サンプル&#34;&gt;動作サンプル&lt;/h3&gt;
+&lt;h3 id=&#34;動作サンプル:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作サンプル&lt;/h3&gt;
 
 &lt;p&gt;ひと通り動くサンプルを作ったので、以下のGitHubに上げておきます。
 nodeやnpmがインストールされていれば、動作すると思われます。&lt;/p&gt;
@@ -3423,7 +3656,7 @@ nodeやnpmがインストールされていれば、動作すると思われま�
 &lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;https://github.com/namikingsoft/sample-webpack-test&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;試しにブラウザで動かしてみる&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;GitHub上の&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;動作サンプル&lt;/a&gt;をcloneして、
 webpack-dev-serverを起動したら、
@@ -3431,7 +3664,7 @@ webpack-dev-serverを起動したら、
 
 &lt;p&gt;&lt;a href=&#34;http://localhost:8080/webpack-dev-server/&#34;&gt;http://localhost:8080/webpack-dev-server/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;コマンド例&#34;&gt;コマンド例&lt;/h4&gt;
+&lt;h4 id=&#34;コマンド例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;コマンド例&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/sample-webpack-test
 cd sample-webpack-test
@@ -3439,7 +3672,7 @@ npm install &amp;amp;&amp;amp; npm start
 open http://localhost:8080/webpack-dev-server/
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作画面の例&#34;&gt;動作画面の例&lt;/h4&gt;
+&lt;h4 id=&#34;動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作画面の例&lt;/h4&gt;
 
 &lt;p&gt;フロントエンドアプリとMochaのSpecを同時に動かしている図。
 Seleniumみたいにギュンギュン動いて楽しい。
@@ -3448,12 +3681,12 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/animation.gif&#34; alt=&#34;Animation&#34; /&gt;&lt;/p&gt;
 
 &lt;p&gt;Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
+アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
 &lt;a href=&#34;http://localhost:8081/webpack-dev-server/app&#34;&gt;http://localhost:8081/webpack-dev-server/app&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ざっくり解説&#34;&gt;ざっくり解説&lt;/h3&gt;
+&lt;h3 id=&#34;ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ざっくり解説&lt;/h3&gt;
 
-&lt;h4 id=&#34;ファイル構成&#34;&gt;ファイル構成&lt;/h4&gt;
+&lt;h4 id=&#34;ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ファイル構成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;sample-webpack-test
 |-- build
@@ -3471,7 +3704,7 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 webpack-dev-server内の動作であれば、
 メモリ内のものが呼び出されるようなので、特に設置する必要はなさそう。&lt;/p&gt;
 
-&lt;h4 id=&#34;複数のspecファイルに対応する&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
+&lt;h4 id=&#34;複数のspecファイルに対応する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
 
 &lt;p&gt;npmのglobモジュールを利用して、
 複数のSpecファイルをエントリーポイントに含めることができる。
@@ -3485,7 +3718,7 @@ entry: {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;修正後に自動的にテストが走るようにする&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
+&lt;h4 id=&#34;修正後に自動的にテストが走るようにする:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
 
 &lt;p&gt;webpack-dev-serverには、ファイル修正を検知して再読み込みをしてくれる、
 hotモードという機能が付いているので、webpack.config.jsでそれをを有効にする。&lt;/p&gt;
@@ -3508,7 +3741,7 @@ plugins: [
 ],
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
+&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
 
 &lt;p&gt;webpackの&lt;a href=&#34;http://webpack.github.io/docs/testing.html&#34;&gt;Testing&lt;/a&gt;のページにもあるが、
 mocha-loaderを噛ますことで、ブラウザでMochaが利用可能になるJSが吐き出せるようになる。&lt;/p&gt;
@@ -3537,7 +3770,7 @@ module: {
 },
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
+&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
 
 &lt;p&gt;アプリの動作画面にSpec結果のレイアウトを入れ込む。&lt;br /&gt;
 &lt;code&gt;app.js&lt;/code&gt;で必要なUIを書き出すなどの初期処理を行ってから、&lt;code&gt;spec.js&lt;/code&gt;を走らせている。&lt;/p&gt;
@@ -3574,7 +3807,7 @@ module: {
 &amp;lt;/html&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;あとがき&#34;&gt;あとがき&lt;/h3&gt;
+&lt;h3 id=&#34;あとがき:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;あとがき&lt;/h3&gt;
 
 &lt;p&gt;ChromeとかFirefoxなどの複数のブラウザ上で手軽にフロント動作仕様を自動チェックしたい、
 みたいなときの方法論の一つとして紹介してみた。&lt;/p&gt;
@@ -3588,8 +3821,8 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -3603,14 +3836,14 @@ webpackはKermaとも簡単に連動できるようなので、
       <guid>http://blog.namiking.net/post/2015/09/kanban-board/</guid>
       <description>
 
-&lt;p&gt;コンプライアンス&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を重視する現場で、
+&lt;p&gt;コンプライアンス&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;を重視する現場で、
 アジャイルなプロジェクト管理ツールが現場で必要になったときに、
 外部Webサービスな&lt;code&gt;Trello&lt;/code&gt;や&lt;code&gt;Pivotal Tracker&lt;/code&gt;を導入しづらいことがある。&lt;/p&gt;
 
 &lt;p&gt;そこで、OSSのかんばん式管理ツールをいくつか探して、&lt;br /&gt;
 色々試して感じたことをまとめておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;今回試した-かんばん式-プロジェクト管理ツール&#34;&gt;今回試した &amp;lsquo;かんばん式&amp;rsquo; プロジェクト管理ツール&lt;/h3&gt;
+&lt;h3 id=&#34;今回試した-かんばん式-プロジェクト管理ツール:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;今回試した &amp;lsquo;かんばん式&amp;rsquo; プロジェクト管理ツール&lt;/h3&gt;
 
 &lt;p&gt;以下に挙げる以外にも、OSSのかんばん式管理ツールは数多く存在するが、
 機能面・とっつきやすさ・導入の容易さなどに基いて、３つだけピックアップさせていただいた。&lt;/p&gt;
@@ -3626,7 +3859,7 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;a href=&#34;http://restya.com/board/&#34;&gt;http://restya.com/board/&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;個別のサーバーに実行環境を構築したい場合&#34;&gt;個別のサーバーに実行環境を構築したい場合&lt;/h4&gt;
+&lt;h4 id=&#34;個別のサーバーに実行環境を構築したい場合:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;個別のサーバーに実行環境を構築したい場合&lt;/h4&gt;
 
 &lt;p&gt;各々デモ用のURLが用意されているが、OSSなので個別のサーバー環境や&lt;code&gt;Docker&lt;/code&gt;で試したい場合は、
 当ブログに構築手順の記事があるので、参照されたい。&lt;/p&gt;
@@ -3637,7 +3870,7 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;li&gt;&lt;a href=&#34;http://blog.namiking.net/post/2015/09/docker-restyaboard/&#34;&gt;Restyaboard on Dockerで多機能かんばん式プロジェクト管理&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h2 id=&#34;taiga-本格的なアジャイル開発管理&#34;&gt;TAIGA - 本格的なアジャイル開発管理&lt;/h2&gt;
+&lt;h2 id=&#34;taiga-本格的なアジャイル開発管理:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;TAIGA - 本格的なアジャイル開発管理&lt;/h2&gt;
 
 &lt;p&gt;本格的なアジャイル開発を支援するプロジェクト管理ツール。
 他のかんばん管理ツールに比べて、デザイン洗礼されていて、使っていて気持ちいい。&lt;/p&gt;
@@ -3647,22 +3880,22 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/taiga04.jpg&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;
 &lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/taiga02.jpg&#34; alt=&#34;TAIGA ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ここが良かった&#34;&gt;ここが良かった&lt;/h3&gt;
+&lt;h3 id=&#34;ここが良かった:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ここが良かった&lt;/h3&gt;
 
-&lt;h4 id=&#34;アジャイル開発管理に特化したテンプレート&#34;&gt;アジャイル開発管理に特化したテンプレート&lt;/h4&gt;
+&lt;h4 id=&#34;アジャイル開発管理に特化したテンプレート:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;アジャイル開発管理に特化したテンプレート&lt;/h4&gt;
 
 &lt;p&gt;全体を見渡せるかんばんボードだけではなく、
 期間区切りのスプリントを作成して、バックログからストーリーカードを割り振り、
 各タスクの進捗状況を確認できる&lt;code&gt;タスクボード&lt;/code&gt;機能。&lt;/p&gt;
 
 &lt;p&gt;プロジェクト全体の遅延動向をより正確に把握するために、
-ストーリーカード毎に設定するポイント(難度重み付け)&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;と、
+ストーリーカード毎に設定するポイント(難度重み付け)&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;と、
 ストーリーカードの進捗に基いて描写される&lt;code&gt;バーンダウンチャート&lt;/code&gt;。&lt;/p&gt;
 
 &lt;p&gt;感覚的には以前使っていた&lt;code&gt;Redmine&lt;/code&gt;のアジャイル拡張の&lt;code&gt;Alminium&lt;/code&gt;に似ている。&lt;br /&gt;
 (アジャイルの管理ツールって概ねこんな感じなのかな)&lt;/p&gt;
 
-&lt;h4 id=&#34;ユーザーごとに権限グループ設定をすることができる&#34;&gt;ユーザーごとに権限グループ設定をすることができる&lt;/h4&gt;
+&lt;h4 id=&#34;ユーザーごとに権限グループ設定をすることができる:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ユーザーごとに権限グループ設定をすることができる&lt;/h4&gt;
 
 &lt;p&gt;スプリントを追加できるのはオーナーのみとか、
 エンジニア/デザイナーはタスクのみを登録できる。とか、
@@ -3670,9 +3903,9 @@ webpackはKermaとも簡単に連動できるようなので、
 
 &lt;p&gt;デフォルトの権限グループとしては、&lt;code&gt;UX&lt;/code&gt;,&lt;code&gt;DESIGN&lt;/code&gt;,&lt;code&gt;FRONT&lt;/code&gt;,&lt;code&gt;BACK&lt;/code&gt;,&lt;code&gt;PRODUCT OWNER&lt;/code&gt;などがあるが、こちらも設定で変更できるっぽい。&lt;/p&gt;
 
-&lt;h3 id=&#34;微妙なところ&#34;&gt;微妙なところ&lt;/h3&gt;
+&lt;h3 id=&#34;微妙なところ:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;微妙なところ&lt;/h3&gt;
 
-&lt;h4 id=&#34;軽めに使うには複雑すぎるか&#34;&gt;軽めに使うには複雑すぎるか&lt;/h4&gt;
+&lt;h4 id=&#34;軽めに使うには複雑すぎるか:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;軽めに使うには複雑すぎるか&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;Redmine&lt;/code&gt;拡張の&lt;code&gt;Alminium&lt;/code&gt;を使った時も思ったことだが、
 メンバーがアジャイル開発手法に慣れていない場合、
@@ -3682,7 +3915,7 @@ webpackはKermaとも簡単に連動できるようなので、
 かんばんボードの列名を別の設定画面で行う必要があったりと、少し面倒くさい。
 シンプルなTODO表として使うなら、&lt;code&gt;Trello&lt;/code&gt;,&lt;code&gt;Wekan&lt;/code&gt;とかの方がとっつきやすいかもしれない。&lt;/p&gt;
 
-&lt;h2 id=&#34;wekan-お手軽かんばん式プロジェクト管理&#34;&gt;Wekan - お手軽かんばん式プロジェクト管理&lt;/h2&gt;
+&lt;h2 id=&#34;wekan-お手軽かんばん式プロジェクト管理:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;Wekan - お手軽かんばん式プロジェクト管理&lt;/h2&gt;
 
 &lt;p&gt;ちょっと前は、&lt;code&gt;Libreboard&lt;/code&gt;と呼ばれていて、日本語の紹介サイトも豊富に存在した。
 その頃はボード画面から設定画面から、何から何までTrelloにそっくりだったが、
@@ -3691,9 +3924,9 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;
 &lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/wekan02.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ここが良かった-1&#34;&gt;ここが良かった&lt;/h3&gt;
+&lt;h3 id=&#34;ここが良かった-1:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ここが良かった&lt;/h3&gt;
 
-&lt;h4 id=&#34;シンプル-イズ-ベスト&#34;&gt;シンプル・イズ・ベスト&lt;/h4&gt;
+&lt;h4 id=&#34;シンプル-イズ-ベスト:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;シンプル・イズ・ベスト&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;Trello&lt;/code&gt;の基本機能から、更に必要最低限のものに絞ってるので、非常にとっつきやすい。
 システム開発に限らず、シンプルなTODO管理にも使えそう。
@@ -3702,22 +3935,22 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;p&gt;こういうツールの真髄は、&lt;strong&gt;今どんな課題があるか。どういう状況か。誰が着手してるか。&lt;/strong&gt;を素早く把握することにあるので、
 コミュニケーションツールとして割り切るならば、十分だとは思う。&lt;/p&gt;
 
-&lt;h4 id=&#34;日本語uiに対応&#34;&gt;日本語UIに対応&lt;/h4&gt;
+&lt;h4 id=&#34;日本語uiに対応:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;日本語UIに対応&lt;/h4&gt;
 
 &lt;p&gt;上のログイン画面のスクリーンショットのとおり、デフォルトで日本語に対応している。
 ログイン後の画面も右上メニューの&lt;code&gt;Change Languege&lt;/code&gt;から日本語にできる。
 英語アレルギー持ちの老若男女にも使っていただけるだろう。&lt;/p&gt;
 
-&lt;h3 id=&#34;微妙なところ-1&#34;&gt;微妙なところ&lt;/h3&gt;
+&lt;h3 id=&#34;微妙なところ-1:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;微妙なところ&lt;/h3&gt;
 
-&lt;h4 id=&#34;アジャイル開発管理に使うにはシンプルすぎるか&#34;&gt;アジャイル開発管理に使うにはシンプルすぎるか&lt;/h4&gt;
+&lt;h4 id=&#34;アジャイル開発管理に使うにはシンプルすぎるか:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;アジャイル開発管理に使うにはシンプルすぎるか&lt;/h4&gt;
 
 &lt;p&gt;本格的にアジャイル開発に使うには、複数ボードにまたいだりと、
 運用テクニックが必要になりそう。
 あと、&lt;code&gt;Trello&lt;/code&gt;や&lt;code&gt;Restyaboard&lt;/code&gt;にあるようなチェックリスト機能がないので、
 各ストーリーカードの進行状況(タスク状況)をボード上から確認するのは難しい。&lt;/p&gt;
 
-&lt;h2 id=&#34;restyaboard-多機能かんばん式プロジェクト管理&#34;&gt;Restyaboard - 多機能かんばん式プロジェクト管理&lt;/h2&gt;
+&lt;h2 id=&#34;restyaboard-多機能かんばん式プロジェクト管理:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;Restyaboard - 多機能かんばん式プロジェクト管理&lt;/h2&gt;
 
 &lt;p&gt;基本的には&lt;code&gt;Trello&lt;/code&gt;クローンなのだが、
 シンプル化の&lt;code&gt;Wekan&lt;/code&gt;と違い、多機能化を目指している。&lt;/p&gt;
@@ -3726,21 +3959,21 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/restya02.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;
 &lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/kanban-board/restya03.jpg&#34; alt=&#34;Restyaboard ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ここが良かった-2&#34;&gt;ここが良かった&lt;/h3&gt;
+&lt;h3 id=&#34;ここが良かった-2:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ここが良かった&lt;/h3&gt;
 
-&lt;h4 id=&#34;他ツールにない前衛的な機能やtrello有料機能が使えたりする&#34;&gt;他ツールにない前衛的な機能やTrello有料機能が使えたりする&lt;/h4&gt;
+&lt;h4 id=&#34;他ツールにない前衛的な機能やtrello有料機能が使えたりする:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;他ツールにない前衛的な機能やTrello有料機能が使えたりする&lt;/h4&gt;
 
 &lt;p&gt;例えば、ボードのオーナー以外がストーリーカードを追加することができないが、
-ボード一覧による進捗状況確認、カレンダー表示、デスクトップ通知&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:3&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:3&#34;&gt;3&lt;/a&gt;&lt;/sup&gt;、ファビコンに新着通知数表示など、他ツールにない前衛的な機能/UIが豊富。&lt;/p&gt;
+ボード一覧による進捗状況確認、カレンダー表示、デスクトップ通知&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;3&lt;/a&gt;&lt;/sup&gt;、ファビコンに新着通知数表示など、他ツールにない前衛的な機能/UIが豊富。&lt;/p&gt;
 
 &lt;p&gt;チェックリスト、Due Date、ボードの背景に写真が使える、などを見ると、
 機能面では&lt;code&gt;Wekan&lt;/code&gt;より、こちらのほうが&lt;code&gt;Trello&lt;/code&gt;を意識しているかも。
 また、&lt;code&gt;Trello&lt;/code&gt;からデータをインポートする機能が付いているので、
 もし無償版では満足できなくなったら、試してみるのもいいかもしれない。&lt;/p&gt;
 
-&lt;h3 id=&#34;微妙なところ-2&#34;&gt;微妙なところ&lt;/h3&gt;
+&lt;h3 id=&#34;微妙なところ-2:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;微妙なところ&lt;/h3&gt;
 
-&lt;h4 id=&#34;ユーザーインタフェースに少し難あり&#34;&gt;ユーザーインタフェースに少し難あり&lt;/h4&gt;
+&lt;h4 id=&#34;ユーザーインタフェースに少し難あり:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;ユーザーインタフェースに少し難あり&lt;/h4&gt;
 
 &lt;p&gt;定期的に再読み込みのロードバーが表示されたり、
 デスクトップ通知が絶え間なく表示されたり、
@@ -3750,7 +3983,7 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;p&gt;&lt;a href=&#34;https://github.com/RestyaPlatform/board&#34;&gt;GitHub&lt;/a&gt;を見るに、機能面含めて現在開発中のアルファ版という位置づけと思われるので、
 今後のバージョンアップに期待したいところ。&lt;/p&gt;
 
-&lt;h2 id=&#34;あとがき&#34;&gt;あとがき&lt;/h2&gt;
+&lt;h2 id=&#34;あとがき:c734c5cb2dac2213cc062a5b86e79214&#34;&gt;あとがき&lt;/h2&gt;
 
 &lt;p&gt;１年ほど前にOSSのかんばんツールを探してた時は、
 &lt;code&gt;Redmine&lt;/code&gt;の&lt;code&gt;Alminium&lt;/code&gt;ぐらいしか選択肢がなかった気がしたが、
@@ -3762,12 +3995,12 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;いまいちピンとこない用語だが、ここでは情報漏洩を気にする企業という意味。内部サーバーだからバッチグーという事ではなく、いかにお固い上席を説得しやすいか。
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:2&#34;&gt;フィボナッチ数列っぽいものから重みを選択できる。数列は設定から変更可能。
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:3&#34;&gt;Trelloにもデスクトップ通知機能は付いているみたい。&lt;a href=&#34;http://n2p.co.jp/blog/planning/trellotips/&#34;&gt;[参考]&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:3&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;いまいちピンとこない用語だが、ここでは情報漏洩を気にする企業という意味。内部サーバーだからバッチグーという事ではなく、いかにお固い上席を説得しやすいか。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c734c5cb2dac2213cc062a5b86e79214:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;フィボナッチ数列っぽいものから重みを選択できる。数列は設定から変更可能。
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c734c5cb2dac2213cc062a5b86e79214:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;Trelloにもデスクトップ通知機能は付いているみたい。&lt;a href=&#34;http://n2p.co.jp/blog/planning/trellotips/&#34;&gt;[参考]&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:c734c5cb2dac2213cc062a5b86e79214:3&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>
@@ -3796,7 +4029,7 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;a href=&#34;https://docs.docker.com/compose/&#34;&gt;https://docs.docker.com/compose/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;インストール手順&#34;&gt;インストール手順&lt;/h3&gt;
+&lt;h3 id=&#34;インストール手順:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;インストール手順&lt;/h3&gt;
 
 &lt;p&gt;公式ドキュメントに対応OSごとのインストール方法がまとめてあった。&lt;/p&gt;
 
@@ -3815,19 +4048,19 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;easy_install pip
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;バージョン差異エラー回避方法&#34;&gt;バージョン差異エラー回避方法&lt;/h3&gt;
+&lt;h3 id=&#34;バージョン差異エラー回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;バージョン差異エラー回避方法&lt;/h3&gt;
 
 &lt;p&gt;&lt;code&gt;docker-compose up&lt;/code&gt;などの実行時に、以下の様なエラーが表示されることがある。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;client and server don&#39;t have same version (client : 1.19, server: 1.18)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;原因&#34;&gt;原因&lt;/h4&gt;
+&lt;h4 id=&#34;原因:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;原因&lt;/h4&gt;
 
 &lt;p&gt;このエラーは、インストールされている&lt;code&gt;Dockerサーバー&lt;/code&gt;のバージョンと、
 &lt;code&gt;docker-composeクライアント(API)&lt;/code&gt;のバージョンに互換性がない時に表示されるらしい。&lt;/p&gt;
 
-&lt;h4 id=&#34;回避方法&#34;&gt;回避方法&lt;/h4&gt;
+&lt;h4 id=&#34;回避方法:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;回避方法&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;COMPOSE_API_VERSION&lt;/code&gt;環境変数にサーバーのバージョンを設定すれば、
 &lt;code&gt;docker-compose&lt;/code&gt;の方で、サーバーのバージョンに合わせて通信してくれるとのこと。
@@ -3843,7 +4076,7 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;pre&gt;&lt;code&gt;COMPOSE_API_VERSION=auto
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;docker-composeの利用例&#34;&gt;docker-composeの利用例&lt;/h3&gt;
+&lt;h3 id=&#34;docker-composeの利用例:fce77b3f97c5854a016ed64fe44c5a99&#34;&gt;docker-composeの利用例&lt;/h3&gt;
 
 &lt;p&gt;当ブログの以下の記事で、具体的な使用例を紹介しているので、参照されたい。&lt;/p&gt;
 
@@ -3877,7 +4110,7 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;a href=&#34;https://taiga.io/&#34;&gt;https://taiga.io/&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;dockerを利用した導入手順&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
+&lt;h3 id=&#34;dockerを利用した導入手順:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
 
 &lt;p&gt;以下の&lt;code&gt;docker-compose.yml&lt;/code&gt;とイメージを参考/利用させていただきました。&lt;/p&gt;
 
@@ -3886,11 +4119,11 @@ Dockerのバージョンによっては実行時にエラーが出てしまう�
 &lt;a href=&#34;https://github.com/htdvisser/taiga-docker&#34;&gt;https://github.com/htdvisser/taiga-docker&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;00-事前準備&#34;&gt;00. 事前準備&lt;/h4&gt;
+&lt;h4 id=&#34;00-事前準備:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;00. 事前準備&lt;/h4&gt;
 
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
 
-&lt;h4 id=&#34;01-docker-compose-yml-設置&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
+&lt;h4 id=&#34;01-docker-compose-yml-設置:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
 
 &lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
 &lt;code&gt;hostname&lt;/code&gt;, &lt;code&gt;EMAIL_*&lt;/code&gt;辺りは各々の環境に合わせて書き換える。&lt;/p&gt;
@@ -3940,19 +4173,19 @@ taigafront:
   restart: always
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;02-docker起動&#34;&gt;02. Docker起動&lt;/h4&gt;
+&lt;h4 id=&#34;02-docker起動:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;02. Docker起動&lt;/h4&gt;
 
 &lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;docker-compose up -d
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;03-足りないdbレコードを挿入&#34;&gt;03. 足りないDBレコードを挿入&lt;/h4&gt;
+&lt;h4 id=&#34;03-足りないdbレコードを挿入:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;03. 足りないDBレコードを挿入&lt;/h4&gt;
 
 &lt;p&gt;Dockerコンテナ起動時に、初期DBデータの挿入が行われるが、
 おそらく&lt;code&gt;TAIGA&lt;/code&gt;のバージョンアップで、必要なDBデータが増えたっぽい。&lt;/p&gt;
 
-&lt;p&gt;動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
+&lt;p&gt;動作確認時にプロジェクトが作成できない&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;2&lt;/a&gt;&lt;/sup&gt;、などの不具合を起こしていたので、
 取り急ぎ、こちらのコマンドで入れておく。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;docker exec -it (taigabackコンテナID) \
@@ -3968,16 +4201,16 @@ docker exec -it (taigabackコンテナID) \
     loaddata initial_project_templates initial_role
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;04-動作確認&#34;&gt;04. 動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;04-動作確認:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;04. 動作確認&lt;/h4&gt;
 
-&lt;h5 id=&#34;通常画面&#34;&gt;通常画面&lt;/h5&gt;
+&lt;h5 id=&#34;通常画面:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;通常画面&lt;/h5&gt;
 
 &lt;p&gt;画面内の「create your free account here」からユーザー登録を行う。&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;http://(SERVER_IP)/
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h5 id=&#34;管理画面&#34;&gt;管理画面&lt;/h5&gt;
+&lt;h5 id=&#34;管理画面:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;管理画面&lt;/h5&gt;
 
 &lt;p&gt;DBレコード操作などを行う画面？&lt;br /&gt;
 通常運用であれば、使わなくてもよい画面と思われる。&lt;/p&gt;
@@ -3987,16 +4220,16 @@ Username: admin
 Password: 123123
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;導入でつまづいた点&#34;&gt;導入でつまづいた点&lt;/h3&gt;
+&lt;h3 id=&#34;導入でつまづいた点:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;導入でつまづいた点&lt;/h3&gt;
 
-&lt;h5 id=&#34;新規ユーザー登録ボタン押下後に-次画面に遷移しない&#34;&gt;新規ユーザー登録ボタン押下後に、次画面に遷移しない。&lt;/h5&gt;
+&lt;h5 id=&#34;新規ユーザー登録ボタン押下後に-次画面に遷移しない:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;新規ユーザー登録ボタン押下後に、次画面に遷移しない。&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;SMTP設定が正しくない。&lt;/li&gt;
 &lt;li&gt;Docker起動直後に登録した。(初期DBデータ登録が終わっていない？)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h5 id=&#34;プロジェクトの作成途中で次画面に遷移しなくなる&#34;&gt;プロジェクトの作成途中で次画面に遷移しなくなる。&lt;/h5&gt;
+&lt;h5 id=&#34;プロジェクトの作成途中で次画面に遷移しなくなる:bd8b9a47038f3244ff294ee6ef501def&#34;&gt;プロジェクトの作成途中で次画面に遷移しなくなる。&lt;/h5&gt;
 
 &lt;ul&gt;
 &lt;li&gt;追加DBデータを挿入していない。&lt;/li&gt;
@@ -4006,99 +4239,10 @@ Password: 123123
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;li id=&#34;fn:2&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;/div&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Wekan on Dockerでお手軽かんばん式プロジェクト管理</title>
-      <link>http://blog.namiking.net/post/2015/09/docker-wekan/</link>
-      <pubDate>Tue, 01 Sep 2015 09:30:23 +0900</pubDate>
-      
-      <guid>http://blog.namiking.net/post/2015/09/docker-wekan/</guid>
-      <description>
-
-&lt;p&gt;かんばん式管理ツール&lt;code&gt;Wekan&lt;/code&gt;は&lt;code&gt;Trello&lt;/code&gt;クローンの一つ。&lt;br /&gt;
-ちょっと前まで、&lt;code&gt;LibreBoard&lt;/code&gt;という名前の&lt;code&gt;Trello&lt;/code&gt;クローンでしたが、
-最近、&lt;code&gt;Wekan&lt;/code&gt;という名前に変わったようです。&lt;br /&gt;
-必要最低限の機能がコンパクトにまとまっていて非常に扱いやすい。&lt;/p&gt;
-
-&lt;p&gt;少し触ってみたところ、機能的には&lt;code&gt;LibreBoard&lt;/code&gt;のままで、
-以前より見栄えにオリジナリティが増したように感じます。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/docker-wekan/wekan01.jpg&#34; alt=&#34;Wekan ScreenShot&#34; /&gt;&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;Wekan (旧LibreBoard)&lt;br /&gt;
-&lt;a href=&#34;http://newui.libreboard.com&#34;&gt;http://newui.libreboard.com&lt;/a&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h3 id=&#34;dockerを利用した導入手順&#34;&gt;Dockerを利用した導入手順&lt;/h3&gt;
-
-&lt;p&gt;公式のGitHubに置いてあったDockerfileを参考にさせていただく。&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;GitHub: wekan/wekan&lt;br /&gt;
-&lt;a href=&#34;https://github.com/wekan/wekan&#34;&gt;https://github.com/wekan/wekan&lt;/a&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h4 id=&#34;00-事前準備&#34;&gt;00. 事前準備&lt;/h4&gt;
-
-&lt;p&gt;&lt;code&gt;Docker&lt;/code&gt;と&lt;code&gt;docker-compose&lt;/code&gt;&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;をインストールしておく。&lt;/p&gt;
-
-&lt;h4 id=&#34;01-docker-compose-yml-設置&#34;&gt;01. docker-compose.yml 設置&lt;/h4&gt;
-
-&lt;p&gt;以下の内容の&lt;code&gt;docker-compose.yml&lt;/code&gt;を設置する。&lt;br /&gt;
-&lt;code&gt;ROOT_URL&lt;/code&gt;辺りを各々の環境に合わせて書き換える。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;data:
-  image: busybox
-  volumes:
-    - /data/db
-
-mongo:
-  image: mongo
-  volumes_from:
-    - data
-  restart: always
-
-wekan:
-  image: mquandalle/wekan
-  environment:
-    MONGO_URL: mongodb://db
-    ROOT_URL: http://example.com
-  links:
-    - mongo:db
-  ports:
-    - &amp;quot;8080:80&amp;quot;
-  restart: always
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;02-docker起動&#34;&gt;02. Docker起動&lt;/h4&gt;
-
-&lt;p&gt;先ほどの&lt;code&gt;docker-compose.yml&lt;/code&gt;があるディレクトリ内で、以下のコマンドを入力。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;docker-compose up -d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id=&#34;03-動作確認&#34;&gt;03. 動作確認&lt;/h4&gt;
-
-&lt;p&gt;画面内の「登録する」から、ユーザーを登録を行う。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://(SERVER_IP):8080/
-&lt;/code&gt;&lt;/pre&gt;
-&lt;div class=&#34;footnotes&#34;&gt;
-
-&lt;hr /&gt;
-
-&lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;参考： &lt;a href=&#34;http://blog.namiking.net/post/2015/09/install-docker-compose/&#34;&gt;docker-composeのインストールとバージョン差異エラー回避方法&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;参考： &lt;a href=&#34;https://github.com/taigaio/taiga-scripts/issues/23&#34;&gt;https://github.com/taigaio/taiga-scripts/issues/23&lt;/a&gt;
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:bd8b9a47038f3244ff294ee6ef501def:2&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>

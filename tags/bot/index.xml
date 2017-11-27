@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Bot on Namiking.net</title>
+    <link>http://blog.namiking.net/tags/bot/</link>
+    <description>Recent content in Bot on Namiking.net</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>jp-ja</language>
+    <lastBuildDate>Mon, 27 Nov 2017 18:00:00 +0900</lastBuildDate>
+    <atom:link href="http://blog.namiking.net/tags/bot/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する</title>
+      <link>http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/</link>
+      <pubDate>Mon, 27 Nov 2017 18:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/</guid>
+      <description>
+
+&lt;p&gt;CLI と違い、引数を渡す方法が標準化しておらず、パースを実装する必要があった。Slack の &lt;code&gt;/remind&lt;/code&gt; スラッシュコマンドのように、自然言語風に Bot へのパラメーターを抽出したい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/remind me to drink water at 3pm every day
+/remind me on June 1st to wish Linda happy birthday
+/remind #team-alpha to update the project status every Monday at 9am
+/remind @jessica about the interview in 3 hours
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;正規表現を使うと複雑になりがちな上のようなパラメーター抽出のため、パーサーコンビネーターを使って、パーサーを実装してみる。&lt;/p&gt;
+
+&lt;h3 id=&#34;実装したいこと:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;実装したいこと&lt;/h3&gt;
+
+&lt;p&gt;例えば、CircleCI の特定のジョブを Bot を通じて Slack から起動するために、自然言語風のテキストからパラメーターを抽出したい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;post build to (username)/(reponame) [on (ブランチ名)] [at (コミットハッシュ)] [for (ジョブ名)]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;パラメーター抽出例:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;パラメーター抽出例&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;post build to namikingsoft/namikingsoft.github.io on master for deploy
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;{
+  &amp;quot;repo&amp;quot;: &amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;,
+  &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+  &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;実装してみる:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;実装してみる&lt;/h3&gt;
+
+&lt;p&gt;上の要件を実装したコード例と軽い解説。&lt;/p&gt;
+
+&lt;h4 id=&#34;00-ソースコード全体:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;00. ソースコード全体&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const P = require(&#39;parsimmon&#39;);
+const R = require(&#39;ramda&#39;);
+
+// map functions
+const mapToThirdArg = (_1, _2, _3) =&amp;gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&amp;gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&amp;gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string(&#39;to&#39;);
+const on = P.string(&#39;on&#39;);
+const at = P.string(&#39;at&#39;);
+const fr = P.string(&#39;for&#39;); // TODO: alt `for`
+const slash = P.string(&#39;/&#39;);
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range(&#39;a&#39;, &#39;z&#39;);
+const letterLarge = P.range(&#39;A&#39;, &#39;Z&#39;);
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range(&#39;a&#39;, &#39;f&#39;), digit);
+const symbolForSep = P.oneOf(&#39;._-&#39;);
+const symbolForBranch = P.oneOf(&#39;._-/#+&#39;);
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node(&#39;repo&#39;);
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node(&#39;job&#39;);
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node(&#39;branch&#39;);
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node(&#39;revision&#39;);
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+
+// parse
+const text1 =
+  &#39;post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy&#39;;
+const text2 =
+  &#39;pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io&#39;;
+
+sentence.tryParse(text1);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;revision&amp;quot;: &amp;quot;abcd1234&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(&#39;illegal text example&#39;);
+// -&amp;gt; Exception!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;RunKit でコードを実行する&lt;br /&gt;
+&lt;a href=&#34;https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon&#34;&gt;https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;01-使っている-npm-モジュール:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;01. 使っている npm モジュール&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const P = require(&#39;parsimmon&#39;);
+const R = require(&#39;ramda&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;parsimmon-パーサーコンビネーターライブラリ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Parsimmon - パーサーコンビネーターライブラリ&lt;/h5&gt;
+
+&lt;p&gt;JS のパーサーコンビネーターライブラリの１つ。Haskell の &lt;code&gt;Parserc&lt;/code&gt; ライクに使える。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: jneen/parsimmon&lt;br /&gt;
+&lt;a href=&#34;https://github.com/jneen/parsimmon&#34;&gt;https://github.com/jneen/parsimmon&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h5 id=&#34;ramda-関数型プログラミング支援ライブラリ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Ramda - 関数型プログラミング支援ライブラリ&lt;/h5&gt;
+
+&lt;p&gt;関数型プログラミングライブラリの１つ。今回はパーサーの戻り値調整のみに使った。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Ramda Documentation&lt;br /&gt;
+&lt;a href=&#34;http://ramdajs.com/&#34;&gt;http://ramdajs.com/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;02-字句の定義:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;02. 字句の定義&lt;/h4&gt;
+
+&lt;p&gt;入力文を構成する要素を BNF のような感覚で字句の定義を行っていく。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string(&#39;to&#39;);
+const on = P.string(&#39;on&#39;);
+const at = P.string(&#39;at&#39;);
+const fr = P.string(&#39;for&#39;); // TODO: alt `for`
+const slash = P.string(&#39;/&#39;);
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range(&#39;a&#39;, &#39;z&#39;);
+const letterLarge = P.range(&#39;A&#39;, &#39;Z&#39;);
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range(&#39;a&#39;, &#39;f&#39;), digit);
+const symbolForSep = P.oneOf(&#39;._-&#39;);
+const symbolForBranch = P.oneOf(&#39;._-/#+&#39;);
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;03-パーサーの構築:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;03. パーサーの構築&lt;/h4&gt;
+
+&lt;p&gt;パーサーを構成する字句を組み合わせたり、関数出力の調整を行う。ノード定義は &lt;code&gt;alt&lt;/code&gt; を使っても、どの要素が該当したか識別できるするために &lt;code&gt;node&lt;/code&gt; で名前をつけていくイメージ。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// map functions
+const mapToThirdArg = (_1, _2, _3) =&amp;gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&amp;gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&amp;gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node(&#39;repo&#39;);
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node(&#39;job&#39;);
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node(&#39;branch&#39;);
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node(&#39;revision&#39;);
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;04-パーサーを使う:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;04. パーサーを使う&lt;/h4&gt;
+
+&lt;p&gt;定義した構文に沿ったテキストが入力された場合は、ノードの名前をキーとしたオブジェクトとして返され、そうでない場合は&lt;strong&gt;例外が発生&lt;/strong&gt;する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// parse
+const text1 =
+  &#39;post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy&#39;;
+const text2 =
+  &#39;pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io&#39;;
+
+sentence.tryParse(text1);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;revision&amp;quot;: &amp;quot;abcd1234&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(&#39;illegal text example&#39;);
+// -&amp;gt; Exception!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;まとめ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;まとめ&lt;/h3&gt;
+
+&lt;p&gt;頑張れば正規表現で書けなくもなさそうなテキストパースを、パーサーコンビネーターで書いてみて、思ったこといくつか。&lt;/p&gt;
+
+&lt;h4 id=&#34;各要素に名前を付けられる-組み合わせることができる:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;各要素に名前を付けられる ＆ 組み合わせることができる&lt;/h4&gt;
+
+&lt;p&gt;正規表現で複雑なパーサーを書くと、意味不明な文字列の羅列になりやすく、リーダブルに書くことが難しいが、字句レベルから変数にできて、再利用もしやすい点が良いと感じた。&lt;/p&gt;
+
+&lt;h4 id=&#34;parsimmon-ドキュメントが-parsec-より簡潔でわかりやすい:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Parsimmon ドキュメントが Parsec より簡潔でわかりやすい&lt;/h4&gt;
+
+&lt;p&gt;Haskell の Parsec でパーサーを実装していたときは、&lt;a href=&#34;https://hackage.haskell.org/package/parsec&#34;&gt;Hackage&lt;/a&gt; を見ても、&lt;a href=&#34;https://www.google.com/search?q=haskell+parsec+documentation&#34;&gt;ググっても&lt;/a&gt;、いまいち使い方がわからず、入門用にまとまっているドキュメントを探すのに苦労したが、&lt;a href=&#34;https://github.com/jneen/parsimmon/blob/master/API.md&#34;&gt;Parsimmon ドキュメント&lt;/a&gt;はコード例とともに簡潔にまとまっていて、実装がしやすかった。Parsec の練習用にも良いかもしれない。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/jneen/parsimmon/tree/master/examples&#34;&gt;Examples&lt;/a&gt; には、軽量スクリプト言語のパーサーや JS Linter の実装例もあったので、より複雑なパーサーを構築したくなったときに参照したい。&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

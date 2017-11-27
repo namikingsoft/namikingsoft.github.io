@@ -19,7 +19,7 @@
 
 &lt;p&gt;サーバーサイドのReactに触れたことがなかったので、React+Express+webpackで試してみた。今回試行した手順をチュートリアル的にまとめておく。まずは、シンプルにできそうなECMAScript6で試して、後半にTypeScriptで組んだソースも、おまけ的に載せておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;この記事の方針&#34;&gt;この記事の方針&lt;/h3&gt;
+&lt;h3 id=&#34;この記事の方針:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;この記事の方針&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;クライアント -&amp;gt; サーバーサイド -&amp;gt; 結びつける。の順に実装を行う&lt;/li&gt;
@@ -31,12 +31,12 @@
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;実装するサンプルアプリの内容&#34;&gt;実装するサンプルアプリの内容&lt;/h4&gt;
+&lt;h4 id=&#34;実装するサンプルアプリの内容:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;実装するサンプルアプリの内容&lt;/h4&gt;
 
 &lt;p&gt;チュートリアルでよくありそうな、シンプルなカウンターアプリを動かす。
 &lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/sample.png&#34; alt=&#34;Sample&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;事前に必要なソフトウェア&#34;&gt;事前に必要なソフトウェア&lt;/h4&gt;
+&lt;h4 id=&#34;事前に必要なソフトウェア:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;事前に必要なソフトウェア&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;node.js (v5.6.0)&lt;/li&gt;
@@ -45,7 +45,7 @@
 
 &lt;p&gt;現時点の安定版を使ってみたが、そこまで新しくなくても問題ない。&lt;/p&gt;
 
-&lt;h4 id=&#34;memo-利用したnpmパッケージのバージョン&#34;&gt;[Memo] 利用したnpmパッケージのバージョン&lt;/h4&gt;
+&lt;h4 id=&#34;memo-利用したnpmパッケージのバージョン:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;[Memo] 利用したnpmパッケージのバージョン&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;&amp;quot;dependencies&amp;quot;: {
   &amp;quot;express&amp;quot;: &amp;quot;^4.13.4&amp;quot;,
@@ -66,7 +66,7 @@
 
 &lt;p&gt;バージョンが新しくなったりすると、この記事の書き方と変わってくる可能性があるので、注意。&lt;/p&gt;
 
-&lt;h2 id=&#34;ecmascript6-版-チュートリアル&#34;&gt;ECMAScript6 版 (チュートリアル)&lt;/h2&gt;
+&lt;h2 id=&#34;ecmascript6-版-チュートリアル:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;ECMAScript6 版 (チュートリアル)&lt;/h2&gt;
 
 &lt;p&gt;Reactドキュメントの&lt;a href=&#34;https://facebook.github.io/react/docs/getting-started.html&#34;&gt;Getting Started&lt;/a&gt;でも、Babelを利用しているようなので、まずは、Babelを使って、ECMAScript6で記述できるようにしてみる。なお、サンプルソースの完成版を以下のリポジトリに置いといたので、参考にされたい。&lt;/p&gt;
 
@@ -75,7 +75,7 @@
 &lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/tree/typescript&#34;&gt;https://github.com/namikingsoft/sample-react-server/tree/typescript&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;まずはクライアント側で動かしてみる&#34;&gt;まずはクライアント側で動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;まずはクライアント側で動かしてみる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;まずはクライアント側で動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;ファイル構成は以下の様な感じになるように、作業をすすめる。&lt;/p&gt;
 
@@ -92,7 +92,7 @@
 `-- webpack.config.js   # webpack設定
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;npm-init&#34;&gt;npm init&lt;/h4&gt;
+&lt;h4 id=&#34;npm-init:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;npm init&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;mkdir react-server
 cd react-server
@@ -102,7 +102,7 @@ npm init
 
 &lt;p&gt;適当なディレクトリを作り、package.jsonのテンプレートを作っておく。&lt;code&gt;npm init&lt;/code&gt;の選択肢も全て空Enterで問題ない。&lt;/p&gt;
 
-&lt;h4 id=&#34;必要なnpmパッケージをインストール&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なnpmパッケージをインストール:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm install --save react react-dom
 npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-react
@@ -110,7 +110,7 @@ npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-rea
 
 &lt;p&gt;モダンブラウザによっては、&lt;code&gt;babel-preset-es2015&lt;/code&gt;はいらないかもだが、一応。&lt;/p&gt;
 
-&lt;h4 id=&#34;webpack-config-js&#34;&gt;webpack.config.js&lt;/h4&gt;
+&lt;h4 id=&#34;webpack-config-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;webpack.config.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;var webpack = require(&#39;webpack&#39;);
 
@@ -140,7 +140,7 @@ module.exports = {
 
 &lt;p&gt;なるべくシンプルにするため、HotLoaderなど記述は入れていない。&lt;/p&gt;
 
-&lt;h4 id=&#34;babelrc&#34;&gt;.babelrc&lt;/h4&gt;
+&lt;h4 id=&#34;babelrc:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;.babelrc&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;{
   &amp;quot;presets&amp;quot;: [&amp;quot;es2015&amp;quot;, &amp;quot;react&amp;quot;],
@@ -149,7 +149,7 @@ module.exports = {
 
 &lt;p&gt;Babelの設定ファイル。&lt;code&gt;React -&amp;gt; ES6 -&amp;gt; ES5&lt;/code&gt;のような感じで、どのブラウザでも割りかし動作するように変換する。&lt;/p&gt;
 
-&lt;h4 id=&#34;public-test-html&#34;&gt;public/test.html&lt;/h4&gt;
+&lt;h4 id=&#34;public-test-html:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;public/test.html&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;!DOCTYPE html&amp;gt;
 &amp;lt;html&amp;gt;
@@ -165,7 +165,7 @@ module.exports = {
 
 &lt;p&gt;クライアントJSの動作確認用HTML。&lt;code&gt;app.js&lt;/code&gt;が実行された後に、&lt;code&gt;&amp;lt;div id=&amp;quot;app&amp;quot;&amp;gt;&amp;lt;/div&amp;gt;&lt;/code&gt;の中身がCounterコンポーネントに置き換わる。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-client-js&#34;&gt;src/client.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-client-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/client.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import React from &#39;react&#39;
 import ReactDOM from &#39;react-dom&#39;
@@ -179,7 +179,7 @@ ReactDOM.render(
 
 &lt;p&gt;Counterコンポーネントを&lt;code&gt;&amp;lt;div id=&amp;quot;app&amp;quot; /&amp;gt;&lt;/code&gt;に表示する。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-components-counter-js&#34;&gt;src/components/Counter.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-components-counter-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/components/Counter.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import React, {Component} from &#39;react&#39;
 
@@ -211,7 +211,7 @@ export default class Counter extends Component {
 
 &lt;p&gt;Incrementボタンを押したら、内部Stateが変化して、コンポーネントを再描写される。&lt;/p&gt;
 
-&lt;h4 id=&#34;webpack実行&#34;&gt;webpack実行&lt;/h4&gt;
+&lt;h4 id=&#34;webpack実行:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;webpack実行&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;./node_modules/.bin/webpack
 &lt;/code&gt;&lt;/pre&gt;
@@ -228,12 +228,12 @@ export default class Counter extends Component {
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm run build
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作確認&#34;&gt;動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;動作確認:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;動作確認&lt;/h4&gt;
 
 &lt;p&gt;Incrementボタンを押して、Stateの変動やコンポーネントの再描写が確認できる。
 &lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/client-result.png&#34; alt=&#34;Client Result&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;サーバーサイドからコンポーネントを描写する&#34;&gt;サーバーサイドからコンポーネントを描写する&lt;/h3&gt;
+&lt;h3 id=&#34;サーバーサイドからコンポーネントを描写する:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドからコンポーネントを描写する&lt;/h3&gt;
 
 &lt;p&gt;ファイル構成としては以下。&lt;code&gt;src/server.js&lt;/code&gt;が追加されただけ。&lt;/p&gt;
 
@@ -250,7 +250,7 @@ export default class Counter extends Component {
 `-- webpack.config.js
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;必要なnpmパッケージをインストール-1&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なnpmパッケージをインストール-1:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm install --save express
 npm install --save-dev babel-cli
@@ -258,7 +258,7 @@ npm install --save-dev babel-cli
 
 &lt;p&gt;軽量Webフレームワークの&lt;code&gt;express&lt;/code&gt;と、node.jsの実行をbabelに通すための&lt;code&gt;babel-cli&lt;/code&gt;をインストールする。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-server-js&#34;&gt;src/server.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-server-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/server.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import express from &#39;express&#39;
 import React from &#39;react&#39;
@@ -286,7 +286,7 @@ app.listen(3000, () =&amp;gt; {
 &lt;p&gt;&lt;code&gt;ReactDOMServer.renderToString()&lt;/code&gt;を使って、コンポーネントをプリレンダリングできる。&lt;br /&gt;
 (HTMLの側端は端折ってます)&lt;/p&gt;
 
-&lt;h4 id=&#34;サーバー起動&#34;&gt;サーバー起動&lt;/h4&gt;
+&lt;h4 id=&#34;サーバー起動:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバー起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;node_modules/.bin/babel-node src/server.js
 &lt;/code&gt;&lt;/pre&gt;
@@ -304,7 +304,7 @@ app.listen(3000, () =&amp;gt; {
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm start
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作確認-1&#34;&gt;動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;動作確認-1:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://localhost:3000
 &lt;/code&gt;&lt;/pre&gt;
@@ -317,11 +317,11 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないため、と思われる。&lt;/p&gt;
 
-&lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
+&lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
 
 &lt;p&gt;Fluxフレームワークで有名なReduxのドキュメントの&lt;a href=&#34;https://github.com/rackt/redux/blob/master/docs/recipes/ServerRendering.md&#34;&gt;Server Rendering&lt;/a&gt;を見るに、サーバーサイドでプリレンダした要素に、再度クライアントからレンダリングをかけている様な処理になっていたので、試してみる。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-server-js-の修正&#34;&gt;src/server.js の修正&lt;/h4&gt;
+&lt;h4 id=&#34;src-server-js-の修正:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/server.js の修正&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;import express from &#39;express&#39;
 import React from &#39;react&#39;
@@ -357,7 +357,7 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;&lt;code&gt;app.use(express.static(&#39;public&#39;))&lt;/code&gt;で、publicディレクトリ以下のファイルを静的ファイルとして、読み込み可能として、プリレンダする内容をクライアント側の時に試した&lt;code&gt;test.html&lt;/code&gt;と同じような記述に変更する。&lt;/p&gt;
 
-&lt;h4 id=&#34;再度-動作確認&#34;&gt;再度、動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;再度-動作確認:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;再度、動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm start
 open http://localhost:3000
@@ -365,7 +365,7 @@ open http://localhost:3000
 
 &lt;p&gt;今度は、Incrementボタン押下で、正常動作を確認できるはず。&lt;/p&gt;
 
-&lt;h2 id=&#34;typescript-版-要約&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
+&lt;h2 id=&#34;typescript-版-要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
 
 &lt;p&gt;型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は&lt;code&gt;ts-loader&lt;/code&gt;を挟むぐらいで概ね対応できるが、サーバーサイドは&lt;code&gt;babel-node&lt;/code&gt;に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。&lt;/p&gt;
 
@@ -377,11 +377,11 @@ open http://localhost:3000
 &lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/compare/typescript&#34;&gt;https://github.com/namikingsoft/sample-react-server/compare/typescript&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;要約&#34;&gt;要約&lt;/h3&gt;
+&lt;h3 id=&#34;要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;要約&lt;/h3&gt;
 
 &lt;p&gt;TypeScript版については、上のようにチュートリアル形式にはせず、要約解説にしたい。詳しくは上の&lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/compare/typescript&#34;&gt;ECMAScript6版との差分&lt;/a&gt;を見ていただいたほうが、早いかもしれない。&lt;/p&gt;
 
-&lt;h4 id=&#34;型定義ファイルマネージャにはdtsmを使った&#34;&gt;型定義ファイルマネージャにはdtsmを使った。&lt;/h4&gt;
+&lt;h4 id=&#34;型定義ファイルマネージャにはdtsmを使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;型定義ファイルマネージャにはdtsmを使った。&lt;/h4&gt;
 
 &lt;p&gt;npmとほぼ同じインタフェースなので使いやすい。以下コマンド例。&lt;/p&gt;
 
@@ -394,7 +394,7 @@ dtsm install --save react-dom.d.ts
 dtsm install --save express.d.ts
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サーバーサイドのコンパイルはtscを直接使った&#34;&gt;サーバーサイドのコンパイルはtscを直接使った。&lt;/h4&gt;
+&lt;h4 id=&#34;サーバーサイドのコンパイルはtscを直接使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドのコンパイルはtscを直接使った。&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;babel-node&lt;/code&gt;のようなラッパーコマンドがあることを期待したが、観測内ではなさそうなので、通常通り、&lt;code&gt;dist&lt;/code&gt;ディレクトリあたりに、コンパイル済みのJSを展開して、&lt;code&gt;node dist/server.js&lt;/code&gt;みたいにする作戦にした。&lt;/p&gt;
 
@@ -431,7 +431,7 @@ dtsm install --save express.d.ts
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm run build
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;クライアントのコンパイルにはwebpackのts-loaderを使った&#34;&gt;クライアントのコンパイルにはwebpackのts-loaderを使った。&lt;/h4&gt;
+&lt;h4 id=&#34;クライアントのコンパイルにはwebpackのts-loaderを使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;クライアントのコンパイルにはwebpackのts-loaderを使った。&lt;/h4&gt;
 
 &lt;p&gt;webpack.config.jsの修正差分は以下の様な感じになる。なお、TypeScript自体が、&lt;code&gt;React -&amp;gt; ES6 -&amp;gt; ES5&lt;/code&gt;変換機能を備えているので、無理にBabelに通さなくてもよい。&lt;/p&gt;
 
@@ -468,7 +468,7 @@ module.exports = {
 };
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;あとがき&#34;&gt;あとがき&lt;/h2&gt;
+&lt;h2 id=&#34;あとがき:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;あとがき&lt;/h2&gt;
 
 &lt;p&gt;なるべくシンプルな構成で、サーバーサイドReactを試してみた。&lt;/p&gt;
 
@@ -505,7 +505,7 @@ module.exports = {
 
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/index.jpg&#34; alt=&#34;ScreenShot&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;動作サンプル&#34;&gt;動作サンプル&lt;/h3&gt;
+&lt;h3 id=&#34;動作サンプル:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作サンプル&lt;/h3&gt;
 
 &lt;p&gt;ひと通り動くサンプルを作ったので、以下のGitHubに上げておきます。
 nodeやnpmがインストールされていれば、動作すると思われます。&lt;/p&gt;
@@ -518,7 +518,7 @@ nodeやnpmがインストールされていれば、動作すると思われま�
 &lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;https://github.com/namikingsoft/sample-webpack-test&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h3 id=&#34;試しにブラウザで動かしてみる&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;試しにブラウザで動かしてみる:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;試しにブラウザで動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;GitHub上の&lt;a href=&#34;https://github.com/namikingsoft/sample-webpack-test&#34;&gt;動作サンプル&lt;/a&gt;をcloneして、
 webpack-dev-serverを起動したら、
@@ -526,7 +526,7 @@ webpack-dev-serverを起動したら、
 
 &lt;p&gt;&lt;a href=&#34;http://localhost:8080/webpack-dev-server/&#34;&gt;http://localhost:8080/webpack-dev-server/&lt;/a&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;コマンド例&#34;&gt;コマンド例&lt;/h4&gt;
+&lt;h4 id=&#34;コマンド例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;コマンド例&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;git clone https://github.com/namikingsoft/sample-webpack-test
 cd sample-webpack-test
@@ -534,7 +534,7 @@ npm install &amp;amp;&amp;amp; npm start
 open http://localhost:8080/webpack-dev-server/
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作画面の例&#34;&gt;動作画面の例&lt;/h4&gt;
+&lt;h4 id=&#34;動作画面の例:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;動作画面の例&lt;/h4&gt;
 
 &lt;p&gt;フロントエンドアプリとMochaのSpecを同時に動かしている図。
 Seleniumみたいにギュンギュン動いて楽しい。
@@ -543,12 +543,12 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 &lt;p&gt;&lt;img src=&#34;http://blog.namiking.net/images/post/2015/09/test-webpack-browser/animation.gif&#34; alt=&#34;Animation&#34; /&gt;&lt;/p&gt;
 
 &lt;p&gt;Specは走らなくていいから、
-アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
+アプリの動作確認だけしたいときは以下のURL&lt;sup class=&#34;footnote-ref&#34; id=&#34;fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;a rel=&#34;footnote&#34; href=&#34;#fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;1&lt;/a&gt;&lt;/sup&gt;で可能。
 &lt;a href=&#34;http://localhost:8081/webpack-dev-server/app&#34;&gt;http://localhost:8081/webpack-dev-server/app&lt;/a&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;ざっくり解説&#34;&gt;ざっくり解説&lt;/h3&gt;
+&lt;h3 id=&#34;ざっくり解説:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ざっくり解説&lt;/h3&gt;
 
-&lt;h4 id=&#34;ファイル構成&#34;&gt;ファイル構成&lt;/h4&gt;
+&lt;h4 id=&#34;ファイル構成:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;ファイル構成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;sample-webpack-test
 |-- build
@@ -566,7 +566,7 @@ Mochaのテスト中にに割り込んでワザとテストを失敗させたり
 webpack-dev-server内の動作であれば、
 メモリ内のものが呼び出されるようなので、特に設置する必要はなさそう。&lt;/p&gt;
 
-&lt;h4 id=&#34;複数のspecファイルに対応する&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
+&lt;h4 id=&#34;複数のspecファイルに対応する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;複数のSpecファイルに対応する&lt;/h4&gt;
 
 &lt;p&gt;npmのglobモジュールを利用して、
 複数のSpecファイルをエントリーポイントに含めることができる。
@@ -580,7 +580,7 @@ entry: {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;修正後に自動的にテストが走るようにする&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
+&lt;h4 id=&#34;修正後に自動的にテストが走るようにする:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;修正後に自動的にテストが走るようにする&lt;/h4&gt;
 
 &lt;p&gt;webpack-dev-serverには、ファイル修正を検知して再読み込みをしてくれる、
 hotモードという機能が付いているので、webpack.config.jsでそれをを有効にする。&lt;/p&gt;
@@ -603,7 +603,7 @@ plugins: [
 ],
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
+&lt;h4 id=&#34;specファイルをブラウザで動作するように変換する:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;Specファイルをブラウザで動作するように変換する&lt;/h4&gt;
 
 &lt;p&gt;webpackの&lt;a href=&#34;http://webpack.github.io/docs/testing.html&#34;&gt;Testing&lt;/a&gt;のページにもあるが、
 mocha-loaderを噛ますことで、ブラウザでMochaが利用可能になるJSが吐き出せるようになる。&lt;/p&gt;
@@ -632,7 +632,7 @@ module: {
 },
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
+&lt;h4 id=&#34;appとspecを同時に走らせるhtmlを用意:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;AppとSpecを同時に走らせるHTMLを用意&lt;/h4&gt;
 
 &lt;p&gt;アプリの動作画面にSpec結果のレイアウトを入れ込む。&lt;br /&gt;
 &lt;code&gt;app.js&lt;/code&gt;で必要なUIを書き出すなどの初期処理を行ってから、&lt;code&gt;spec.js&lt;/code&gt;を走らせている。&lt;/p&gt;
@@ -669,7 +669,7 @@ module: {
 &amp;lt;/html&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;あとがき&#34;&gt;あとがき&lt;/h3&gt;
+&lt;h3 id=&#34;あとがき:83d5efb00d572fc7f727b6dff95ecdf6&#34;&gt;あとがき&lt;/h3&gt;
 
 &lt;p&gt;ChromeとかFirefoxなどの複数のブラウザ上で手軽にフロント動作仕様を自動チェックしたい、
 みたいなときの方法論の一つとして紹介してみた。&lt;/p&gt;
@@ -683,8 +683,8 @@ webpackはKermaとも簡単に連動できるようなので、
 &lt;hr /&gt;
 
 &lt;ol&gt;
-&lt;li id=&#34;fn:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
- &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li id=&#34;fn:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;URLの&lt;code&gt;app&lt;/code&gt;の部分はバンドルJS出力先のパスを指定すれば、webpack-dev-serverが出力用HTMLを自動生成してくれるみたい。(&lt;code&gt;.js&lt;/code&gt;は省略してます)
+ &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:83d5efb00d572fc7f727b6dff95ecdf6:1&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
 </description>

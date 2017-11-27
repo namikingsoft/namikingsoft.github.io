@@ -23,9 +23,9 @@
 
 &lt;p&gt;が、使っていて「おやっ？」っと思う点もいくつかあったので、まとめてみた。&lt;/p&gt;
 
-&lt;h2 id=&#34;気になったこと４つ&#34;&gt;気になったこと４つ&lt;/h2&gt;
+&lt;h2 id=&#34;気になったこと４つ:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;気になったこと４つ&lt;/h2&gt;
 
-&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
+&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://github.com/babel/babel-eslint&#34;&gt;babel-eslint&lt;/a&gt;というBabelパーサーを用いれば、概ねのESLintルールがflow文法でも適応できるが、例外もあった。&lt;/p&gt;
 
@@ -72,7 +72,7 @@ module.exports = {
 &lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
 &lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
+&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
 
 &lt;p&gt;例えば、&lt;strong&gt;ES6のget/setプロパティ&lt;/strong&gt;が使えなかった。&lt;/p&gt;
 
@@ -95,7 +95,7 @@ console.log(a.field)
 
 &lt;p&gt;&lt;code&gt;yet&lt;/code&gt;ってあるので、いずれサポートされるのだろうか。&lt;/p&gt;
 
-&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
+&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
 
 &lt;p&gt;flow的には&lt;strong&gt;Polymorphism&lt;/strong&gt;というのかな？&lt;br /&gt;
 TypeScriptやJava感覚で以下のように書くと、flowだとSyntaxエラーになった。&lt;/p&gt;
@@ -128,7 +128,7 @@ const map = (new WeakMap(): WeakMap&amp;lt;string, number&amp;gt;)
 const nums = toArray(2)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
+&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
 
 &lt;p&gt;クラスやインタフェースの定義などで、以下のように書くと、&lt;/p&gt;
 
@@ -161,7 +161,7 @@ const nums = toArray(2)
 &lt;p&gt;アンチ・セミコロン派には吐きそうなほどキツイ仕様。&lt;br /&gt;
 &lt;a href=&#34;https://github.com/facebook/flow/issues/825&#34;&gt;https://github.com/facebook/flow/issues/825&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;flowを使ってみて、以下４つの気になったことをまとめてみた。&lt;/p&gt;
 

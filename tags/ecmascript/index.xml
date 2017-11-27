@@ -6,8 +6,241 @@
     <description>Recent content in Ecmascript on Namiking.net</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>jp-ja</language>
-    <lastBuildDate>Sun, 22 May 2016 20:00:00 +0900</lastBuildDate>
+    <lastBuildDate>Mon, 27 Nov 2017 18:00:00 +0900</lastBuildDate>
     <atom:link href="http://blog.namiking.net/tags/ecmascript/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>パーサーコンビネーターを使って自然言語風のテキストからパラメーターを抽出する</title>
+      <link>http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/</link>
+      <pubDate>Mon, 27 Nov 2017 18:00:00 +0900</pubDate>
+      
+      <guid>http://blog.namiking.net/post/2017/11/parse-text-for-bot-using-parsimmon/</guid>
+      <description>
+
+&lt;p&gt;CLI と違い、引数を渡す方法が標準化しておらず、パースを実装する必要があった。Slack の &lt;code&gt;/remind&lt;/code&gt; スラッシュコマンドのように、自然言語風に Bot へのパラメーターを抽出したい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/remind me to drink water at 3pm every day
+/remind me on June 1st to wish Linda happy birthday
+/remind #team-alpha to update the project status every Monday at 9am
+/remind @jessica about the interview in 3 hours
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;正規表現を使うと複雑になりがちな上のようなパラメーター抽出のため、パーサーコンビネーターを使って、パーサーを実装してみる。&lt;/p&gt;
+
+&lt;h3 id=&#34;実装したいこと:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;実装したいこと&lt;/h3&gt;
+
+&lt;p&gt;例えば、CircleCI の特定のジョブを Bot を通じて Slack から起動するために、自然言語風のテキストからパラメーターを抽出したい。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;post build to (username)/(reponame) [on (ブランチ名)] [at (コミットハッシュ)] [for (ジョブ名)]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;パラメーター抽出例:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;パラメーター抽出例&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code&gt;post build to namikingsoft/namikingsoft.github.io on master for deploy
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;{
+  &amp;quot;repo&amp;quot;: &amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;,
+  &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+  &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;実装してみる:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;実装してみる&lt;/h3&gt;
+
+&lt;p&gt;上の要件を実装したコード例と軽い解説。&lt;/p&gt;
+
+&lt;h4 id=&#34;00-ソースコード全体:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;00. ソースコード全体&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const P = require(&#39;parsimmon&#39;);
+const R = require(&#39;ramda&#39;);
+
+// map functions
+const mapToThirdArg = (_1, _2, _3) =&amp;gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&amp;gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&amp;gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string(&#39;to&#39;);
+const on = P.string(&#39;on&#39;);
+const at = P.string(&#39;at&#39;);
+const fr = P.string(&#39;for&#39;); // TODO: alt `for`
+const slash = P.string(&#39;/&#39;);
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range(&#39;a&#39;, &#39;z&#39;);
+const letterLarge = P.range(&#39;A&#39;, &#39;Z&#39;);
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range(&#39;a&#39;, &#39;f&#39;), digit);
+const symbolForSep = P.oneOf(&#39;._-&#39;);
+const symbolForBranch = P.oneOf(&#39;._-/#+&#39;);
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node(&#39;repo&#39;);
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node(&#39;job&#39;);
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node(&#39;branch&#39;);
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node(&#39;revision&#39;);
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+
+// parse
+const text1 =
+  &#39;post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy&#39;;
+const text2 =
+  &#39;pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io&#39;;
+
+sentence.tryParse(text1);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;revision&amp;quot;: &amp;quot;abcd1234&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(&#39;illegal text example&#39;);
+// -&amp;gt; Exception!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;RunKit でコードを実行する&lt;br /&gt;
+&lt;a href=&#34;https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon&#34;&gt;https://runkit.com/namikingsoft/parse-text-for-bot-using-parsimmon&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;01-使っている-npm-モジュール:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;01. 使っている npm モジュール&lt;/h4&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;const P = require(&#39;parsimmon&#39;);
+const R = require(&#39;ramda&#39;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id=&#34;parsimmon-パーサーコンビネーターライブラリ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Parsimmon - パーサーコンビネーターライブラリ&lt;/h5&gt;
+
+&lt;p&gt;JS のパーサーコンビネーターライブラリの１つ。Haskell の &lt;code&gt;Parserc&lt;/code&gt; ライクに使える。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;GitHub: jneen/parsimmon&lt;br /&gt;
+&lt;a href=&#34;https://github.com/jneen/parsimmon&#34;&gt;https://github.com/jneen/parsimmon&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h5 id=&#34;ramda-関数型プログラミング支援ライブラリ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Ramda - 関数型プログラミング支援ライブラリ&lt;/h5&gt;
+
+&lt;p&gt;関数型プログラミングライブラリの１つ。今回はパーサーの戻り値調整のみに使った。&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Ramda Documentation&lt;br /&gt;
+&lt;a href=&#34;http://ramdajs.com/&#34;&gt;http://ramdajs.com/&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&#34;02-字句の定義:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;02. 字句の定義&lt;/h4&gt;
+
+&lt;p&gt;入力文を構成する要素を BNF のような感覚で字句の定義を行っていく。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// atoms
+const _ = P.whitespace;
+const _o = P.optWhitespace;
+const to = P.string(&#39;to&#39;);
+const on = P.string(&#39;on&#39;);
+const at = P.string(&#39;at&#39;);
+const fr = P.string(&#39;for&#39;); // TODO: alt `for`
+const slash = P.string(&#39;/&#39;);
+const command = P.regex(/post +build/i);
+const digit = P.digit;
+const letterSmall = P.range(&#39;a&#39;, &#39;z&#39;);
+const letterLarge = P.range(&#39;A&#39;, &#39;Z&#39;);
+const letter = P.alt(letterSmall, letterLarge);
+const hex = P.alt(P.range(&#39;a&#39;, &#39;f&#39;), digit);
+const symbolForSep = P.oneOf(&#39;._-&#39;);
+const symbolForBranch = P.oneOf(&#39;._-/#+&#39;);
+
+// parameters
+const username = P.alt(letter, digit, symbolForSep).many().tie();
+const reponame = P.alt(letter, digit, symbolForSep).many().tie();
+const branch = P.alt(letter, digit, symbolForBranch).many().tie();
+const job = P.alt(letter, digit, symbolForSep).many().tie();
+const repo = P.seqMap(username, _o, slash, _o, reponame, mapToRepo);
+const revision = hex.many().tie();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;03-パーサーの構築:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;03. パーサーの構築&lt;/h4&gt;
+
+&lt;p&gt;パーサーを構成する字句を組み合わせたり、関数出力の調整を行う。ノード定義は &lt;code&gt;alt&lt;/code&gt; を使っても、どの要素が該当したか識別できるするために &lt;code&gt;node&lt;/code&gt; で名前をつけていくイメージ。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// map functions
+const mapToThirdArg = (_1, _2, _3) =&amp;gt; _3;
+const mapToRepo = (_1, _2, _3, _4, _5) =&amp;gt; `${_1}/${_5}`;
+const reduceNodeToObj = R.reduce((acc, x) =&amp;gt; R.merge({ [x.name]: x.value })(acc), {});
+const transForSentence = R.pipe(mapToThirdArg, reduceNodeToObj);
+
+// nodes
+const nodeRepo = P.seqMap(to, _, repo, mapToThirdArg).node(&#39;repo&#39;);
+const nodeJob = P.seqMap(fr, _, job, mapToThirdArg).node(&#39;job&#39;);
+const nodeBranch = P.seqMap(on, _, branch, mapToThirdArg).node(&#39;branch&#39;);
+const nodeRevision = P.seqMap(at, _, revision, mapToThirdArg).node(&#39;revision&#39;);
+const node = P.alt(nodeRepo, nodeJob, nodeBranch, nodeRevision);
+const sentence = P.seqMap(command, _, node.sepBy(_), transForSentence);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;04-パーサーを使う:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;04. パーサーを使う&lt;/h4&gt;
+
+&lt;p&gt;定義した構文に沿ったテキストが入力された場合は、ノードの名前をキーとしたオブジェクトとして返され、そうでない場合は&lt;strong&gt;例外が発生&lt;/strong&gt;する。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// parse
+const text1 =
+  &#39;post build to namikingsoft/namikingsoft.github.io on master at abcd1234 for deploy&#39;;
+const text2 =
+  &#39;pOSt  BuilD   for   deploy on   master to  namikingsoft  /  namikingsoft.github.io&#39;;
+
+sentence.tryParse(text1);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;revision&amp;quot;: &amp;quot;abcd1234&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(text2);
+// {
+//   &amp;quot;job&amp;quot;: &amp;quot;deploy&amp;quot;,
+//   &amp;quot;branch&amp;quot;: &amp;quot;master&amp;quot;,
+//   &amp;quot;repo&amp;quot;:&amp;quot;namikingsoft/namikingsoft.github.io&amp;quot;
+// }
+
+sentence.tryParse(&#39;illegal text example&#39;);
+// -&amp;gt; Exception!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;まとめ:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;まとめ&lt;/h3&gt;
+
+&lt;p&gt;頑張れば正規表現で書けなくもなさそうなテキストパースを、パーサーコンビネーターで書いてみて、思ったこといくつか。&lt;/p&gt;
+
+&lt;h4 id=&#34;各要素に名前を付けられる-組み合わせることができる:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;各要素に名前を付けられる ＆ 組み合わせることができる&lt;/h4&gt;
+
+&lt;p&gt;正規表現で複雑なパーサーを書くと、意味不明な文字列の羅列になりやすく、リーダブルに書くことが難しいが、字句レベルから変数にできて、再利用もしやすい点が良いと感じた。&lt;/p&gt;
+
+&lt;h4 id=&#34;parsimmon-ドキュメントが-parsec-より簡潔でわかりやすい:7121f45fda8b34b5935206c9ca0a9e6f&#34;&gt;Parsimmon ドキュメントが Parsec より簡潔でわかりやすい&lt;/h4&gt;
+
+&lt;p&gt;Haskell の Parsec でパーサーを実装していたときは、&lt;a href=&#34;https://hackage.haskell.org/package/parsec&#34;&gt;Hackage&lt;/a&gt; を見ても、&lt;a href=&#34;https://www.google.com/search?q=haskell+parsec+documentation&#34;&gt;ググっても&lt;/a&gt;、いまいち使い方がわからず、入門用にまとまっているドキュメントを探すのに苦労したが、&lt;a href=&#34;https://github.com/jneen/parsimmon/blob/master/API.md&#34;&gt;Parsimmon ドキュメント&lt;/a&gt;はコード例とともに簡潔にまとまっていて、実装がしやすかった。Parsec の練習用にも良いかもしれない。&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/jneen/parsimmon/tree/master/examples&#34;&gt;Examples&lt;/a&gt; には、軽量スクリプト言語のパーサーや JS Linter の実装例もあったので、より複雑なパーサーを構築したくなったときに参照したい。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>静的型チェッカーflowでReact&#43;Reduxのサンプルアプリを組んでみた</title>
@@ -19,7 +252,7 @@
 
 &lt;p&gt;JavaScript型チェッカー&lt;a href=&#34;http://flowtype.org/&#34;&gt;flow&lt;/a&gt;を使って、React+Reduxで簡単なカウンターのサンプルアプリケーションを組んでみたので、その際のいくつかのポイントなどをまとめておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;サンプルアプリについて&#34;&gt;サンプルアプリについて&lt;/h3&gt;
+&lt;h3 id=&#34;サンプルアプリについて:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;サンプルアプリについて&lt;/h3&gt;
 
 &lt;p&gt;ボタンを押したら数字がインクリメントされるタイプのよくあるサンプルプログラム。&lt;/p&gt;
 
@@ -30,7 +263,7 @@
 &lt;a href=&#34;https://github.com/namikingsoft/react-redux-using-flow-example&#34;&gt;https://github.com/namikingsoft/react-redux-using-flow-example&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h4 id=&#34;ソース周りのファイル構成&#34;&gt;ソース周りのファイル構成&lt;/h4&gt;
+&lt;h4 id=&#34;ソース周りのファイル構成:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;ソース周りのファイル構成&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;react-redux-using-flow-example
 |-- src
@@ -63,17 +296,17 @@
 
 &lt;p&gt;非同期周りの処理に&lt;a href=&#34;https://github.com/yelouafi/redux-saga&#34;&gt;redux-saga&lt;/a&gt;を使ってますが、今回はその辺りの解説は省きます。&lt;/p&gt;
 
-&lt;h2 id=&#34;ポイントいくつか&#34;&gt;ポイントいくつか&lt;/h2&gt;
+&lt;h2 id=&#34;ポイントいくつか:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;ポイントいくつか&lt;/h2&gt;
 
 &lt;p&gt;サンプルアプリ実装の際に、工夫した点/苦労した点を以下にまとめておきました。&lt;/p&gt;
 
-&lt;h3 id=&#34;stateやactionの型定義をする&#34;&gt;StateやActionの型定義をする&lt;/h3&gt;
+&lt;h3 id=&#34;stateやactionの型定義をする:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;StateやActionの型定義をする&lt;/h3&gt;
 
 &lt;p&gt;ReduxのStateやActionのPayload値は、動的言語らしく何でも入れる事が可能です。一人で開発するのなら良いですが、複数人で開発する場合、&lt;strong&gt;Action-&amp;gt;Reducer-&amp;gt;Viewで引き回す型の認識が合わず、思わぬバグが発生&lt;/strong&gt;しかねません。&lt;/p&gt;
 
 &lt;p&gt;なるべく一つの型定義を使いまわし、値の引き回しに規約を与える必要があります。&lt;/p&gt;
 
-&lt;h4 id=&#34;fluxスタンダードなaction型の定義&#34;&gt;FluxスタンダードなAction型の定義&lt;/h4&gt;
+&lt;h4 id=&#34;fluxスタンダードなaction型の定義:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;FluxスタンダードなAction型の定義&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/types/Action.js
 export interface Action {
@@ -98,7 +331,7 @@ export interface PayloadAction&amp;lt;T&amp;gt; extends Action {
 
 &lt;p&gt;個人的に、PayloadがあるActionとないActionとで、型を分けたかったので、分離してあります。Payloadに使う型は以下項目のように、ジェネリクスで指定できます。&lt;/p&gt;
 
-&lt;h4 id=&#34;counter関連の型を定義する&#34;&gt;Counter関連の型を定義する&lt;/h4&gt;
+&lt;h4 id=&#34;counter関連の型を定義する:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;Counter関連の型を定義する&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/types/Counter.js
 import type { Action, PayloadAction } from &amp;quot;types/Action&amp;quot;
@@ -118,11 +351,11 @@ export type CounterAction = IncrementAction &amp;amp; ResetAction
 
 &lt;p&gt;StateやActionの型を一つのファイルに定義しておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;定義した型をactionやreducerで使い回す&#34;&gt;定義した型をActionやReducerで使い回す&lt;/h3&gt;
+&lt;h3 id=&#34;定義した型をactionやreducerで使い回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;定義した型をActionやReducerで使い回す&lt;/h3&gt;
 
 &lt;p&gt;上で定義した共通の型設定をAction関数やReducer関数で読み込みます。&lt;/p&gt;
 
-&lt;h4 id=&#34;action関数の定義で使い回す&#34;&gt;Action関数の定義で使い回す&lt;/h4&gt;
+&lt;h4 id=&#34;action関数の定義で使い回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;Action関数の定義で使い回す&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/actions/counter.js
 import type { IncrementAction, ResetAction } from &amp;quot;types/Counter&amp;quot;
@@ -146,7 +379,7 @@ export function reset(): ResetAction {
 
 &lt;p&gt;&lt;code&gt;src/types/Counter.js&lt;/code&gt;で定義したものを返り値の型として使いまわしています。Action関数ごとに型定義をするかしないかは、個人の好みとなります。&lt;/p&gt;
 
-&lt;h4 id=&#34;reducer関数の定義で使い回す&#34;&gt;Reducer関数の定義で使い回す&lt;/h4&gt;
+&lt;h4 id=&#34;reducer関数の定義で使い回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;Reducer関数の定義で使い回す&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;import { EXECUTE_INCREMENT, RESET } from &amp;quot;actions/counter&amp;quot;
 import type { CounterState, CounterAction } from &amp;quot;types/Counter&amp;quot;
@@ -189,13 +422,13 @@ export default function counter(
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンポーネントのprops型はプロパティ変数で定義&#34;&gt;コンポーネントのProps型はプロパティ変数で定義&lt;/h3&gt;
+&lt;h3 id=&#34;コンポーネントのprops型はプロパティ変数で定義:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;コンポーネントのProps型はプロパティ変数で定義&lt;/h3&gt;
 
 &lt;p&gt;&lt;code&gt;props&lt;/code&gt;というプロパティ変数に型をつけることで、ReactのPropTypesのようなチェックをできます。PropTypesは定義方法(isRequredとか)が独特な点、ランタイムエラーしかでない点で、個人的には使いづらい印象でした。&lt;/p&gt;
 
 &lt;p&gt;flowの&lt;code&gt;props&lt;/code&gt;プロパティを利用すれば、実行前の型チェック時にエラーが出るため、見逃しづらいのと、型定義もflowと同様な方法でできるので、統一感が出ます。&lt;/p&gt;
 
-&lt;h4 id=&#34;コンポーネントのプロパティ変数でpropsの型定義ができる&#34;&gt;コンポーネントのプロパティ変数でPropsの型定義ができる&lt;/h4&gt;
+&lt;h4 id=&#34;コンポーネントのプロパティ変数でpropsの型定義ができる:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;コンポーネントのプロパティ変数でPropsの型定義ができる&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js を改変
 class CounterPage extends Component {
@@ -219,13 +452,13 @@ render() {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンポーネント内で使うactionはconnectしない&#34;&gt;コンポーネント内で使うActionはconnectしない&lt;/h3&gt;
+&lt;h3 id=&#34;コンポーネント内で使うactionはconnectしない:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;コンポーネント内で使うActionはconnectしない&lt;/h3&gt;
 
 &lt;p&gt;&lt;code&gt;react-redux&lt;/code&gt;のconnectで、Action関数をpropsに関連付けてしまうと、自分で定義した型情報が消し飛んでしまうので、コンポーネントのPropsで、Action関数の型を再定義する必要があります。&lt;/p&gt;
 
 &lt;p&gt;それは面倒＆冗長なので、直接Action関数を使い、その返り値をdispatchすれば、Action関数の元の型定義を使いまわせます。&lt;/p&gt;
 
-&lt;h4 id=&#34;dispatch関数を直接propsに回す&#34;&gt;dispatch関数を直接propsに回す&lt;/h4&gt;
+&lt;h4 id=&#34;dispatch関数を直接propsに回す:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;dispatch関数を直接propsに回す&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js
 export default connect(
@@ -234,7 +467,7 @@ export default connect(
 // 第二引数に何も書かなければ、dispatch関数が直接、propsに渡される
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;action関数をconnectを通さないことで-元の型定義のまま使える&#34;&gt;action関数をconnectを通さないことで、元の型定義のまま使える&lt;/h4&gt;
+&lt;h4 id=&#34;action関数をconnectを通さないことで-元の型定義のまま使える:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;action関数をconnectを通さないことで、元の型定義のまま使える&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// src/pages/CounterPage.js
 import * as actions from &amp;quot;actions/counter&amp;quot;
@@ -246,7 +479,7 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:9406df7df5662b8fb9ed14fb8f2e9e94&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;React+Reduxでflowを使った型定義の方法をまとめました。&lt;/p&gt;
 
@@ -276,7 +509,7 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 &lt;li&gt;&lt;a href=&#34;#weakmap&#34;&gt;ES6のWeakMapを使う方法&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;なんでprivateフィールドが必要&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
+&lt;h3 id=&#34;なんでprivateフィールドが必要:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;なんでPrivateフィールドが必要？&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;インスタンス生成後に外部からフィールド値を変更させたくないため。
@@ -296,17 +529,17 @@ import * as actions from &amp;quot;actions/counter&amp;quot;
 
 &lt;p&gt;&lt;a name=&#34;munge&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
+&lt;h2 id=&#34;flowのmunge-underscoresオプションを使う方法:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;flowのmunge_underscoresオプションを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowオプションの&lt;a href=&#34;http://flowtype.org/docs/advanced-configuration.html&#34;&gt;munge_underscores&lt;/a&gt;を有効にすると、先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)を付けたフィールド/メソッドは、継承先で使えない。というルールを追加することができる。&lt;/p&gt;
 
-&lt;h3 id=&#34;flowconfig-追記&#34;&gt;.flowconfig 追記&lt;/h3&gt;
+&lt;h3 id=&#34;flowconfig-追記:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;.flowconfig 追記&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;[options]
 + munge_underscores=true
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;実装例&#34;&gt;実装例&lt;/h3&gt;
+&lt;h3 id=&#34;実装例:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;実装例&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://github.com/facebook/flow/blob/7e35d0bd45db81826868022b644c2c2b2b60c895/tests/class_munging/with_munging.js&#34;&gt;GitHub上の使用例&lt;/a&gt;を参考にして、Privateフィールドを実現してみる。&lt;/p&gt;
 
@@ -353,7 +586,7 @@ error| property `_getField2` Property not found in (:0:1,0) Sample
 
 &lt;p&gt;先頭に&lt;code&gt;_&lt;/code&gt;(アンダースコア)、ハンガリアン記法的なキモさがあって、あまり使いたくないが、一番flowっぽい解決法といえる。&lt;/p&gt;
 
-&lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
+&lt;h3 id=&#34;継承元のクラスを直接インスタンス化すると使えちゃう:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;継承元のクラスを直接インスタンス化すると使えちゃう&lt;/h3&gt;
 
 &lt;p&gt;ちなみに、継承元の&lt;code&gt;PrivateSample&lt;/code&gt;を直接使うと、エラーは出ない。継承しないと効果がないみたいなので、継承元のクラスは&lt;code&gt;export&lt;/code&gt;しないほうが良さそう。&lt;/p&gt;
 
@@ -368,7 +601,7 @@ assert(sample._param.field1 === 5) // OK
 
 &lt;p&gt;&lt;a name=&#34;weakmap&#34;&gt;&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;es6のweakmapを使う方法&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
+&lt;h2 id=&#34;es6のweakmapを使う方法:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;ES6のWeakMapを使う方法&lt;/h2&gt;
 
 &lt;p&gt;flowに限ったものではないが、ES6でPrivateなフィールドを定義する方法論がある。&lt;/p&gt;
 
@@ -381,7 +614,7 @@ assert(sample._param.field1 === 5) // OK
 
 &lt;p&gt;WeakMapでも同じファイル内ならアクセスできるが、インスタンスを作るのは概ね別ファイルなので、あまり問題ないと思った。&lt;/p&gt;
 
-&lt;h3 id=&#34;実装例-1&#34;&gt;実装例&lt;/h3&gt;
+&lt;h3 id=&#34;実装例-1:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;実装例&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-typescript&#34;&gt;// @flow
 
@@ -408,7 +641,7 @@ export default class Sample {
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;コンソールデバッグがしづらい&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
+&lt;h3 id=&#34;コンソールデバッグがしづらい:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;コンソールデバッグがしづらい&lt;/h3&gt;
 
 &lt;p&gt;WeakMapの方法で、Privateフィールド化していると、コンソールでのデバッグに苦労する。&lt;/p&gt;
 
@@ -429,7 +662,7 @@ console.log(sample);
 &lt;pre&gt;&lt;code&gt;WeakMap {Sample {} =&amp;gt; Object {field1: 1234, field2: &amp;quot;test&amp;quot;}}
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
+&lt;h3 id=&#34;おまけ-privateなメソッドも定義できる:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;[おまけ] Privateなメソッドも定義できる？&lt;/h3&gt;
 
 &lt;p&gt;同ファイル内のClass外に関数を定義して、Classメソッド内で使えば実現できなくもない。&lt;/p&gt;
 
@@ -463,7 +696,7 @@ export default class Sample {
 &lt;p&gt;ただ、ESLintを併用していると、&lt;code&gt;no-use-before-define&lt;/code&gt;に引っかかったりする。
 ちとまどろっこしいね。&lt;/p&gt;
 
-&lt;h2 id=&#34;備考-注意点&#34;&gt;備考・注意点&lt;/h2&gt;
+&lt;h2 id=&#34;備考-注意点:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;備考・注意点&lt;/h2&gt;
 
 &lt;p&gt;コンストラクタ引数にObjectを渡して、WeakMapにそのままセットする。名前引数的に使えるので、コードの見通しがよくなる。&lt;/p&gt;
 
@@ -494,7 +727,7 @@ param.field1 = 2345;
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:f379f7becb8d42a55814e7f1243a74c2&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;JavaScriptの言語仕様上、Private関係は実装しにくく、どうしてもまどろっこしい書き方になってしまう。それでも、TypeScriptを含め、様々なトランスパイラが生まれた今、以前に比べれば、ずいぶんとPrivateを実現しやすくなったと思う。&lt;/p&gt;
 
@@ -521,9 +754,9 @@ param.field1 = 2345;
 
 &lt;p&gt;が、使っていて「おやっ？」っと思う点もいくつかあったので、まとめてみた。&lt;/p&gt;
 
-&lt;h2 id=&#34;気になったこと４つ&#34;&gt;気になったこと４つ&lt;/h2&gt;
+&lt;h2 id=&#34;気になったこと４つ:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;気になったこと４つ&lt;/h2&gt;
 
-&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
+&lt;h3 id=&#34;eslintとの併用でめんどうな事が多かった:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;ESLintとの併用でめんどうな事が多かった&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href=&#34;https://github.com/babel/babel-eslint&#34;&gt;babel-eslint&lt;/a&gt;というBabelパーサーを用いれば、概ねのESLintルールがflow文法でも適応できるが、例外もあった。&lt;/p&gt;
 
@@ -570,7 +803,7 @@ module.exports = {
 &lt;p&gt;&lt;blockquote class=&#34;twitter-tweet&#34; data-conversation=&#34;none&#34; data-lang=&#34;ja&#34;&gt;&lt;p lang=&#34;ja&#34; dir=&#34;ltr&#34;&gt;&lt;a href=&#34;https://twitter.com/namikingsoft&#34;&gt;@namikingsoft&lt;/a&gt; eslint-plugin-babel はすでにお試しでしょうか？ eslint 組込ルールの中で、ECMA標準外の構文に起因する誤検知などに対処しているプラグインです。&lt;a href=&#34;https://t.co/CD5p5ejHIq&#34;&gt;https://t.co/CD5p5ejHIq&lt;/a&gt;&lt;/p&gt;&amp;mdash; Toru Nagashima (@mysticatea) &lt;a href=&#34;https://twitter.com/mysticatea/status/728262384771432448&#34;&gt;2016年5月5日&lt;/a&gt;&lt;/blockquote&gt;
 &lt;script async src=&#34;//platform.twitter.com/widgets.js&#34; charset=&#34;utf-8&#34;&gt;&lt;/script&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
+&lt;h3 id=&#34;babelを通しても-es6文法で使えないものがある:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;Babelを通しても、ES6文法で使えないものがある&lt;/h3&gt;
 
 &lt;p&gt;例えば、&lt;strong&gt;ES6のget/setプロパティ&lt;/strong&gt;が使えなかった。&lt;/p&gt;
 
@@ -593,7 +826,7 @@ console.log(a.field)
 
 &lt;p&gt;&lt;code&gt;yet&lt;/code&gt;ってあるので、いずれサポートされるのだろうか。&lt;/p&gt;
 
-&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
+&lt;h3 id=&#34;ジェネリクスなクラス-関数の使い方次第でエラー:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;ジェネリクスなクラス/関数の使い方次第でエラー&lt;/h3&gt;
 
 &lt;p&gt;flow的には&lt;strong&gt;Polymorphism&lt;/strong&gt;というのかな？&lt;br /&gt;
 TypeScriptやJava感覚で以下のように書くと、flowだとSyntaxエラーになった。&lt;/p&gt;
@@ -626,7 +859,7 @@ const map = (new WeakMap(): WeakMap&amp;lt;string, number&amp;gt;)
 const nums = toArray(2)
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
+&lt;h3 id=&#34;クラスのフィールド定義などでセミコロンが強制:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;クラスのフィールド定義などでセミコロンが強制&lt;/h3&gt;
 
 &lt;p&gt;クラスやインタフェースの定義などで、以下のように書くと、&lt;/p&gt;
 
@@ -659,7 +892,7 @@ const nums = toArray(2)
 &lt;p&gt;アンチ・セミコロン派には吐きそうなほどキツイ仕様。&lt;br /&gt;
 &lt;a href=&#34;https://github.com/facebook/flow/issues/825&#34;&gt;https://github.com/facebook/flow/issues/825&lt;/a&gt;&lt;/p&gt;
 
-&lt;h2 id=&#34;まとめ&#34;&gt;まとめ&lt;/h2&gt;
+&lt;h2 id=&#34;まとめ:9faef884f5c95a0fa0683d966b12c34f&#34;&gt;まとめ&lt;/h2&gt;
 
 &lt;p&gt;flowを使ってみて、以下４つの気になったことをまとめてみた。&lt;/p&gt;
 
@@ -684,7 +917,7 @@ const nums = toArray(2)
 
 &lt;p&gt;サーバーサイドのReactに触れたことがなかったので、React+Express+webpackで試してみた。今回試行した手順をチュートリアル的にまとめておく。まずは、シンプルにできそうなECMAScript6で試して、後半にTypeScriptで組んだソースも、おまけ的に載せておきます。&lt;/p&gt;
 
-&lt;h3 id=&#34;この記事の方針&#34;&gt;この記事の方針&lt;/h3&gt;
+&lt;h3 id=&#34;この記事の方針:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;この記事の方針&lt;/h3&gt;
 
 &lt;ul&gt;
 &lt;li&gt;クライアント -&amp;gt; サーバーサイド -&amp;gt; 結びつける。の順に実装を行う&lt;/li&gt;
@@ -696,12 +929,12 @@ const nums = toArray(2)
 &lt;/ul&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h4 id=&#34;実装するサンプルアプリの内容&#34;&gt;実装するサンプルアプリの内容&lt;/h4&gt;
+&lt;h4 id=&#34;実装するサンプルアプリの内容:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;実装するサンプルアプリの内容&lt;/h4&gt;
 
 &lt;p&gt;チュートリアルでよくありそうな、シンプルなカウンターアプリを動かす。
 &lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/sample.png&#34; alt=&#34;Sample&#34; /&gt;&lt;/p&gt;
 
-&lt;h4 id=&#34;事前に必要なソフトウェア&#34;&gt;事前に必要なソフトウェア&lt;/h4&gt;
+&lt;h4 id=&#34;事前に必要なソフトウェア:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;事前に必要なソフトウェア&lt;/h4&gt;
 
 &lt;ul&gt;
 &lt;li&gt;node.js (v5.6.0)&lt;/li&gt;
@@ -710,7 +943,7 @@ const nums = toArray(2)
 
 &lt;p&gt;現時点の安定版を使ってみたが、そこまで新しくなくても問題ない。&lt;/p&gt;
 
-&lt;h4 id=&#34;memo-利用したnpmパッケージのバージョン&#34;&gt;[Memo] 利用したnpmパッケージのバージョン&lt;/h4&gt;
+&lt;h4 id=&#34;memo-利用したnpmパッケージのバージョン:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;[Memo] 利用したnpmパッケージのバージョン&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-json&#34;&gt;&amp;quot;dependencies&amp;quot;: {
   &amp;quot;express&amp;quot;: &amp;quot;^4.13.4&amp;quot;,
@@ -731,7 +964,7 @@ const nums = toArray(2)
 
 &lt;p&gt;バージョンが新しくなったりすると、この記事の書き方と変わってくる可能性があるので、注意。&lt;/p&gt;
 
-&lt;h2 id=&#34;ecmascript6-版-チュートリアル&#34;&gt;ECMAScript6 版 (チュートリアル)&lt;/h2&gt;
+&lt;h2 id=&#34;ecmascript6-版-チュートリアル:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;ECMAScript6 版 (チュートリアル)&lt;/h2&gt;
 
 &lt;p&gt;Reactドキュメントの&lt;a href=&#34;https://facebook.github.io/react/docs/getting-started.html&#34;&gt;Getting Started&lt;/a&gt;でも、Babelを利用しているようなので、まずは、Babelを使って、ECMAScript6で記述できるようにしてみる。なお、サンプルソースの完成版を以下のリポジトリに置いといたので、参考にされたい。&lt;/p&gt;
 
@@ -740,7 +973,7 @@ const nums = toArray(2)
 &lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/tree/typescript&#34;&gt;https://github.com/namikingsoft/sample-react-server/tree/typescript&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;まずはクライアント側で動かしてみる&#34;&gt;まずはクライアント側で動かしてみる&lt;/h3&gt;
+&lt;h3 id=&#34;まずはクライアント側で動かしてみる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;まずはクライアント側で動かしてみる&lt;/h3&gt;
 
 &lt;p&gt;ファイル構成は以下の様な感じになるように、作業をすすめる。&lt;/p&gt;
 
@@ -757,7 +990,7 @@ const nums = toArray(2)
 `-- webpack.config.js   # webpack設定
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;npm-init&#34;&gt;npm init&lt;/h4&gt;
+&lt;h4 id=&#34;npm-init:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;npm init&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;mkdir react-server
 cd react-server
@@ -767,7 +1000,7 @@ npm init
 
 &lt;p&gt;適当なディレクトリを作り、package.jsonのテンプレートを作っておく。&lt;code&gt;npm init&lt;/code&gt;の選択肢も全て空Enterで問題ない。&lt;/p&gt;
 
-&lt;h4 id=&#34;必要なnpmパッケージをインストール&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なnpmパッケージをインストール:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm install --save react react-dom
 npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-react
@@ -775,7 +1008,7 @@ npm install --save-dev webpack babel-loader babel-preset-es2015 babel-preset-rea
 
 &lt;p&gt;モダンブラウザによっては、&lt;code&gt;babel-preset-es2015&lt;/code&gt;はいらないかもだが、一応。&lt;/p&gt;
 
-&lt;h4 id=&#34;webpack-config-js&#34;&gt;webpack.config.js&lt;/h4&gt;
+&lt;h4 id=&#34;webpack-config-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;webpack.config.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;var webpack = require(&#39;webpack&#39;);
 
@@ -805,7 +1038,7 @@ module.exports = {
 
 &lt;p&gt;なるべくシンプルにするため、HotLoaderなど記述は入れていない。&lt;/p&gt;
 
-&lt;h4 id=&#34;babelrc&#34;&gt;.babelrc&lt;/h4&gt;
+&lt;h4 id=&#34;babelrc:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;.babelrc&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;{
   &amp;quot;presets&amp;quot;: [&amp;quot;es2015&amp;quot;, &amp;quot;react&amp;quot;],
@@ -814,7 +1047,7 @@ module.exports = {
 
 &lt;p&gt;Babelの設定ファイル。&lt;code&gt;React -&amp;gt; ES6 -&amp;gt; ES5&lt;/code&gt;のような感じで、どのブラウザでも割りかし動作するように変換する。&lt;/p&gt;
 
-&lt;h4 id=&#34;public-test-html&#34;&gt;public/test.html&lt;/h4&gt;
+&lt;h4 id=&#34;public-test-html:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;public/test.html&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;!DOCTYPE html&amp;gt;
 &amp;lt;html&amp;gt;
@@ -830,7 +1063,7 @@ module.exports = {
 
 &lt;p&gt;クライアントJSの動作確認用HTML。&lt;code&gt;app.js&lt;/code&gt;が実行された後に、&lt;code&gt;&amp;lt;div id=&amp;quot;app&amp;quot;&amp;gt;&amp;lt;/div&amp;gt;&lt;/code&gt;の中身がCounterコンポーネントに置き換わる。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-client-js&#34;&gt;src/client.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-client-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/client.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import React from &#39;react&#39;
 import ReactDOM from &#39;react-dom&#39;
@@ -844,7 +1077,7 @@ ReactDOM.render(
 
 &lt;p&gt;Counterコンポーネントを&lt;code&gt;&amp;lt;div id=&amp;quot;app&amp;quot; /&amp;gt;&lt;/code&gt;に表示する。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-components-counter-js&#34;&gt;src/components/Counter.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-components-counter-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/components/Counter.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import React, {Component} from &#39;react&#39;
 
@@ -876,7 +1109,7 @@ export default class Counter extends Component {
 
 &lt;p&gt;Incrementボタンを押したら、内部Stateが変化して、コンポーネントを再描写される。&lt;/p&gt;
 
-&lt;h4 id=&#34;webpack実行&#34;&gt;webpack実行&lt;/h4&gt;
+&lt;h4 id=&#34;webpack実行:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;webpack実行&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;./node_modules/.bin/webpack
 &lt;/code&gt;&lt;/pre&gt;
@@ -893,12 +1126,12 @@ export default class Counter extends Component {
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm run build
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作確認&#34;&gt;動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;動作確認:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;動作確認&lt;/h4&gt;
 
 &lt;p&gt;Incrementボタンを押して、Stateの変動やコンポーネントの再描写が確認できる。
 &lt;img src=&#34;http://blog.namiking.net/images/post/2016/02/react-server-using-webpack/client-result.png&#34; alt=&#34;Client Result&#34; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&#34;サーバーサイドからコンポーネントを描写する&#34;&gt;サーバーサイドからコンポーネントを描写する&lt;/h3&gt;
+&lt;h3 id=&#34;サーバーサイドからコンポーネントを描写する:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドからコンポーネントを描写する&lt;/h3&gt;
 
 &lt;p&gt;ファイル構成としては以下。&lt;code&gt;src/server.js&lt;/code&gt;が追加されただけ。&lt;/p&gt;
 
@@ -915,7 +1148,7 @@ export default class Counter extends Component {
 `-- webpack.config.js
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;必要なnpmパッケージをインストール-1&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
+&lt;h4 id=&#34;必要なnpmパッケージをインストール-1:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;必要なnpmパッケージをインストール&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm install --save express
 npm install --save-dev babel-cli
@@ -923,7 +1156,7 @@ npm install --save-dev babel-cli
 
 &lt;p&gt;軽量Webフレームワークの&lt;code&gt;express&lt;/code&gt;と、node.jsの実行をbabelに通すための&lt;code&gt;babel-cli&lt;/code&gt;をインストールする。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-server-js&#34;&gt;src/server.js&lt;/h4&gt;
+&lt;h4 id=&#34;src-server-js:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/server.js&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;import express from &#39;express&#39;
 import React from &#39;react&#39;
@@ -951,7 +1184,7 @@ app.listen(3000, () =&amp;gt; {
 &lt;p&gt;&lt;code&gt;ReactDOMServer.renderToString()&lt;/code&gt;を使って、コンポーネントをプリレンダリングできる。&lt;br /&gt;
 (HTMLの側端は端折ってます)&lt;/p&gt;
 
-&lt;h4 id=&#34;サーバー起動&#34;&gt;サーバー起動&lt;/h4&gt;
+&lt;h4 id=&#34;サーバー起動:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバー起動&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;node_modules/.bin/babel-node src/server.js
 &lt;/code&gt;&lt;/pre&gt;
@@ -969,7 +1202,7 @@ app.listen(3000, () =&amp;gt; {
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm start
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;動作確認-1&#34;&gt;動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;動作確認-1:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;open http://localhost:3000
 &lt;/code&gt;&lt;/pre&gt;
@@ -982,11 +1215,11 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;サーバーサイドでプリレンダしただけで、クライアントでは何もしてないし、react.jsも読み込んでないため、と思われる。&lt;/p&gt;
 
-&lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
+&lt;h3 id=&#34;サーバーサイドとクライアントの処理をつなげる:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドとクライアントの処理をつなげる&lt;/h3&gt;
 
 &lt;p&gt;Fluxフレームワークで有名なReduxのドキュメントの&lt;a href=&#34;https://github.com/rackt/redux/blob/master/docs/recipes/ServerRendering.md&#34;&gt;Server Rendering&lt;/a&gt;を見るに、サーバーサイドでプリレンダした要素に、再度クライアントからレンダリングをかけている様な処理になっていたので、試してみる。&lt;/p&gt;
 
-&lt;h4 id=&#34;src-server-js-の修正&#34;&gt;src/server.js の修正&lt;/h4&gt;
+&lt;h4 id=&#34;src-server-js-の修正:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;src/server.js の修正&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-diff&#34;&gt;import express from &#39;express&#39;
 import React from &#39;react&#39;
@@ -1022,7 +1255,7 @@ app.listen(3000, () =&amp;gt; {
 
 &lt;p&gt;&lt;code&gt;app.use(express.static(&#39;public&#39;))&lt;/code&gt;で、publicディレクトリ以下のファイルを静的ファイルとして、読み込み可能として、プリレンダする内容をクライアント側の時に試した&lt;code&gt;test.html&lt;/code&gt;と同じような記述に変更する。&lt;/p&gt;
 
-&lt;h4 id=&#34;再度-動作確認&#34;&gt;再度、動作確認&lt;/h4&gt;
+&lt;h4 id=&#34;再度-動作確認:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;再度、動作確認&lt;/h4&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm start
 open http://localhost:3000
@@ -1030,7 +1263,7 @@ open http://localhost:3000
 
 &lt;p&gt;今度は、Incrementボタン押下で、正常動作を確認できるはず。&lt;/p&gt;
 
-&lt;h2 id=&#34;typescript-版-要約&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
+&lt;h2 id=&#34;typescript-版-要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;TypeScript 版 (要約)&lt;/h2&gt;
 
 &lt;p&gt;型がついていないと落ち着かない自分のためにも、TypeScriptで導入できるようにもしておきたい。クライアント側は&lt;code&gt;ts-loader&lt;/code&gt;を挟むぐらいで概ね対応できるが、サーバーサイドは&lt;code&gt;babel-node&lt;/code&gt;に相当するものがないようので、一度コンパイルしてから実行するようなイメージ。&lt;/p&gt;
 
@@ -1042,11 +1275,11 @@ open http://localhost:3000
 &lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/compare/typescript&#34;&gt;https://github.com/namikingsoft/sample-react-server/compare/typescript&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;h3 id=&#34;要約&#34;&gt;要約&lt;/h3&gt;
+&lt;h3 id=&#34;要約:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;要約&lt;/h3&gt;
 
 &lt;p&gt;TypeScript版については、上のようにチュートリアル形式にはせず、要約解説にしたい。詳しくは上の&lt;a href=&#34;https://github.com/namikingsoft/sample-react-server/compare/typescript&#34;&gt;ECMAScript6版との差分&lt;/a&gt;を見ていただいたほうが、早いかもしれない。&lt;/p&gt;
 
-&lt;h4 id=&#34;型定義ファイルマネージャにはdtsmを使った&#34;&gt;型定義ファイルマネージャにはdtsmを使った。&lt;/h4&gt;
+&lt;h4 id=&#34;型定義ファイルマネージャにはdtsmを使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;型定義ファイルマネージャにはdtsmを使った。&lt;/h4&gt;
 
 &lt;p&gt;npmとほぼ同じインタフェースなので使いやすい。以下コマンド例。&lt;/p&gt;
 
@@ -1059,7 +1292,7 @@ dtsm install --save react-dom.d.ts
 dtsm install --save express.d.ts
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;サーバーサイドのコンパイルはtscを直接使った&#34;&gt;サーバーサイドのコンパイルはtscを直接使った。&lt;/h4&gt;
+&lt;h4 id=&#34;サーバーサイドのコンパイルはtscを直接使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;サーバーサイドのコンパイルはtscを直接使った。&lt;/h4&gt;
 
 &lt;p&gt;&lt;code&gt;babel-node&lt;/code&gt;のようなラッパーコマンドがあることを期待したが、観測内ではなさそうなので、通常通り、&lt;code&gt;dist&lt;/code&gt;ディレクトリあたりに、コンパイル済みのJSを展開して、&lt;code&gt;node dist/server.js&lt;/code&gt;みたいにする作戦にした。&lt;/p&gt;
 
@@ -1096,7 +1329,7 @@ dtsm install --save express.d.ts
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;npm run build
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id=&#34;クライアントのコンパイルにはwebpackのts-loaderを使った&#34;&gt;クライアントのコンパイルにはwebpackのts-loaderを使った。&lt;/h4&gt;
+&lt;h4 id=&#34;クライアントのコンパイルにはwebpackのts-loaderを使った:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;クライアントのコンパイルにはwebpackのts-loaderを使った。&lt;/h4&gt;
 
 &lt;p&gt;webpack.config.jsの修正差分は以下の様な感じになる。なお、TypeScript自体が、&lt;code&gt;React -&amp;gt; ES6 -&amp;gt; ES5&lt;/code&gt;変換機能を備えているので、無理にBabelに通さなくてもよい。&lt;/p&gt;
 
@@ -1133,7 +1366,7 @@ module.exports = {
 };
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id=&#34;あとがき&#34;&gt;あとがき&lt;/h2&gt;
+&lt;h2 id=&#34;あとがき:5d27ec92afc6a1472e1a3eed36d540c0&#34;&gt;あとがき&lt;/h2&gt;
 
 &lt;p&gt;なるべくシンプルな構成で、サーバーサイドReactを試してみた。&lt;/p&gt;
 
