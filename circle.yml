@@ -12,7 +12,9 @@ machine:
 
 dependencies:
   pre:
-    - go get -v github.com/spf13/hugo
+    # - go get -v github.com/spf13/hugo
+    - curl -LO https://github.com/spf13/hugo/releases/download/v0.15/hugo_0.15_amd64.deb
+    - sudo dpkg -i hugo_0.15_amd64.deb
     - git config --global user.name "Circle CI"
     - git config --global user.email "circleci@example.com"
 
